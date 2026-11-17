@@ -1,0 +1,60 @@
+name: Expand Auvionyx Android source archive
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  expand-source:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Validate and extract source archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          ARCHIVE="AUVIONYX_GITHUB_READY.zip"
+          test -f "$ARCHIVE"
+          python3 - <<'PY'
+          import zipfile
+          from pathlib import PurePosixPath
+
+          archive = "AUVIONYX_GITHUB_READY.zip"
+          with zipfile.ZipFile(archive) as z:
+              bad = z.testzip()
+              if bad:
+                  raise SystemExit(f"Corrupt ZIP entry: {bad}")
+              names = z.namelist()
+              if not names or not any(n.startswith("Auvionyx/") for n in names):
+                  raise SystemExit("Expected Auvionyx/ project folder not found")
+              for name in names:
+                  p = PurePosixPath(name)
+                  if p.is_absolute() or ".." in p.parts:
+                      raise SystemExit(f"Unsafe archive path: {name}")
+              z.extractall("/tmp/auvionyx-source")
+          PY
+          test -f /tmp/auvionyx-source/Auvionyx/settings.gradle.kts
+          cp -a /tmp/auvionyx-source/Auvionyx/. .
+
+      - name: Commit expanded Android project
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No source changes to commit."
+          else
+            git commit -m "Import Auvionyx Android source baseline v1.0"
+            git push
+          fi
+
+      - name: Report imported source tree
+        run: |
+          echo "Android source import completed."
+          find app/src/main -type f | sort
