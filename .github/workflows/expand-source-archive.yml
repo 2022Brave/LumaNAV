@@ -2,6 +2,12 @@ name: Expand Auvionyx Android source archive
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - AUVIONYX_GITHUB_READY.zip
+      - .github/workflows/expand-source-archive.yml
 
 permissions:
   contents: write
