@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="obsidian_black">#FF000000</color>
+    <color name="electric_cyan">#FF00D9F5</color>
+    <color name="ice_blue">#FF63BFFF</color>
+    <color name="deep_blue">#FF1267D5</color>
+    <color name="glass_white">#FFFFFFFF</color>
+</resources>
