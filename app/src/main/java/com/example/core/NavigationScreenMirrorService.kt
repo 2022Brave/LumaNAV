@@ -146,7 +146,7 @@ class NavigationScreenMirrorService : Service() {
         mediaProjection.registerCallback(
             object : MediaProjection.Callback() {
                 override fun onStop() {
-                    stopCapture()
+                    stopCapture(stopProjection = false)
                     stopSelf()
                 }
 
@@ -256,13 +256,13 @@ class NavigationScreenMirrorService : Service() {
         }
     }
 
-    private fun stopCapture() {
+    private fun stopCapture(stopProjection: Boolean = true) {
         runCatching { virtualDisplay?.release() }
         virtualDisplay = null
         runCatching { imageReader?.setOnImageAvailableListener(null, null) }
         runCatching { imageReader?.close() }
         imageReader = null
-        runCatching { projection?.stop() }
+        if (stopProjection) runCatching { projection?.stop() }
         projection = null
         workerThread?.quitSafely()
         workerThread = null
