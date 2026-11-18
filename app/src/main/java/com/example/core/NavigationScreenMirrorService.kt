@@ -130,26 +130,16 @@ class NavigationScreenMirrorService : Service() {
         workerThread = HandlerThread("AuvionyxNavigationMirror").also { it.start() }
         worker = Handler(workerThread!!.looper)
 
-        val metrics = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            getSystemService(WindowManager::class.java).maximumWindowMetrics
+        val (initialWidth, initialHeight) = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            val bounds = getSystemService(WindowManager::class.java).maximumWindowMetrics.bounds
+            bounds.width() to bounds.height()
         } else {
             @Suppress("DEPRECATION")
-            DisplayMetrics().also {
+            val legacyMetrics = DisplayMetrics().also {
                 @Suppress("DEPRECATION")
                 (getSystemService(WINDOW_SERVICE) as WindowManager).defaultDisplay.getRealMetrics(it)
             }
-        }
-        val initialWidth = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            metrics.bounds.width()
-        } else {
-            @Suppress("DEPRECATION")
-            metrics.widthPixels
-        }
-        val initialHeight = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            metrics.bounds.height()
-        } else {
-            @Suppress("DEPRECATION")
-            metrics.heightPixels
+            legacyMetrics.widthPixels to legacyMetrics.heightPixels
         }
         densityDpi = resources.displayMetrics.densityDpi
 
