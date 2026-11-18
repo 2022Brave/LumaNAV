@@ -128,7 +128,7 @@ object LiveGoogleMapsSyncBridge {
         )
         val hasNavigationSignal = maneuverRegex.containsMatchIn(joined) ||
             distanceRegex.containsMatchIn(joined) ||
-            Regex("""\\b(navigat|destination|arrival|arriving|eta)\\b""", RegexOption.IGNORE_CASE).containsMatchIn(joined)
+            Regex("""\b(navigat|destination|arrival|arriving|eta)\b""", RegexOption.IGNORE_CASE).containsMatchIn(joined)
         if (!hasNavigationSignal) return null
 
         val instruction = parts.firstOrNull { maneuverRegex.containsMatchIn(it) }
