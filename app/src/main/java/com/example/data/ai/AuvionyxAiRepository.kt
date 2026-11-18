@@ -2,7 +2,7 @@ package com.example.data.ai
 
 import android.util.Log
 import com.google.firebase.Firebase
-import com.google.firebase.ai.GenerativeBackend
+import com.google.firebase.ai.type.GenerativeBackend
 import com.google.firebase.ai.ai
 import com.google.firebase.ai.type.Schema
 import com.google.firebase.ai.type.content
