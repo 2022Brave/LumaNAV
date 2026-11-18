@@ -125,6 +125,7 @@ class NavigationScreenMirrorService : Service() {
         if (projection != null) return
         val manager = getSystemService(MediaProjectionManager::class.java)
         val mediaProjection = manager.getMediaProjection(resultCode, resultData)
+            ?: throw IllegalStateException("MediaProjection permission result was not granted")
         projection = mediaProjection
 
         workerThread = HandlerThread("AuvionyxNavigationMirror").also { it.start() }
