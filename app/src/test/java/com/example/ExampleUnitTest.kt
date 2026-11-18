@@ -106,6 +106,43 @@ class ExampleUnitTest {
   }
 
   @Test
+  fun externalNavigationParser_supportsWazeAndMapplsWithoutInventingMissingFields() {
+    val waze = LiveGoogleMapsSyncBridge.parseNavigationNotification(
+      packageName = "com.waze",
+      title = "200 m",
+      text = "Turn left onto Outer Ring Road",
+      subText = "18 min · 7.4 km · 6:42 PM"
+    )
+    assertNotNull(waze)
+    assertEquals("Waze", waze?.providerLabel)
+    assertEquals("200 m", waze?.nextTurnDistanceLabel)
+    assertEquals("Turn left onto Outer Ring Road", waze?.turnInstruction)
+    assertEquals("Outer Ring Road", waze?.headline)
+    assertEquals(18, waze?.remainingMinutes)
+    assertEquals(7.4f, waze?.remainingDistanceKm ?: 0f, 0.01f)
+    assertEquals("6:42 PM", waze?.etaTimeLabel)
+
+    val mappls = LiveGoogleMapsSyncBridge.parseNavigationNotification(
+      packageName = "com.mmi.maps",
+      title = "In 500 m",
+      text = "Keep right",
+      subText = "Continue on NH 48"
+    )
+    assertNotNull(mappls)
+    assertEquals("Mappls", mappls?.providerLabel)
+    assertNull("Do not invent a trip duration", mappls?.remainingMinutes)
+    assertNull("Do not treat the next-turn distance as trip distance", mappls?.remainingDistanceKm)
+
+    assertNull(
+      LiveGoogleMapsSyncBridge.parseNavigationNotification(
+        packageName = "com.example.unknown",
+        title = "Turn left",
+        text = "In 200 m"
+      )
+    )
+  }
+
+  @Test
   fun serviceStatesAndVoiceStates_coverAllPhase013Contracts() {
     assertEquals(
       setOf(
