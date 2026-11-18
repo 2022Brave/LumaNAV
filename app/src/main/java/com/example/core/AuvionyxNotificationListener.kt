@@ -165,7 +165,7 @@ object LiveGoogleMapsSyncBridge {
             .filter(String::isNotBlank)
             .joinToString(" · ")
         val remainingKm = Regex(
-            """(?:remaining|left|total|journey|trip)[^\d]{0,20}(\d+(?:[.,]\d+)?)\s*km""",
+            """(\d+(?:[.,]\d+)?)\s*km""",
             RegexOption.IGNORE_CASE
         ).find(remainingSource)
             ?.groupValues?.get(1)
