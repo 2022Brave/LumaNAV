@@ -3,6 +3,7 @@ package com.example.viewmodel
 import android.app.Application
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
 import android.os.BatteryManager
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -86,6 +87,9 @@ data class MediaPlayerState(
     val externalAlbum: String? = null,
     val externalDurationSec: Int? = null,
     val externalPositionSec: Int? = null,
+    val externalAppLabel: String? = null,
+    val externalArtwork: Bitmap? = null,
+    val externalAccentArgb: Int = android.graphics.Color.rgb(0, 217, 245),
     val userStartedLocalPlayback: Boolean = false
 ) {
     val currentTrack: MediaTrack
@@ -429,7 +433,10 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
                     externalArtist = snap.artist,
                     externalAlbum = snap.album,
                     externalDurationSec = snap.durationSec,
-                    externalPositionSec = snap.positionSec
+                    externalPositionSec = snap.positionSec,
+                    externalAppLabel = snap.appLabel,
+                    externalArtwork = snap.artwork,
+                    externalAccentArgb = snap.artworkAccentArgb
                 )
             }
         } else {
@@ -441,7 +448,10 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
                     externalArtist = null,
                     externalAlbum = null,
                     externalDurationSec = null,
-                    externalPositionSec = null
+                    externalPositionSec = null,
+                    externalAppLabel = null,
+                    externalArtwork = null,
+                    externalAccentArgb = android.graphics.Color.rgb(0, 217, 245)
                 )
             }
         }
@@ -683,6 +693,9 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
                                 externalAlbum = null,
                                 externalDurationSec = null,
                                 externalPositionSec = null,
+                                externalAppLabel = null,
+                                externalArtwork = null,
+                                externalAccentArgb = android.graphics.Color.rgb(0, 217, 245),
                                 isPlaying = false
                             )
                         } else if (!state.isPlaying || !state.userStartedLocalPlayback) {
