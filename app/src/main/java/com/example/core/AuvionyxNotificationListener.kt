@@ -126,6 +126,11 @@ object LiveGoogleMapsSyncBridge {
             """\b(turn|keep|bear|merge|exit|take exit|continue|head|roundabout|u-turn|make a)\b""",
             RegexOption.IGNORE_CASE
         )
+        val hasNavigationSignal = maneuverRegex.containsMatchIn(joined) ||
+            distanceRegex.containsMatchIn(joined) ||
+            Regex("""\\b(navigat|destination|arrival|arriving|eta)\\b""", RegexOption.IGNORE_CASE).containsMatchIn(joined)
+        if (!hasNavigationSignal) return null
+
         val instruction = parts.firstOrNull { maneuverRegex.containsMatchIn(it) }
             ?: text.takeIf(String::isNotBlank)
             ?: bigText.takeIf(String::isNotBlank)
