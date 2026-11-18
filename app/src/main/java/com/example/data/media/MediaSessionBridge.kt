@@ -16,6 +16,8 @@ import com.example.data.model.MediaAppSource
 import com.example.data.model.MediaTrack
 import com.example.data.model.ServiceAvailabilityState
 
+private const val DEFAULT_ACCENT_ARGB = -16721419 // 0xFF00D9F5 (Electric Cyan)
+
 data class MediaSessionBridgeStatus(
     val serviceState: ServiceAvailabilityState = ServiceAvailabilityState.API_UNAVAILABLE,
     val activeControllerPackage: String? = null,
@@ -112,7 +114,7 @@ class MediaSessionBridge(private val context: Context) {
             val appInfo = context.packageManager.getApplicationInfo(controller.packageName, 0)
             context.packageManager.getApplicationLabel(appInfo).toString()
         }.getOrDefault(controller.packageName)
-        val artworkAccentArgb = artwork?.let(::sampleArtworkAccent) ?: AndroidColor.rgb(0, 217, 245)
+        val artworkAccentArgb = artwork?.let(::sampleArtworkAccent) ?: DEFAULT_ACCENT_ARGB
 
         val source = when {
             controller.packageName.contains("spotify", ignoreCase = true) -> MediaAppSource.SPOTIFY
@@ -136,7 +138,7 @@ class MediaSessionBridge(private val context: Context) {
     }
 
     private fun sampleArtworkAccent(bitmap: Bitmap): Int {
-        if (bitmap.width <= 0 || bitmap.height <= 0) return AndroidColor.rgb(0, 217, 245)
+        if (bitmap.width <= 0 || bitmap.height <= 0) return DEFAULT_ACCENT_ARGB
         val sample = Bitmap.createScaledBitmap(bitmap, 1, 1, true)
         val pixel = sample.getPixel(0, 0)
         if (sample !== bitmap) sample.recycle()

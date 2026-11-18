@@ -213,6 +213,7 @@ class ExampleUnitTest {
       currentTrackIndex = 0,
       positionSec = 2
     )
+    assertEquals(0xFF00D9F5.toInt(), initial.externalAccentArgb)
     val afterNext = MediaPlaybackReducer.nextTrack(initial)
     assertEquals(1, afterNext.currentTrackIndex)
     assertEquals(MediaAppSource.YOUTUBE_MUSIC, afterNext.selectedSource)

@@ -63,6 +63,8 @@ import java.util.Locale
 import java.util.UUID
 import kotlin.math.roundToInt
 
+private const val DEFAULT_ACCENT_ARGB = -16721419 // 0xFF00D9F5 (Electric Cyan)
+
 enum class PulseFeedTab(val label: String) {
     LIVE("Corridors"),
     FORECAST("Forecast"),
@@ -89,7 +91,7 @@ data class MediaPlayerState(
     val externalPositionSec: Int? = null,
     val externalAppLabel: String? = null,
     val externalArtwork: Bitmap? = null,
-    val externalAccentArgb: Int = android.graphics.Color.rgb(0, 217, 245),
+    val externalAccentArgb: Int = DEFAULT_ACCENT_ARGB,
     val userStartedLocalPlayback: Boolean = false
 ) {
     val currentTrack: MediaTrack
@@ -451,7 +453,7 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
                     externalPositionSec = null,
                     externalAppLabel = null,
                     externalArtwork = null,
-                    externalAccentArgb = android.graphics.Color.rgb(0, 217, 245)
+                    externalAccentArgb = DEFAULT_ACCENT_ARGB
                 )
             }
         }
@@ -695,7 +697,7 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
                                 externalPositionSec = null,
                                 externalAppLabel = null,
                                 externalArtwork = null,
-                                externalAccentArgb = android.graphics.Color.rgb(0, 217, 245),
+                                externalAccentArgb = DEFAULT_ACCENT_ARGB,
                                 isPlaying = false
                             )
                         } else if (!state.isPlaying || !state.userStartedLocalPlayback) {
