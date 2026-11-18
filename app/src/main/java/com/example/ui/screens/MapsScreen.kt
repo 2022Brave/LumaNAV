@@ -48,16 +48,25 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -100,6 +109,7 @@ fun MapsScreen(
     notificationAccessGranted: Boolean,
     onPermissionUpdated: () -> Unit,
     onActivateVoiceDestinationSearch: () -> Unit,
+    onSearchDestinationText: (String) -> Unit,
     onConfirmDestination: (DestinationCandidate) -> Unit,
     onClearDestinationSearch: () -> Unit,
     onSelectMarker: (MapPlaceMarker) -> Unit,
@@ -112,6 +122,8 @@ fun MapsScreen(
     val context = LocalContext.current
     val accent = LocalAuvionyxPalette.current.accentPrimary
     val reducedMotion = LocalAuvionyxMotion.current.reducedMotion
+    var typedDestination by remember { mutableStateOf("") }
+    val submitTypedDestination = { val query = typedDestination.trim(); if (query.isNotEmpty()) onSearchDestinationText(query) }
     val locationLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) {
@@ -135,6 +147,36 @@ fun MapsScreen(
             ),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            Text(
+                text = "DESTINATION",
+                style = MaterialTheme.typography.labelMedium,
+                color = IceBlue
+            )
+            OutlinedTextField(
+                value = typedDestination,
+                onValueChange = { typedDestination = it },
+                modifier = Modifier.fillMaxWidth().testTag("maps_typed_destination_input"),
+                singleLine = true,
+                placeholder = { Text("Search a place or address", color = TextSecondary) },
+                leadingIcon = {
+                    Icon(Icons.Outlined.Place, contentDescription = null, tint = accent)
+                },
+                trailingIcon = {
+                    IconButton(onClick = submitTypedDestination, enabled = typedDestination.isNotBlank()) {
+                        Icon(Icons.Outlined.Navigation, contentDescription = "Search destination", tint = accent)
+                    }
+                },
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                keyboardActions = KeyboardActions(onSearch = { submitTypedDestination() }),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = GlassWhite,
+                    unfocusedTextColor = GlassWhite,
+                    focusedBorderColor = accent,
+                    unfocusedBorderColor = GlassWhite.copy(alpha = 0.22f),
+                    cursorColor = accent
+                )
+            )
+
             // Voice Destination Trigger
             LiquidGlassLens(
                 selected = true,
@@ -167,7 +209,7 @@ fun MapsScreen(
                             text = if (mapsPulse.destinationQuery.isNotBlank()) {
                                 mapsPulse.destinationQuery
                             } else {
-                                "Speak destination"
+                                "Search by voice"
                             },
                             style = MaterialTheme.typography.titleMedium,
                             color = GlassWhite,
