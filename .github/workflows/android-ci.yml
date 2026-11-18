@@ -83,6 +83,25 @@ jobs:
       - name: Verify Gradle wrapper
         run: ./gradlew --version
 
+      # The original AI Studio project expects a conventional Android debug
+      # keystore at the repository root. Generate it only on this ephemeral
+      # GitHub-hosted runner; never commit or upload the keystore.
+      - name: Generate ephemeral debug keystore
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! -f debug.keystore ]]; then
+            keytool -genkeypair -v \
+              -keystore debug.keystore \
+              -storepass android \
+              -alias androiddebugkey \
+              -keypass android \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -dname "CN=Android Debug,O=Android,C=US"
+          fi
+
       - name: Compile debug APK
         run: ./gradlew --no-daemon :app:assembleDebug
 
