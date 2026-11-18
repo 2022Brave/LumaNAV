@@ -1,6 +1,14 @@
 package com.example
 
 import android.Manifest
+import com.example.core.NavigationScreenMirror
+import androidx.core.view.WindowInsetsControllerCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowCompat
+import androidx.compose.runtime.SideEffect
+import android.os.Build
+import android.media.projection.MediaProjectionManager
+import android.app.Activity
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -155,9 +163,43 @@ fun AuvionyxRootApp(viewModel: AuvionyxViewModel) {
     val voiceState by viewModel.voiceState.collectAsStateWithLifecycle()
 
     val context = LocalContext.current
+    val activity = context as? ComponentActivity
+    val isHudMode = activeModule == AuvionyxModule.HUD
+
+    SideEffect {
+        activity?.window?.let { window ->
+            val controller = WindowCompat.getInsetsController(window, window.decorView)
+            if (isHudMode) {
+                controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                controller.hide(WindowInsetsCompat.Type.systemBars())
+            } else {
+                controller.show(WindowInsetsCompat.Type.systemBars())
+            }
+        }
+    }
+
     val lifecycleOwner = LocalLifecycleOwner.current
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    val mirrorLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        val captureData = result.data
+        if (result.resultCode == Activity.RESULT_OK && captureData != null) {
+            NavigationScreenMirror.start(context, result.resultCode, captureData)
+        }
+    }
+
+    fun connectLiveMap() {
+        if (Build.VERSION.SDK_INT >= 34) {
+            val manager = context.getSystemService(MediaProjectionManager::class.java)
+            mirrorLauncher.launch(manager.createScreenCaptureIntent())
+        } else {
+            scope.launch {
+                snackbarHostState.showSnackbar("Live app-window map mirroring requires Android 14 or newer.")
+            }
+        }
+    }
     var askedInitialLocation by remember { mutableStateOf(false) }
 
     val startupLocationLauncher = rememberLauncherForActivityResult(
@@ -247,8 +289,8 @@ fun AuvionyxRootApp(viewModel: AuvionyxViewModel) {
                 .fillMaxSize()
                 .background(ObsidianBlack),
             containerColor = ObsidianBlack,
-            contentWindowInsets = WindowInsets.safeDrawing,
-            snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
+            snackbarHost = { if (!isHudMode) SnackbarHost(hostState = snackbarHostState) },
+            contentWindowInsets = if (isHudMode) WindowInsets(0, 0, 0, 0) else WindowInsets.safeDrawing
         ) { innerPadding ->
             BoxWithConstraints(
                 modifier = Modifier
@@ -286,6 +328,7 @@ fun AuvionyxRootApp(viewModel: AuvionyxViewModel) {
                 }
 
                 Column(modifier = Modifier.fillMaxSize()) {
+                    if (!isHudMode) {
                     GlassTopStatusBar(
                         currentLocation = telemetry.currentLocationLabel,
                         weatherTempC = telemetry.weatherTempC,
@@ -295,6 +338,7 @@ fun AuvionyxRootApp(viewModel: AuvionyxViewModel) {
                         onOpenSettings = { viewModel.navigateTo(AuvionyxModule.SETTINGS) },
                         isIdleCockpit = isIdleCockpit && activeModule == AuvionyxModule.DRIVE && isLandscapeWide
                     )
+                    }
 
                     if (isLandscapeWide) {
                         val cockpitIdleActive = isIdleCockpit && activeModule == AuvionyxModule.DRIVE
@@ -303,13 +347,13 @@ fun AuvionyxRootApp(viewModel: AuvionyxViewModel) {
                                 .fillMaxWidth()
                                 .weight(1f)
                                 .padding(
-                                    horizontal = if (cockpitIdleActive) 0.dp else 14.dp,
-                                    vertical = if (cockpitIdleActive) 0.dp else 4.dp
+                                    horizontal = if (cockpitIdleActive || isHudMode) 0.dp else 14.dp,
+                                    vertical = if (cockpitIdleActive || isHudMode) 0.dp else 4.dp
                                 ),
-                            horizontalArrangement = Arrangement.spacedBy(if (cockpitIdleActive) 0.dp else 12.dp)
+                            horizontalArrangement = Arrangement.spacedBy(if (cockpitIdleActive || isHudMode) 0.dp else 12.dp)
                         ) {
                             AnimatedVisibility(
-                                visible = !cockpitIdleActive,
+                                visible = !cockpitIdleActive && !isHudMode,
                                 enter = fadeIn(tween(LivingFlow.StandardDurationMs, easing = LivingFlow.LaminarEasing)) +
                                     expandHorizontally(tween(LivingFlow.StandardDurationMs, easing = LivingFlow.LaminarEasing)) +
                                     slideInHorizontally(LivingFlow.LaminarIntOffsetSpec) { -it / 3 },
@@ -335,13 +379,14 @@ fun AuvionyxRootApp(viewModel: AuvionyxViewModel) {
                                     isIdleCockpit = cockpitIdleActive,
                                     viewModel = viewModel,
                                     onActivateVoiceCapture = ::triggerVoiceCapture,
-                                    onOpenPhoneDialer = ::openPhoneDialer
+                                    onOpenPhoneDialer = ::openPhoneDialer,
+                                    onConnectLiveMap = ::connectLiveMap
                                 )
                             }
                         }
 
                         AnimatedVisibility(
-                            visible = !cockpitIdleActive,
+                            visible = !cockpitIdleActive && !isHudMode,
                             enter = fadeIn(tween(LivingFlow.StandardDurationMs, easing = LivingFlow.LaminarEasing)) +
                                 expandVertically(tween(LivingFlow.StandardDurationMs, easing = LivingFlow.LaminarEasing)) +
                                 slideInVertically(LivingFlow.LaminarIntOffsetSpec) { it / 3 },
@@ -370,20 +415,23 @@ fun AuvionyxRootApp(viewModel: AuvionyxViewModel) {
                                 isIdleCockpit = false,
                                 viewModel = viewModel,
                                 onActivateVoiceCapture = ::triggerVoiceCapture,
-                                onOpenPhoneDialer = ::openPhoneDialer
+                                onOpenPhoneDialer = ::openPhoneDialer,
+                                onConnectLiveMap = ::connectLiveMap
                             )
                         }
 
+                        if (!isHudMode) {
                         SmartphoneBottomNavBar(
                             activeModule = activeModule,
                             onSelectModule = { viewModel.navigateTo(it) }
                         )
+                        }
                     }
                 }
 
                 // Voice Overlay: In landscape, dock's center glowing Mic Orb launches Voice cleanly;
                 // FloatingVoiceMicOverlay expands when active/listening/processing/confirming or in portrait.
-                val showVoiceOverlay = activeModule != AuvionyxModule.VOICE &&
+                val showVoiceOverlay = activeModule != AuvionyxModule.VOICE && activeModule != AuvionyxModule.HUD &&
                     (!isLandscapeWide || voiceState.visualState != VoiceVisualState.IDLE)
                 if (showVoiceOverlay) {
                     val alignment = if (voiceState.visualState == VoiceVisualState.IDLE) {
@@ -424,7 +472,8 @@ private fun ModuleContentRouter(
     isIdleCockpit: Boolean,
     viewModel: AuvionyxViewModel,
     onActivateVoiceCapture: () -> Unit,
-    onOpenPhoneDialer: () -> Unit
+    onOpenPhoneDialer: () -> Unit,
+    onConnectLiveMap: () -> Unit
 ) {
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val mediaState by viewModel.mediaState.collectAsStateWithLifecycle()
@@ -509,13 +558,12 @@ private fun ModuleContentRouter(
                 hudConfig = settings.hudConfig,
                 settings = settings,
                 telemetry = telemetry,
-                mapsPulse = mapsPulse,
                 mediaState = mediaState,
                 onSelectModule = { viewModel.navigateTo(it) },
-                onSelectMarker = { viewModel.selectMarker(it) },
                 onPlayPause = { viewModel.togglePlayPause() },
                 onNextTrack = { viewModel.nextTrack() },
-                onPrevTrack = { viewModel.previousTrack() }
+                onPrevTrack = { viewModel.previousTrack() },
+                onConnectLiveMap = onConnectLiveMap
             )
 
             AuvionyxModule.PULSE -> PulseScreen(
