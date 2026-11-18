@@ -2,6 +2,9 @@ package com.example.ui.screens
 
 import android.Manifest
 import android.content.Intent
+import android.media.projection.MediaProjectionManager
+import android.os.Build
+import android.widget.Toast
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -49,6 +52,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -57,6 +61,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.example.core.NavigationScreenMirror
 import com.example.data.model.DestinationCandidate
 import com.example.data.model.MapPlaceMarker
 import com.example.data.model.ServiceAvailabilityState
@@ -111,6 +116,16 @@ fun MapsScreen(
         contract = ActivityResultContracts.RequestPermission()
     ) {
         onPermissionUpdated()
+    }
+
+    val isMirrorRunning = NavigationScreenMirror.isRunning.collectAsState().value
+    val mirrorLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        val captureData = result.data
+        if (result.resultCode == android.app.Activity.RESULT_OK && captureData != null) {
+            NavigationScreenMirror.start(context, result.resultCode, captureData)
+        }
     }
 
     val routeContent: @Composable (Modifier) -> Unit = { contentMod ->
@@ -239,6 +254,57 @@ fun MapsScreen(
                     }
                 }
             }
+
+            // User-consented app-window mirroring: select the external navigation app in Android's chooser.
+            LiquidGlassLens(
+                selected = isMirrorRunning,
+                onClick = {
+                    if (isMirrorRunning) {
+                        NavigationScreenMirror.stop(context)
+                    } else if (Build.VERSION.SDK_INT >= 34) {
+                        val manager = context.getSystemService(MediaProjectionManager::class.java)
+                        mirrorLauncher.launch(manager.createScreenCaptureIntent())
+                    } else {
+                        Toast.makeText(
+                            context,
+                            "Live app-window mirroring requires Android 14 or newer. Navigation notifications remain available on this device.",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                },
+                cornerRadius = 14.dp,
+                testTag = "maps_mirror_external_navigation",
+                modifier = Modifier.fillMaxWidth().height(48.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Navigation,
+                        contentDescription = null,
+                        tint = accent,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(Modifier.width(9.dp))
+                    Text(
+                        text = if (isMirrorRunning) "Stop live map mirror" else "Mirror navigation app window",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = GlassWhite
+                    )
+                }
+            }
+            Text(
+                text = if (Build.VERSION.SDK_INT >= 34) {
+                    "In the Android prompt, choose App window, then Google Maps, Waze or Mappls. Avoid Entire screen."
+                } else {
+                    "App-window mirroring needs Android 14+. Turn instructions can still sync through notifications."
+                },
+                style = MaterialTheme.typography.labelSmall,
+                color = TextSecondary,
+                modifier = Modifier.padding(horizontal = 4.dp)
+            )
 
             // Continuous Container Morphing between Destination Confirmation / Search Status / None
             val bannerState = when {
