@@ -480,6 +480,7 @@ private fun ModuleContentRouter(
                 notificationAccessGranted = permissions.notificationAccessGranted,
                 onPermissionUpdated = { viewModel.refreshPermissionsAndGps() },
                 onActivateVoiceDestinationSearch = onActivateVoiceCapture,
+                onSearchDestinationText = { viewModel.searchDestinationFromText(it) },
                 onConfirmDestination = { viewModel.confirmDestinationCandidate(it) },
                 onClearDestinationSearch = { viewModel.clearDestinationSearch() },
                 onSelectMarker = { viewModel.selectMarker(it) },
