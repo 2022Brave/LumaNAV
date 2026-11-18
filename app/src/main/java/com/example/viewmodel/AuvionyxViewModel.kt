@@ -1358,30 +1358,6 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
         publishVoiceCommandRecognised(outcome)
     }
 
-    /**
-     * Text search uses the same live geocoding, candidate confirmation and route pipeline
-     * as voice search, without requiring microphone permission or invoking speech recognition.
-     */
-    fun searchDestinationFromText(query: String) {
-        val clean = query.trim()
-        if (clean.isEmpty()) return
-        voiceJob?.cancel()
-        _mapsPulse.update {
-            it.copy(
-                confirmedDestination = null,
-                destinationCandidates = emptyList(),
-                destinationSearchState = null,
-                destinationSearchMessage = "Searching for \"$clean\"…"
-            )
-        }
-        performRealDestinationSearch(
-            query = clean,
-            action = VoiceCommandAction.NAVIGATE_TO,
-            recognizedPhrase = clean,
-            usedGemini = false
-        )
-    }
-
     private fun performRealDestinationSearch(
         query: String,
         action: VoiceCommandAction,
