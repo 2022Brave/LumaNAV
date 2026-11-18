@@ -8,7 +8,13 @@ import android.service.notification.StatusBarNotification
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import java.util.Locale
 
+/**
+ * Best-effort snapshot of navigation information exposed by a third-party navigation
+ * app through its ongoing Android notification. Values are nullable when the provider
+ * does not publish them; the app must never fill missing values with demo data.
+ */
 data class GoogleMapsLiveNavigation(
     val headline: String,
     val turnInstruction: String,
@@ -17,15 +23,16 @@ data class GoogleMapsLiveNavigation(
     val remainingMinutes: Int?,
     val remainingDistanceKm: Float?,
     val etaTimeLabel: String?,
-    val updatedAtMs: Long = System.currentTimeMillis()
+    val updatedAtMs: Long = System.currentTimeMillis(),
+    val providerLabel: String = "Google Maps",
+    val packageName: String = "com.google.android.apps.maps"
 )
 
 object LiveGoogleMapsSyncBridge {
-    private val MAPS_PACKAGES = setOf(
-        "com.google.android.apps.maps",
-        "com.google.android.apps.gmm",
-        "com.google.android.apps.gmm.dev",
-        "com.google.android.apps.gmm.qp"
+    private val PROVIDERS = mapOf(
+        "com.google.android.apps.maps" to "Google Maps",
+        "com.waze" to "Waze",
+        "com.mmi.maps" to "Mappls"
     )
 
     private val _isListenerConnected = MutableStateFlow(false)
@@ -46,107 +53,165 @@ object LiveGoogleMapsSyncBridge {
 
     internal fun setListenerConnected(connected: Boolean) {
         _isListenerConnected.value = connected
-        if (!connected) {
-            _activeNavigation.value = null
-        }
+        if (!connected) _activeNavigation.value = null
     }
 
     internal fun processActiveNotifications(notifications: Array<StatusBarNotification>?) {
         if (notifications == null) return
-        val mapsSbn = notifications
-            .filter { it.packageName in MAPS_PACKAGES && it.isOngoing }
-            .maxByOrNull { it.postTime }
-
-        if (mapsSbn == null) {
-            _activeNavigation.value = null
-        } else {
-            val parsed = parseNotification(mapsSbn.notification)
-            if (parsed != null) {
-                _activeNavigation.value = parsed
+        val active = notifications
+            .asSequence()
+            .filter { it.isOngoing && PROVIDERS.containsKey(it.packageName) }
+            .sortedByDescending { it.postTime }
+            .mapNotNull { sbn ->
+                parseNotification(sbn.packageName, sbn.notification)
             }
-        }
+            .firstOrNull()
+
+        _activeNavigation.value = active
         _mediaUpdatePulse.value = System.currentTimeMillis()
     }
 
-    internal fun parseNotification(notification: Notification?): GoogleMapsLiveNavigation? {
+    internal fun parseNotification(
+        packageName: String,
+        notification: Notification?
+    ): GoogleMapsLiveNavigation? {
         val extras = notification?.extras ?: return null
         val title = extras.getCharSequence(Notification.EXTRA_TITLE)?.toString()?.trim().orEmpty()
         val text = extras.getCharSequence(Notification.EXTRA_TEXT)?.toString()?.trim().orEmpty()
         val subText = extras.getCharSequence(Notification.EXTRA_SUB_TEXT)?.toString()?.trim().orEmpty()
         val bigText = extras.getCharSequence(Notification.EXTRA_BIG_TEXT)?.toString()?.trim().orEmpty()
+        val textLines = extras.getCharSequenceArray("android.textLines")
+            ?.mapNotNull { it?.toString()?.trim()?.takeIf(String::isNotBlank) }
+            .orEmpty()
 
-        return parseGoogleMapsNotificationText(
+        return parseNavigationNotification(
+            packageName = packageName,
             title = title,
             text = text,
             subText = subText,
-            bigText = bigText
+            bigText = bigText,
+            extraLines = textLines
         )
     }
 
     /**
-     * Pure parser for Google Maps ongoing navigation notifications across Android OS versions/locales.
+     * Provider-agnostic parser for the navigation text exposed by Maps, Waze and Mappls.
+     * Notification formats vary by app version and device language, so this intentionally
+     * preserves raw text and only extracts fields that are clearly present.
      */
-    fun parseGoogleMapsNotificationText(
+    fun parseNavigationNotification(
+        packageName: String,
         title: String,
         text: String,
         subText: String = "",
-        bigText: String = ""
+        bigText: String = "",
+        extraLines: List<String> = emptyList()
     ): GoogleMapsLiveNavigation? {
-        val combinedParts = listOf(title, text, subText, bigText).filter { it.isNotBlank() }
-        if (combinedParts.isEmpty()) return null
+        val provider = PROVIDERS[packageName] ?: return null
+        val parts = (listOf(title, text, subText, bigText) + extraLines)
+            .map(String::trim)
+            .filter(String::isNotBlank)
+            .distinct()
+        if (parts.isEmpty()) return null
 
-        val joined = combinedParts.joinToString(" · ")
-        val distanceRegex = Regex("""\b(\d+(?:[.,]\d+)?\s*(?:km|m|mi|ft))\b""", RegexOption.IGNORE_CASE)
-        val distanceMatch = distanceRegex.find(title) ?: distanceRegex.find(text)
+        val joined = parts.joinToString(" · ")
+        val distanceRegex = Regex(
+            """\b(\d+(?:[.,]\d+)?\s*(?:km|m|mi|ft))\b""",
+            RegexOption.IGNORE_CASE
+        )
+        val distanceMatch = distanceRegex.find(joined)
         val distanceLabel = distanceMatch?.groupValues?.get(1)?.trim() ?: "--"
 
-        val instruction = when {
-            text.isNotBlank() && !text.equals(distanceLabel, ignoreCase = true) -> text
-            bigText.isNotBlank() -> bigText
-            title.isNotBlank() -> title
-            else -> "Navigating via Google Maps"
-        }
+        val maneuverRegex = Regex(
+            """\b(turn|keep|bear|merge|exit|take exit|continue|head|roundabout|u-turn|make a)\b""",
+            RegexOption.IGNORE_CASE
+        )
+        val instruction = parts.firstOrNull { maneuverRegex.containsMatchIn(it) }
+            ?: text.takeIf(String::isNotBlank)
+            ?: bigText.takeIf(String::isNotBlank)
+            ?: title.takeIf(String::isNotBlank)
+            ?: joined
 
-        val headline = when {
-            title.isNotBlank() && !title.equals(distanceLabel, ignoreCase = true) -> title
-            else -> instruction
-                .replace(Regex("""^(Turn\s+(left|right)|Keep\s+(left|right)|Head\s+\w+|Merge|Continue|Exit|Take\s+exit)\s*(onto|on|toward|towards)?\s*""", RegexOption.IGNORE_CASE), "")
-                .trim()
-                .ifBlank { instruction }
-        }
+        val roadMatch = Regex(
+            """(?:onto|on|towards?|to)\s+(.+)$""",
+            RegexOption.IGNORE_CASE
+        ).find(instruction)
+        val headline = roadMatch?.groupValues?.get(1)?.trim()?.takeIf(String::isNotBlank)
+            ?: title.takeIf { it.isNotBlank() && !distanceRegex.matches(it) }
+            ?: instruction
 
-        val etaSource = listOf(subText, text, bigText, joined).firstOrNull {
-            it.contains("min", ignoreCase = true) ||
-                it.contains("hr", ignoreCase = true) ||
-                it.contains("ETA", ignoreCase = true) ||
-                it.contains(":")
-        }.orEmpty()
-
-        val minMatch = Regex("""(\d+)\s*min""", RegexOption.IGNORE_CASE).find(etaSource)
-        val hrMatch = Regex("""(\d+)\s*hr""", RegexOption.IGNORE_CASE).find(etaSource)
+        val timeSource = (listOf(subText, bigText) + extraLines + parts)
+            .filter(String::isNotBlank)
+            .distinct()
+            .joinToString(" · ")
+        val minuteMatches = Regex(
+            """(\d+)\s*(?:min|mins|minutes)\b""",
+            RegexOption.IGNORE_CASE
+        ).findAll(timeSource).toList()
+        val hourMatch = Regex(
+            """(\d+)\s*(?:hr|hrs|hours)\b""",
+            RegexOption.IGNORE_CASE
+        ).find(timeSource)
         val remainingMinutes = when {
-            hrMatch != null && minMatch != null -> hrMatch.groupValues[1].toInt() * 60 + minMatch.groupValues[1].toInt()
-            minMatch != null -> minMatch.groupValues[1].toInt()
-            hrMatch != null -> hrMatch.groupValues[1].toInt() * 60
+            hourMatch != null && minuteMatches.isNotEmpty() ->
+                hourMatch.groupValues[1].toInt() * 60 + minuteMatches.last().groupValues[1].toInt()
+            hourMatch != null -> hourMatch.groupValues[1].toInt() * 60
+            minuteMatches.isNotEmpty() -> minuteMatches.last().groupValues[1].toInt()
             else -> null
         }
 
-        val remKmMatch = Regex("""(\d+(?:[.,]\d+)?)\s*km""", RegexOption.IGNORE_CASE).find(etaSource)
-        val remainingKm = remKmMatch?.groupValues?.get(1)?.replace(',', '.')?.toFloatOrNull()
+        // Do not mistake the next-turn distance for the whole-trip distance.
+        val remainingSource = (listOf(subText, bigText) + extraLines)
+            .filter(String::isNotBlank)
+            .joinToString(" · ")
+        val remainingKm = Regex(
+            """(?:remaining|left|total|journey|trip)[^\d]{0,20}(\d+(?:[.,]\d+)?)\s*km""",
+            RegexOption.IGNORE_CASE
+        ).find(remainingSource)
+            ?.groupValues?.get(1)
+            ?.replace(',', '.')
+            ?.toFloatOrNull()
 
-        val etaTimeMatch = Regex("""\b(\d{1,2}:\d{2}(?:\s*[APap][Mm])?)\b""").find(etaSource)
-        val etaLabel = etaTimeMatch?.groupValues?.get(1)?.trim()
+        val etaSource = (listOf(subText, bigText) + extraLines)
+            .firstOrNull {
+                it.contains("ETA", ignoreCase = true) ||
+                    Regex("""\b\d{1,2}:\d{2}(?:\s*[APap][Mm])?\b""").containsMatchIn(it)
+            }.orEmpty()
+        val etaTimeLabel = Regex(
+            """\b(\d{1,2}:\d{2}(?:\s*[APap][Mm])?)\b"""
+        ).find(etaSource)?.groupValues?.get(1)
+
+        val summary = listOf(subText, bigText)
+            .firstOrNull(String::isNotBlank)
+            ?: extraLines.firstOrNull(String::isNotBlank)
+            ?: ""
 
         return GoogleMapsLiveNavigation(
             headline = headline,
             turnInstruction = instruction,
             nextTurnDistanceLabel = distanceLabel,
-            remainingSummary = subText.ifBlank { etaSource },
+            remainingSummary = summary,
             remainingMinutes = remainingMinutes,
             remainingDistanceKm = remainingKm,
-            etaTimeLabel = etaLabel
+            etaTimeLabel = etaTimeLabel,
+            providerLabel = provider,
+            packageName = packageName
         )
     }
+
+    /** Kept for existing unit tests and callers that specifically parse Google Maps. */
+    fun parseGoogleMapsNotificationText(
+        title: String,
+        text: String,
+        subText: String = "",
+        bigText: String = ""
+    ): GoogleMapsLiveNavigation? = parseNavigationNotification(
+        packageName = "com.google.android.apps.maps",
+        title = title,
+        text = text,
+        subText = subText,
+        bigText = bigText
+    )
 }
 
 class AuvionyxNotificationListener : NotificationListenerService() {
@@ -154,9 +219,7 @@ class AuvionyxNotificationListener : NotificationListenerService() {
     override fun onListenerConnected() {
         super.onListenerConnected()
         LiveGoogleMapsSyncBridge.setListenerConnected(true)
-        runCatching {
-            LiveGoogleMapsSyncBridge.processActiveNotifications(activeNotifications)
-        }
+        runCatching { LiveGoogleMapsSyncBridge.processActiveNotifications(activeNotifications) }
     }
 
     override fun onListenerDisconnected() {
@@ -165,14 +228,10 @@ class AuvionyxNotificationListener : NotificationListenerService() {
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification?) {
-        runCatching {
-            LiveGoogleMapsSyncBridge.processActiveNotifications(activeNotifications)
-        }
+        runCatching { LiveGoogleMapsSyncBridge.processActiveNotifications(activeNotifications) }
     }
 
     override fun onNotificationRemoved(sbn: StatusBarNotification?) {
-        runCatching {
-            LiveGoogleMapsSyncBridge.processActiveNotifications(activeNotifications)
-        }
+        runCatching { LiveGoogleMapsSyncBridge.processActiveNotifications(activeNotifications) }
     }
 }
