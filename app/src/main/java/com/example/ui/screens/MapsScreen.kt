@@ -178,7 +178,7 @@ fun MapsScreen(
                 }
             }
 
-            // Minimal Service Indicators + 1-Tap Google Maps Sync Prompt
+            // Minimal Service Indicators + External Navigation Sync Prompt
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -188,7 +188,7 @@ fun MapsScreen(
                     ServiceStateBadge(state = mapsPulse.gpsServiceState, labelPrefix = "GPS")
                     ServiceStateBadge(
                         state = if (notificationAccessGranted) ServiceAvailabilityState.LIVE else ServiceAvailabilityState.PERMISSION_DENIED,
-                        labelPrefix = "GMaps Sync"
+                        labelPrefix = "Nav Sync"
                     )
                 }
                 if (!locationGranted) {
@@ -231,11 +231,11 @@ fun MapsScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.NotificationsActive,
-                            contentDescription = "Sync Google Maps",
+                            contentDescription = "Enable navigation sync",
                             tint = accent,
                             modifier = Modifier.size(13.dp)
                         )
-                        Text("Sync GMaps", style = MaterialTheme.typography.labelSmall, color = IceBlue)
+                        Text("Sync Nav", style = MaterialTheme.typography.labelSmall, color = IceBlue)
                     }
                 }
             }
