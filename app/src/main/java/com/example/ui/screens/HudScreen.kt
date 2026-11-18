@@ -1,6 +1,7 @@
 package com.example.ui.screens
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import com.example.core.NavigationScreenMirror
 import androidx.compose.ui.layout.ContentScale
@@ -52,6 +53,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.sin
 import com.example.data.model.AuvionyxModule
 import com.example.data.model.HudConfig
 import com.example.data.model.MediaTrack
@@ -62,6 +66,7 @@ import com.example.ui.components.GlassCard
 import com.example.ui.components.photonLuminousTouch
 import com.example.ui.theme.DeepBlue
 import com.example.ui.theme.GlassWhite
+import com.example.ui.theme.IceBlue
 import com.example.ui.theme.ObsidianBlack
 import com.example.ui.theme.SpaceGroteskFontFamily
 import com.example.ui.theme.TextSecondary
