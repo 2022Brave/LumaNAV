@@ -105,7 +105,16 @@ class MediaSessionBridge(private val context: Context) {
         }
         val positionSec = (effectivePosMs / 1000L).toInt().coerceIn(0, durationSec)
 
-        val artwork = metadata?.getBitmap(MediaMetadata.METADATA_KEY_ART)\n            ?: metadata?.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART)\n            ?: metadata?.getBitmap(MediaMetadata.METADATA_KEY_DISPLAY_ICON)\n        val appLabel = runCatching {\n            val appInfo = context.packageManager.getApplicationInfo(controller.packageName, 0)\n            context.packageManager.getApplicationLabel(appInfo).toString()\n        }.getOrDefault(controller.packageName)\n        val artworkAccentArgb = artwork?.let(::sampleArtworkAccent) ?: AndroidColor.rgb(0, 217, 245)\n\n        val source = when {
+        val artwork = metadata?.getBitmap(MediaMetadata.METADATA_KEY_ART)
+            ?: metadata?.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART)
+            ?: metadata?.getBitmap(MediaMetadata.METADATA_KEY_DISPLAY_ICON)
+        val appLabel = runCatching {
+            val appInfo = context.packageManager.getApplicationInfo(controller.packageName, 0)
+            context.packageManager.getApplicationLabel(appInfo).toString()
+        }.getOrDefault(controller.packageName)
+        val artworkAccentArgb = artwork?.let(::sampleArtworkAccent) ?: AndroidColor.rgb(0, 217, 245)
+
+        val source = when {
             controller.packageName.contains("spotify", ignoreCase = true) -> MediaAppSource.SPOTIFY
             controller.packageName.contains("youtube", ignoreCase = true) -> MediaAppSource.YOUTUBE_MUSIC
             else -> MediaAppSource.LOCAL_PLAYER
@@ -126,7 +135,20 @@ class MediaSessionBridge(private val context: Context) {
         )
     }
 
-    private fun sampleArtworkAccent(bitmap: Bitmap): Int {\n        if (bitmap.width <= 0 || bitmap.height <= 0) return AndroidColor.rgb(0, 217, 245)\n        val sample = Bitmap.createScaledBitmap(bitmap, 1, 1, true)\n        val pixel = sample.getPixel(0, 0)\n        if (sample !== bitmap) sample.recycle()\n        val hsv = FloatArray(3)\n        AndroidColor.colorToHSV(pixel, hsv)\n        // Preserve the album's hue while keeping the accent vivid enough for glass UI.\n        hsv[1] = hsv[1].coerceIn(0.38f, 0.88f)\n        hsv[2] = hsv[2].coerceIn(0.58f, 0.96f)\n        return AndroidColor.HSVToColor(hsv)\n    }\n\n    fun getBridgeStatus(): MediaSessionBridgeStatus {
+    private fun sampleArtworkAccent(bitmap: Bitmap): Int {
+        if (bitmap.width <= 0 || bitmap.height <= 0) return AndroidColor.rgb(0, 217, 245)
+        val sample = Bitmap.createScaledBitmap(bitmap, 1, 1, true)
+        val pixel = sample.getPixel(0, 0)
+        if (sample !== bitmap) sample.recycle()
+        val hsv = FloatArray(3)
+        AndroidColor.colorToHSV(pixel, hsv)
+        // Preserve the album's hue while keeping the accent vivid enough for glass UI.
+        hsv[1] = hsv[1].coerceIn(0.38f, 0.88f)
+        hsv[2] = hsv[2].coerceIn(0.58f, 0.96f)
+        return AndroidColor.HSVToColor(hsv)
+    }
+
+    fun getBridgeStatus(): MediaSessionBridgeStatus {
         val hasListener = hasNotificationListenerAccess()
         val external = getActiveExternalController()
         val state = when {
