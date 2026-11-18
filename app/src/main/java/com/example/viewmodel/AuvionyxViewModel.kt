@@ -366,7 +366,7 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
             _mapsPulse.update { state ->
                 val updatedRoutes = listOf(
                     RouteAlternative(
-                        id = "gmaps_live_route",
+                        id = "external_live_route",
                         name = liveNav.headline,
                         viaRoad = liveNav.turnInstruction,
                         durationMin = liveNav.remainingMinutes ?: 0,
@@ -380,14 +380,14 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
                     destinationQuery = liveNav.headline,
                     isNavigating = true,
                     isExternalGoogleMapsSyncActive = true,
-                    navigationSourceLabel = "Google Maps Sync",
+                    navigationSourceLabel = "${liveNav.providerLabel} Sync",
                     mapsServiceState = ServiceAvailabilityState.LIVE,
                     routes = updatedRoutes,
                     destinationSearchMessage = liveNav.remainingSummary.ifBlank { liveNav.turnInstruction }
                 )
             }
         } else if (_mapsPulse.value.isExternalGoogleMapsSyncActive) {
-            // Google Maps navigation ended
+            // External navigation provider stopped publishing an active navigation notification
             val hasCustomRoute = _mapsPulse.value.confirmedDestination != null
             _mapsPulse.update { state ->
                 state.copy(
@@ -403,7 +403,7 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
                     it.copy(
                         nextTurnDistanceLabel = "--",
                         nextTurnRoad = "No Active Route",
-                        nextTurnInstruction = "Set a destination in Google Maps or via Voice",
+                        nextTurnInstruction = "Start navigation in Google Maps, Waze or Mappls",
                         etaTimeLabel = "--:--",
                         remainingMinutes = 0,
                         remainingDistanceKm = 0f,
