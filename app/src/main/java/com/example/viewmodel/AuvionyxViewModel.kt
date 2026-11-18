@@ -101,7 +101,7 @@ data class MediaPlayerState(
                 album = externalAlbum.orEmpty(),
                 durationSec = (externalDurationSec ?: 1).coerceAtLeast(1),
                 source = activeSessionSource,
-                adaptiveColor = ElectricCyan,
+                adaptiveColor = androidx.compose.ui.graphics.Color(externalAccentArgb),
                 artVariant = 0
             )
         } else if (userStartedLocalPlayback) {
