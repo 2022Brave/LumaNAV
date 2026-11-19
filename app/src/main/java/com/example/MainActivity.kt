@@ -164,7 +164,7 @@ fun AuvionyxRootApp(viewModel: AuvionyxViewModel) {
 
     val context = LocalContext.current
     val activity = context as? ComponentActivity
-    val isHudMode = activeModule == AuvionyxModule.HUD
+    val primaryModule = if (activeModule == AuvionyxModule.HUD) AuvionyxModule.HUD else AuvionyxModule.DRIVE\n    val isHudMode = primaryModule == AuvionyxModule.HUD
 
     SideEffect {
         activity?.window?.let { window ->
@@ -383,7 +383,7 @@ fun AuvionyxRootApp(viewModel: AuvionyxViewModel) {
                                 shrinkVertically(tween(LivingFlow.StandardDurationMs, easing = LivingFlow.LaminarEasing)) +
                                 slideOutVertically(LivingFlow.LaminarIntOffsetSpec) { it / 3 }
                         ) {
-                            PrimaryModeDock(activeModule = activeModule, onSelectModule = { primaryNavigate(it) })
+                            PrimaryModeDock(activeModule = primaryModule, onSelectModule = { primaryNavigate(it) })
                         }
                     } else {
                         Box(
