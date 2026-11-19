@@ -879,15 +879,13 @@ fun GlassNavigationRail(
 
 /**
  * Full-Width Floating Bottom Navigation Dock matching Image 3 Active Cockpit blueprint:
- * [ Phone ] [ Maps ] [ Music ] ( Cyan Mic Orb ) [ HUD ] [ Apps ]
+ * [ Phone ] [ Maps ] [ Music ] [ HUD ] [ Apps ]
  */
 @Composable
 fun GlassBottomDock(
     activeModule: AuvionyxModule,
     onSelectModule: (AuvionyxModule) -> Unit,
     onOpenPhoneDialer: () -> Unit,
-    onActivateVoice: () -> Unit,
-    isVoiceActive: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val palette = LocalAuvionyxPalette.current
@@ -964,47 +962,6 @@ fun GlassBottomDock(
                 onClick = { onSelectModule(AuvionyxModule.MUSIC) },
                 modifier = Modifier.weight(1f)
             )
-
-            // Center Illuminated Cyan Voice Mic Orb (replaces separate floating FAB clutter)
-            Box(
-                modifier = Modifier
-                    .padding(horizontal = 10.dp)
-                    .size(56.dp)
-                    .minimumInteractiveComponentSize()
-                    .testTag("dock_voice_orb")
-                    .drawBehind {
-                        drawCircle(
-                            brush = Brush.radialGradient(
-                                colors = listOf(accent.copy(alpha = 0.55f), Color.Transparent),
-                                radius = size.maxDimension * 0.95f
-                            )
-                        )
-                    }
-                    .clip(CircleShape)
-                    .background(
-                        Brush.radialGradient(
-                            colors = listOf(
-                                accent.copy(alpha = if (isVoiceActive) 0.55f else 0.30f),
-                                DeepBlue.copy(alpha = 0.65f),
-                                Color(0xFF040A14)
-                            )
-                        )
-                    )
-                    .border(
-                        width = 1.8.dp,
-                        brush = Brush.linearGradient(listOf(GlassWhite.copy(alpha = 0.85f), accent, IceBlue)),
-                        shape = CircleShape
-                    )
-                    .auvionyxBounceClick(onClick = onActivateVoice),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.Mic,
-                    contentDescription = "Activate Auvionyx Voice",
-                    tint = accent,
-                    modifier = Modifier.size(26.dp)
-                )
-            }
 
             DockShortcutItem(
                 icon = Icons.Outlined.Speed,
