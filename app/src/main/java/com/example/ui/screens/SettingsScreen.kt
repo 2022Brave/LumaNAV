@@ -2,6 +2,7 @@ package com.example.ui.screens
 
 import android.Manifest
 import android.content.Intent
+import android.net.Uri
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -417,6 +418,35 @@ fun SettingsScreen(
                         }
                     }
                 )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = "If Android shows Restricted setting blocked, open App info, tap ⋮, choose Allow restricted settings, then return here and grant Notification Access.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = TextMuted,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(Modifier.height(6.dp))
+                Surface(
+                    color = LocalAuvionyxPalette.current.accentPrimary.copy(alpha = 0.15f),
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(0.8.dp, LocalAuvionyxPalette.current.accentPrimary.copy(alpha = 0.6f)),
+                    modifier = Modifier.clickable {
+                        runCatching {
+                            context.startActivity(
+                                Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                    data = Uri.fromParts("package", context.packageName, null)
+                                }
+                            )
+                        }
+                    }.testTag("open_app_info_restricted_settings")
+                ) {
+                    Text(
+                        text = "Open Auvionyx App Info",
+                        color = GlassWhite,
+                        style = MaterialTheme.typography.labelMedium,
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 9.dp)
+                    )
+                }
             }
         }
     }
