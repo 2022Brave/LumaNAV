@@ -244,7 +244,11 @@ fun AuvionyxRootApp(viewModel: AuvionyxViewModel) {
         }
     }
 
-    fun primaryNavigate(module: AuvionyxModule) {\n        viewModel.navigateTo(if (module == AuvionyxModule.HUD) AuvionyxModule.HUD else AuvionyxModule.DRIVE)\n    }\n\n    fun openPhoneDialer() {
+    fun primaryNavigate(module: AuvionyxModule) {
+        viewModel.navigateTo(if (module == AuvionyxModule.HUD) AuvionyxModule.HUD else AuvionyxModule.DRIVE)
+    }
+
+    fun openPhoneDialer() {
         val dialIntent = Intent(Intent.ACTION_DIAL).apply {
             data = Uri.parse("tel:")
         }
@@ -405,7 +409,7 @@ fun AuvionyxRootApp(viewModel: AuvionyxViewModel) {
                         }
 
                         if (!isHudMode) {
-                        PrimaryModeDock(activeModule = activeModule, onSelectModule = { primaryNavigate(it) })
+                        PrimaryModeDock(activeModule = primaryModule, onSelectModule = { primaryNavigate(it) })
                         }
                     }
                 }
