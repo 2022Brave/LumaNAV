@@ -243,7 +243,7 @@ fun AuvionyxRootApp(viewModel: AuvionyxViewModel) {
         }
     }
 
-    fun openPhoneDialer() {
+    fun primaryNavigate(module: AuvionyxModule) {\n        viewModel.navigateTo(if (module == AuvionyxModule.HUD) AuvionyxModule.HUD else AuvionyxModule.DRIVE)\n    }\n\n    fun openPhoneDialer() {
         val dialIntent = Intent(Intent.ACTION_DIAL).apply {
             data = Uri.parse("tel:")
         }
@@ -328,17 +328,6 @@ fun AuvionyxRootApp(viewModel: AuvionyxViewModel) {
                 }
 
                 Column(modifier = Modifier.fillMaxSize()) {
-                    if (!isHudMode) {
-                    GlassTopStatusBar(
-                        currentLocation = telemetry.currentLocationLabel,
-                        weatherTempC = telemetry.weatherTempC,
-                        isLiveGps = telemetry.isLiveGpsActive,
-                        gpsAccuracyMeters = telemetry.gpsAccuracyMeters,
-                        onOpenAod = { viewModel.navigateTo(AuvionyxModule.AOD) },
-                        onOpenSettings = { viewModel.navigateTo(AuvionyxModule.SETTINGS) },
-                        isIdleCockpit = isIdleCockpit && activeModule == AuvionyxModule.DRIVE && isLandscapeWide
-                    )
-                    }
 
                     if (isLandscapeWide) {
                         val cockpitIdleActive = isIdleCockpit && activeModule == AuvionyxModule.DRIVE
