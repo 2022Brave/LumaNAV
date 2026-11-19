@@ -34,7 +34,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.DirectionsCar
 import androidx.compose.material.icons.outlined.GpsFixed
-import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.MusicNote
 import androidx.compose.material.icons.outlined.Navigation
 import androidx.compose.material.icons.outlined.Speed
@@ -551,33 +550,7 @@ private fun SmartphonePortraitDriveDashboard(
                         }
                     }
 
-                    Surface(
-                        color = Color(0xFF0E131B),
-                        shape = RoundedCornerShape(18.dp),
-                        border = BorderStroke(0.8.dp, GlassWhite.copy(alpha = 0.16f)),
-                        modifier = Modifier
-                            .height(54.dp)
-                            .clip(RoundedCornerShape(18.dp))
-                            .testTag("portrait_open_voice")
-                            .photonLuminousTouch(
-                                pressScale = 0.95f,
-                                onClick = { onSelectModule(AuvionyxModule.VOICE) }
-                            )
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 16.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.Mic,
-                                contentDescription = "Voice",
-                                tint = accent,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Text("Voice", style = MaterialTheme.typography.labelLarge, color = GlassWhite)
-                        }
-                    }
+
                 }
             }
 
