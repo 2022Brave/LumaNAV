@@ -92,7 +92,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.core.configureAppCheck
 import com.example.data.model.AuvionyxModule
 import com.example.data.voice.VoiceVisualState
-import com.example.ui.components.FloatingVoiceMicOverlay
 import com.example.ui.components.GlassBottomDock
 import com.example.ui.components.GlassNavigationRail
 import com.example.ui.components.GlassTopStatusBar
@@ -376,8 +375,6 @@ fun AuvionyxRootApp(viewModel: AuvionyxViewModel) {
                                 activeModule = activeModule,
                                 onSelectModule = { viewModel.navigateTo(it) },
                                 onOpenPhoneDialer = ::openPhoneDialer,
-                                onActivateVoice = ::triggerVoiceCapture,
-                                isVoiceActive = voiceState.visualState != VoiceVisualState.IDLE
                             )
                         }
                     } else {
@@ -406,37 +403,7 @@ fun AuvionyxRootApp(viewModel: AuvionyxViewModel) {
                     }
                 }
 
-                // Voice Overlay: In landscape, dock's center glowing Mic Orb launches Voice cleanly;
-                // FloatingVoiceMicOverlay expands when active/listening/processing/confirming or in portrait.
-                val showVoiceOverlay = activeModule != AuvionyxModule.VOICE && activeModule != AuvionyxModule.HUD &&
-                    (!isLandscapeWide || voiceState.visualState != VoiceVisualState.IDLE)
-                if (showVoiceOverlay) {
-                    val alignment = if (voiceState.visualState == VoiceVisualState.IDLE) {
-                        Alignment.BottomEnd
-                    } else if (isLandscapeWide) {
-                        Alignment.BottomCenter
-                    } else {
-                        Alignment.BottomCenter
-                    }
-                    FloatingVoiceMicOverlay(
-                        voiceState = voiceState,
-                        onActivateMic = ::triggerVoiceCapture,
-                        onStopMic = { viewModel.stopVoiceListening() },
-                        onDismiss = { viewModel.resetVoiceStateToIdle() },
-                        onRequestAudioPermission = {
-                            voiceAudioPermLauncher.launch(Manifest.permission.RECORD_AUDIO)
-                        },
-                        onConfirmCandidate = { viewModel.confirmDestinationCandidate(it) },
-                        onOpenVoiceConsole = { viewModel.navigateTo(AuvionyxModule.VOICE) },
-                        modifier = Modifier
-                            .align(alignment)
-                            .padding(
-                                start = 16.dp,
-                                end = if (isLandscapeWide) 22.dp else 16.dp,
-                                bottom = if (isLandscapeWide) 84.dp else 84.dp
-                            )
-                    )
-                }
+
             }
         }
     }
@@ -618,7 +585,6 @@ private fun SmartphoneBottomNavBar(
         Triple(AuvionyxModule.DRIVE, Icons.Outlined.Home, "Drive"),
         Triple(AuvionyxModule.MAPS, Icons.Outlined.Navigation, "Maps"),
         Triple(AuvionyxModule.MUSIC, Icons.Outlined.MusicNote, "Music"),
-        Triple(AuvionyxModule.VOICE, Icons.Outlined.Mic, "Voice"),
         Triple(AuvionyxModule.APPS, Icons.Outlined.Apps, "Apps")
     )
 
