@@ -60,7 +60,6 @@ fun AppsDrawerScreen(
         AppLauncherEntry("Auvionyx Music", "Unified Media Hub", Icons.Outlined.MusicNote, AuvionyxModule.MUSIC, "app_music"),
         AppLauncherEntry("Auvionyx HUD", "Heads-Up & Designer", Icons.Outlined.Speed, AuvionyxModule.HUD, "app_hud"),
         AppLauncherEntry("Auvionyx Pulse", "Traffic Pulse & Alerts", Icons.Outlined.Traffic, AuvionyxModule.PULSE, "app_pulse"),
-        AppLauncherEntry("Auvionyx Voice", "Hands-Free Control", Icons.Outlined.Mic, AuvionyxModule.VOICE, "app_voice"),
         AppLauncherEntry("Auvionyx AOD", "Ambient Display", Icons.Outlined.Nightlight, AuvionyxModule.AOD, "app_aod"),
         AppLauncherEntry("Auvionyx Vehicle", "Range & Climate", Icons.Outlined.DirectionsCar, AuvionyxModule.VEHICLE, "app_vehicle"),
         AppLauncherEntry("Auvionyx Settings", "System & Designer", Icons.Outlined.Settings, AuvionyxModule.SETTINGS, "app_settings"),
