@@ -3,14 +3,8 @@ package com.example.ui.screens
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import com.example.core.NavigationScreenMirror
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.collectAsState
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.border
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -82,11 +76,13 @@ fun HudScreen(
     settings: AuvionyxSettingsState,
     telemetry: VehicleTelemetry,
     mediaState: MediaPlayerState,
+    currentLocation: Pair<Double, Double>?,
+    routePoints: List<Pair<Double, Double>>,
+    headingDegrees: Int,
     onSelectModule: (AuvionyxModule) -> Unit,
     onPlayPause: () -> Unit,
     onNextTrack: () -> Unit,
     onPrevTrack: () -> Unit,
-    onConnectLiveMap: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val hudAccent = hudConfig.accentChoice.color
@@ -120,9 +116,11 @@ fun HudScreen(
                         )
                     }
                 }
-                HudLiveMapPanel(
+                AuvionyxNativeMapPanel(
+                    currentLocation = currentLocation,
+                    routePoints = routePoints,
+                    headingDegrees = headingDegrees,
                     accent = hudAccent,
-                    onConnectLiveMap = onConnectLiveMap,
                     modifier = Modifier.weight(0.73f).fillMaxHeight()
                 )
             }
@@ -142,9 +140,11 @@ fun HudScreen(
                     )
                 }
             }
-            HudLiveMapPanel(
+            AuvionyxNativeMapPanel(
+                currentLocation = currentLocation,
+                routePoints = routePoints,
+                headingDegrees = headingDegrees,
                 accent = hudAccent,
-                onConnectLiveMap = onConnectLiveMap,
                 modifier = Modifier.fillMaxWidth().weight(1f)
             )
         }
@@ -162,58 +162,38 @@ fun HudScreen(
 }
 
 @Composable
-private fun HudLiveMapPanel(
+private fun AuvionyxNativeMapPanel(
+    currentLocation: Pair<Double, Double>?,
+    routePoints: List<Pair<Double, Double>>,
+    headingDegrees: Int,
     accent: Color,
-    onConnectLiveMap: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val mirroredFrame by NavigationScreenMirror.latestFrame.collectAsState()
-    val mirrorRunning by NavigationScreenMirror.isRunning.collectAsState()
-    val shape = RoundedCornerShape(24.dp)
-
     Box(
         modifier = modifier
-            .clip(shape)
+            .clip(RoundedCornerShape(24.dp))
             .background(Color(0xFF03070C))
-            .border(1.dp, accent.copy(alpha = 0.24f), shape)
+            .border(1.dp, accent.copy(alpha = 0.24f), RoundedCornerShape(24.dp))
             .testTag("hud_live_map_panel")
-            .then(if (mirroredFrame == null && !mirrorRunning) Modifier.clickable(onClick = onConnectLiveMap) else Modifier),
-        contentAlignment = Alignment.Center
     ) {
-        if (mirroredFrame != null) {
-            Image(
-                bitmap = mirroredFrame!!.asImageBitmap(),
-                contentDescription = "Live navigation map",
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize()
+        NativeMapLibreView(
+            currentLocation = currentLocation,
+            routePoints = routePoints,
+            headingDegrees = headingDegrees,
+            accent = accent,
+            modifier = Modifier.fillMaxSize()
+        )
+        if (currentLocation == null) {
+            Text(
+                text = "WAITING FOR GPS",
+                color = GlassWhite.copy(alpha = 0.82f),
+                style = MaterialTheme.typography.labelSmall,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 12.dp)
+                    .background(Color(0xCC03070C), RoundedCornerShape(20.dp))
+                    .padding(horizontal = 12.dp, vertical = 6.dp)
             )
-        } else {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.padding(20.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.Navigation,
-                    contentDescription = null,
-                    tint = accent,
-                    modifier = Modifier.size(30.dp)
-                )
-                Text(
-                    text = if (mirrorRunning) "WAITING FOR LIVE MAP" else "TAP TO CONNECT LIVE MAP",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = GlassWhite
-                )
-                Text(
-                    text = if (mirrorRunning) {
-                        "Keep Google Maps, Waze or Mappls open in the selected app window."
-                    } else {
-                        "Start navigation in Google Maps, Waze or Mappls, then select its app window."
-                    },
-                    style = MaterialTheme.typography.labelSmall,
-                    color = TextSecondary
-                )
-            }
         }
     }
 }

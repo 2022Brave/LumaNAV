@@ -559,11 +559,13 @@ private fun ModuleContentRouter(
                 settings = settings,
                 telemetry = telemetry,
                 mediaState = mediaState,
+                currentLocation = mapsPulse.currentLatLon,
+                routePoints = mapsPulse.routePolylineGeo,
+                headingDegrees = telemetry.headingDegrees,
                 onSelectModule = { viewModel.navigateTo(it) },
                 onPlayPause = { viewModel.togglePlayPause() },
                 onNextTrack = { viewModel.nextTrack() },
-                onPrevTrack = { viewModel.previousTrack() },
-                onConnectLiveMap = onConnectLiveMap
+                onPrevTrack = { viewModel.previousTrack() }
             )
 
             AuvionyxModule.PULSE -> PulseScreen(
