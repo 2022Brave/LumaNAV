@@ -7,9 +7,13 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
 
     <queries>
         <package android:name="com.google.android.apps.maps" />
+        <package android:name="com.waze" />
+        <package android:name="com.mmi.maps" />
         <package android:name="com.spotify.music" />
         <package android:name="com.google.android.apps.youtube.music" />
         <intent>
@@ -60,7 +64,12 @@
             </intent-filter>
         </activity>
 
-        <!-- Mirrors active Google Maps turn-by-turn notifications & system MediaSession controllers -->
+        <service
+            android:name=".core.NavigationScreenMirrorService"
+            android:exported="false"
+            android:foregroundServiceType="mediaProjection" />
+
+        <!-- Mirrors active navigation turn-by-turn notifications & system MediaSession controllers -->
         <service
             android:name=".core.AuvionyxNotificationListener"
             android:exported="true"

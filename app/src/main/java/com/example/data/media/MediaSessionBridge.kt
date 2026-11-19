@@ -3,6 +3,8 @@ package com.example.data.media
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.Color as AndroidColor
 import android.media.MediaMetadata
 import android.media.session.MediaController
 import android.media.session.MediaSession
@@ -13,6 +15,8 @@ import com.example.core.AuvionyxNotificationListener
 import com.example.data.model.MediaAppSource
 import com.example.data.model.MediaTrack
 import com.example.data.model.ServiceAvailabilityState
+
+private const val DEFAULT_ACCENT_ARGB = -16721419 // 0xFF00D9F5 (Electric Cyan)
 
 data class MediaSessionBridgeStatus(
     val serviceState: ServiceAvailabilityState = ServiceAvailabilityState.API_UNAVAILABLE,
@@ -29,7 +33,10 @@ data class ExternalMediaSnapshot(
     val album: String,
     val durationSec: Int,
     val positionSec: Int,
-    val isPlaying: Boolean
+    val isPlaying: Boolean,
+    val appLabel: String,
+    val artwork: Bitmap?,
+    val artworkAccentArgb: Int
 )
 
 /**
@@ -100,6 +107,15 @@ class MediaSessionBridge(private val context: Context) {
         }
         val positionSec = (effectivePosMs / 1000L).toInt().coerceIn(0, durationSec)
 
+        val artwork = metadata?.getBitmap(MediaMetadata.METADATA_KEY_ART)
+            ?: metadata?.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART)
+            ?: metadata?.getBitmap(MediaMetadata.METADATA_KEY_DISPLAY_ICON)
+        val appLabel = runCatching {
+            val appInfo = context.packageManager.getApplicationInfo(controller.packageName, 0)
+            context.packageManager.getApplicationLabel(appInfo).toString()
+        }.getOrDefault(controller.packageName)
+        val artworkAccentArgb = artwork?.let(::sampleArtworkAccent) ?: DEFAULT_ACCENT_ARGB
+
         val source = when {
             controller.packageName.contains("spotify", ignoreCase = true) -> MediaAppSource.SPOTIFY
             controller.packageName.contains("youtube", ignoreCase = true) -> MediaAppSource.YOUTUBE_MUSIC
@@ -114,8 +130,24 @@ class MediaSessionBridge(private val context: Context) {
             album = album,
             durationSec = durationSec,
             positionSec = positionSec,
-            isPlaying = isPlaying
+            isPlaying = isPlaying,
+            appLabel = appLabel,
+            artwork = artwork,
+            artworkAccentArgb = artworkAccentArgb
         )
+    }
+
+    private fun sampleArtworkAccent(bitmap: Bitmap): Int {
+        if (bitmap.width <= 0 || bitmap.height <= 0) return DEFAULT_ACCENT_ARGB
+        val sample = Bitmap.createScaledBitmap(bitmap, 1, 1, true)
+        val pixel = sample.getPixel(0, 0)
+        if (sample !== bitmap) sample.recycle()
+        val hsv = FloatArray(3)
+        AndroidColor.colorToHSV(pixel, hsv)
+        // Preserve the album's hue while keeping the accent vivid enough for glass UI.
+        hsv[1] = hsv[1].coerceIn(0.38f, 0.88f)
+        hsv[2] = hsv[2].coerceIn(0.58f, 0.96f)
+        return AndroidColor.HSVToColor(hsv)
     }
 
     fun getBridgeStatus(): MediaSessionBridgeStatus {

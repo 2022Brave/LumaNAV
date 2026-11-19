@@ -12,6 +12,7 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -43,6 +44,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -54,6 +56,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
@@ -62,6 +65,7 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -69,6 +73,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.core.NavigationScreenMirror
 import com.example.data.model.MapPlaceMarker
 import com.example.data.model.VehicleTelemetry
 import com.example.ui.theme.DarkNeonFill
@@ -121,6 +126,7 @@ fun InteractiveMapCanvas(
     onExpandMap: (() -> Unit)? = null
 ) {
     val accent = LocalAuvionyxPalette.current.accentPrimary
+    val mirroredFrame = NavigationScreenMirror.latestFrame.collectAsState().value
     var zoom by remember { mutableFloatStateOf(1.0f) }
     var panOffset by remember { mutableStateOf(Offset.Zero) }
     var canvasSize by remember { mutableStateOf(IntSize(800, 500)) }
@@ -302,8 +308,18 @@ fun InteractiveMapCanvas(
             }
         }
 
+        // Display the user-approved navigation app window instead of the stylised placeholder.
+        mirroredFrame?.let { frame ->
+            Image(
+                bitmap = frame.asImageBitmap(),
+                contentDescription = "Live mirrored navigation app",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+
         // Interactive Markers (for Maps/Pulse screens when present)
-        markers.forEach { marker ->
+        if (mirroredFrame == null) markers.forEach { marker ->
             val isSelected = marker.id == selectedMarkerId
             val xPx = (canvasSize.width * 0.5f + panOffset.x + (marker.relX - 0.5f) * canvasSize.width * zoom).roundToInt()
             val yPx = (canvasSize.height * 0.55f + panOffset.y + (marker.relY - 0.55f) * canvasSize.height * zoom).roundToInt()
@@ -398,6 +414,7 @@ fun InteractiveMapCanvas(
 
             // Honest Placeholder / Live Source Indicator in bottom-left
             val sourceTag = when {
+                mirroredFrame != null -> "LIVE NAVIGATION APP MIRROR"
                 navigationSourceLabel != null -> navigationSourceLabel.uppercase()
                 telemetry.isLiveGpsActive -> "LIVE GPS"
                 else -> "MAP PLACEHOLDER · DEMO"
