@@ -1,13 +1,11 @@
 package com.example
 
 import android.Manifest
-import com.example.core.NavigationScreenMirror
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowCompat
 import androidx.compose.runtime.SideEffect
 import android.os.Build
-import android.media.projection.MediaProjectionManager
 import android.app.Activity
 import android.content.Intent
 import android.net.Uri
@@ -181,25 +179,6 @@ fun AuvionyxRootApp(viewModel: AuvionyxViewModel) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
-    val mirrorLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        val captureData = result.data
-        if (result.resultCode == Activity.RESULT_OK && captureData != null) {
-            NavigationScreenMirror.start(context, result.resultCode, captureData)
-        }
-    }
-
-    fun connectLiveMap() {
-        if (Build.VERSION.SDK_INT >= 34) {
-            val manager = context.getSystemService(MediaProjectionManager::class.java)
-            mirrorLauncher.launch(manager.createScreenCaptureIntent())
-        } else {
-            scope.launch {
-                snackbarHostState.showSnackbar("Live app-window map mirroring requires Android 14 or newer.")
-            }
-        }
-    }
     var askedInitialLocation by remember { mutableStateOf(false) }
 
     val startupLocationLauncher = rememberLauncherForActivityResult(
@@ -380,8 +359,7 @@ fun AuvionyxRootApp(viewModel: AuvionyxViewModel) {
                                     viewModel = viewModel,
                                     onActivateVoiceCapture = ::triggerVoiceCapture,
                                     onOpenPhoneDialer = ::openPhoneDialer,
-                                    onConnectLiveMap = ::connectLiveMap
-                                )
+                                    )
                             }
                         }
 
@@ -416,7 +394,6 @@ fun AuvionyxRootApp(viewModel: AuvionyxViewModel) {
                                 viewModel = viewModel,
                                 onActivateVoiceCapture = ::triggerVoiceCapture,
                                 onOpenPhoneDialer = ::openPhoneDialer,
-                                onConnectLiveMap = ::connectLiveMap
                             )
                         }
 
@@ -473,7 +450,6 @@ private fun ModuleContentRouter(
     viewModel: AuvionyxViewModel,
     onActivateVoiceCapture: () -> Unit,
     onOpenPhoneDialer: () -> Unit,
-    onConnectLiveMap: () -> Unit
 ) {
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val mediaState by viewModel.mediaState.collectAsStateWithLifecycle()
@@ -528,7 +504,6 @@ private fun ModuleContentRouter(
                 locationGranted = permissions.locationGranted,
                 notificationAccessGranted = permissions.notificationAccessGranted,
                 onPermissionUpdated = { viewModel.refreshPermissionsAndGps() },
-                onActivateVoiceDestinationSearch = onActivateVoiceCapture,
                 onConfirmDestination = { viewModel.confirmDestinationCandidate(it) },
                 onClearDestinationSearch = { viewModel.clearDestinationSearch() },
                 onSelectMarker = { viewModel.selectMarker(it) },
