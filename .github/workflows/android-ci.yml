@@ -35,7 +35,9 @@ jobs:
       - name: Check out source
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref_name }}
+          # On pull_request, github.ref_name is the synthetic '<number>/merge'
+          # name, not a real branch. Check out the PR head commit instead.
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
 
       - name: Set up JDK 21
