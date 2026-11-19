@@ -15,7 +15,6 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.DirectionsCar
 import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.MusicNote
 import androidx.compose.material.icons.outlined.Navigation
 import androidx.compose.material.icons.outlined.Nightlight
@@ -87,7 +86,7 @@ fun AppsDrawerScreen(
                             if (item.module != null) onSelectModule(item.module) else onOpenPhoneDialer()
                         },
                     cornerRadius = 22.dp,
-                    highlighted = item.module == AuvionyxModule.VOICE,
+                    highlighted = false,
                     contentPadding = PaddingValues(14.dp)
                 ) {
                     Column(
