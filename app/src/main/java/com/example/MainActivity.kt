@@ -164,7 +164,8 @@ fun AuvionyxRootApp(viewModel: AuvionyxViewModel) {
 
     val context = LocalContext.current
     val activity = context as? ComponentActivity
-    val primaryModule = if (activeModule == AuvionyxModule.HUD) AuvionyxModule.HUD else AuvionyxModule.DRIVE\n    val isHudMode = primaryModule == AuvionyxModule.HUD
+    val primaryModule = if (activeModule == AuvionyxModule.HUD) AuvionyxModule.HUD else AuvionyxModule.DRIVE
+    val isHudMode = primaryModule == AuvionyxModule.HUD
 
     SideEffect {
         activity?.window?.let { window ->
@@ -351,7 +352,7 @@ fun AuvionyxRootApp(viewModel: AuvionyxViewModel) {
                                     slideOutHorizontally(LivingFlow.LaminarIntOffsetSpec) { -it / 3 }
                             ) {
                                 GlassNavigationRail(
-                                    activeModule = activeModule,
+                                    activeModule = primaryModule,
                                     onSelectModule = { primaryNavigate(it) },
                                     modifier = Modifier.width(64.dp)
                                 )
@@ -363,7 +364,7 @@ fun AuvionyxRootApp(viewModel: AuvionyxViewModel) {
                                     .fillMaxHeight()
                             ) {
                                 ModuleContentRouter(
-                                    activeModule = activeModule,
+                                    activeModule = primaryModule,
                                     isLandscapeWide = true,
                                     isIdleCockpit = cockpitIdleActive,
                                     viewModel = viewModel,
@@ -393,7 +394,7 @@ fun AuvionyxRootApp(viewModel: AuvionyxViewModel) {
                                 .padding(horizontal = 14.dp, vertical = 4.dp)
                         ) {
                             ModuleContentRouter(
-                                activeModule = activeModule,
+                                activeModule = primaryModule,
                                 isLandscapeWide = false,
                                 isIdleCockpit = false,
                                 viewModel = viewModel,
