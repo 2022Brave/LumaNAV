@@ -353,7 +353,7 @@ fun AuvionyxRootApp(viewModel: AuvionyxViewModel) {
                             horizontalArrangement = Arrangement.spacedBy(if (cockpitIdleActive || isHudMode) 0.dp else 12.dp)
                         ) {
                             AnimatedVisibility(
-                                visible = !cockpitIdleActive && !isHudMode,
+                                visible = false,
                                 enter = fadeIn(tween(LivingFlow.StandardDurationMs, easing = LivingFlow.LaminarEasing)) +
                                     expandHorizontally(tween(LivingFlow.StandardDurationMs, easing = LivingFlow.LaminarEasing)) +
                                     slideInHorizontally(LivingFlow.LaminarIntOffsetSpec) { -it / 3 },
@@ -363,7 +363,7 @@ fun AuvionyxRootApp(viewModel: AuvionyxViewModel) {
                             ) {
                                 GlassNavigationRail(
                                     activeModule = activeModule,
-                                    onSelectModule = { viewModel.navigateTo(it) },
+                                    onSelectModule = { primaryNavigate(it) },
                                     modifier = Modifier.width(64.dp)
                                 )
                             }
@@ -394,13 +394,7 @@ fun AuvionyxRootApp(viewModel: AuvionyxViewModel) {
                                 shrinkVertically(tween(LivingFlow.StandardDurationMs, easing = LivingFlow.LaminarEasing)) +
                                 slideOutVertically(LivingFlow.LaminarIntOffsetSpec) { it / 3 }
                         ) {
-                            GlassBottomDock(
-                                activeModule = activeModule,
-                                onSelectModule = { viewModel.navigateTo(it) },
-                                onOpenPhoneDialer = ::openPhoneDialer,
-                                onActivateVoice = ::triggerVoiceCapture,
-                                isVoiceActive = voiceState.visualState != VoiceVisualState.IDLE
-                            )
+                            PrimaryModeDock(activeModule = activeModule, onSelectModule = { primaryNavigate(it) })
                         }
                     } else {
                         Box(
@@ -421,18 +415,14 @@ fun AuvionyxRootApp(viewModel: AuvionyxViewModel) {
                         }
 
                         if (!isHudMode) {
-                        SmartphoneBottomNavBar(
-                            activeModule = activeModule,
-                            onSelectModule = { viewModel.navigateTo(it) }
-                        )
+                        PrimaryModeDock(activeModule = activeModule, onSelectModule = { primaryNavigate(it) })
                         }
                     }
                 }
 
                 // Voice Overlay: In landscape, dock's center glowing Mic Orb launches Voice cleanly;
                 // FloatingVoiceMicOverlay expands when active/listening/processing/confirming or in portrait.
-                val showVoiceOverlay = activeModule != AuvionyxModule.VOICE && activeModule != AuvionyxModule.HUD &&
-                    (!isLandscapeWide || voiceState.visualState != VoiceVisualState.IDLE)
+                val showVoiceOverlay = false
                 if (showVoiceOverlay) {
                     val alignment = if (voiceState.visualState == VoiceVisualState.IDLE) {
                         Alignment.BottomEnd
@@ -450,7 +440,7 @@ fun AuvionyxRootApp(viewModel: AuvionyxViewModel) {
                             voiceAudioPermLauncher.launch(Manifest.permission.RECORD_AUDIO)
                         },
                         onConfirmCandidate = { viewModel.confirmDestinationCandidate(it) },
-                        onOpenVoiceConsole = { viewModel.navigateTo(AuvionyxModule.VOICE) },
+                        onOpenVoiceConsole = { /* voice UI deferred */ },
                         modifier = Modifier
                             .align(alignment)
                             .padding(
@@ -688,6 +678,28 @@ private fun SmartphoneBottomNavBar(
                             style = MaterialTheme.typography.labelSmall,
                             color = if (selected) GlassWhite else TextSecondary
                         )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PrimaryModeDock(activeModule: AuvionyxModule, onSelectModule: (AuvionyxModule) -> Unit) {
+    Surface(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 8.dp),
+        color = Color(0x990B121C), shape = RoundedCornerShape(28.dp),
+        border = BorderStroke(1.dp, GlassWhite.copy(alpha = 0.12f))
+    ) {
+        Row(modifier = Modifier.padding(6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            listOf(AuvionyxModule.DRIVE, AuvionyxModule.HUD).forEach { module ->
+                val selected = activeModule == module
+                Surface(onClick = { onSelectModule(module) }, modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(22.dp), color = if (selected) Color(0x3323D9F5) else Color.Transparent,
+                    border = if (selected) BorderStroke(1.dp, Color(0x5523D9F5)) else null) {
+                    Box(modifier = Modifier.padding(vertical = 12.dp), contentAlignment = Alignment.Center) {
+                        Text(module.label.uppercase(), color = if (selected) GlassWhite else TextSecondary, style = MaterialTheme.typography.labelLarge)
                     }
                 }
             }
