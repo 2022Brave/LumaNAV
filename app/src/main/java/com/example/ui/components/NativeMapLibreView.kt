@@ -1,8 +1,5 @@
 package com.example.ui.components
 
-import android.content.Context
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -79,7 +76,6 @@ fun NativeMapLibreView(
             override fun onResume(owner: LifecycleOwner) = mapView.onResume()
             override fun onPause(owner: LifecycleOwner) = mapView.onPause()
             override fun onStop(owner: LifecycleOwner) = mapView.onStop()
-            override fun onDestroy(owner: LifecycleOwner) = mapView.onDestroy()
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
@@ -99,6 +95,10 @@ fun NativeMapLibreView(
                     map.uiSettings.isCompassEnabled = false
                     map.uiSettings.isRotateGesturesEnabled = true
                     map.uiSettings.isTiltGesturesEnabled = false
+                    map.cameraPosition = CameraPosition.Builder()
+                        .target(LatLng(28.6139, 77.2090))
+                        .zoom(10.5)
+                        .build()
                     map.setStyle(Style.Builder().fromUri(AUVIONYX_DARK_STYLE)) { style ->
                         if (style.getSource(ROUTE_SOURCE_ID) == null) {
                             style.addSource(GeoJsonSource(ROUTE_SOURCE_ID, emptyFeatureCollection()))
@@ -165,6 +165,11 @@ fun NativeMapLibreView(
             }
         } else {
             positionSource?.setGeoJson(emptyFeatureCollection())
+            if (routeCoordinates.size >= 2 && !hasCenteredOnFix) {
+                val first = routeCoordinates.first()
+                mapLibreMap?.moveCamera(CameraUpdateFactory.newLatLngZoom(LatLng(first.latitude(), first.longitude()), 12.0))
+                hasCenteredOnFix = true
+            }
         }
     }
 }
