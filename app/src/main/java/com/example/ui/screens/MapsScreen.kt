@@ -66,7 +66,7 @@ import com.example.data.model.VehicleTelemetry
 import com.example.data.preferences.AuvionyxSettingsState
 import com.example.ui.components.DraggableLaminarSheet
 import com.example.ui.components.GlassCard
-import com.example.ui.components.InteractiveMapCanvas
+import com.example.ui.components.NativeMapLibreView
 import com.example.ui.components.LiquidGlassLens
 import com.example.ui.components.LivingFlow
 import com.example.ui.components.ServiceStateBadge
@@ -426,44 +426,22 @@ fun MapsScreen(
             ) {
                 routeContent(Modifier.fillMaxSize())
             }
-            InteractiveMapCanvas(
-                telemetry = telemetry,
-                markers = mapsPulse.markers,
-                selectedMarkerId = mapsPulse.selectedMarkerId,
-                showTrafficOverlay = settings.showTrafficOverlay,
-                showSatelliteGrid = settings.showSatelliteGrid,
-                isNavigating = mapsPulse.isNavigating,
-                onSelectMarker = onSelectMarker,
-                onToggleTraffic = onToggleTraffic,
-                onToggleSatellite = onToggleSatellite,
-                currentLatLon = mapsPulse.currentLatLon,
-                destinationLatLon = mapsPulse.destinationLatLon,
-                routePolylineGeo = mapsPulse.routePolylineGeo,
-                navigationSourceLabel = mapsPulse.navigationSourceLabel,
-                isDemoMode = settings.demoSimulationEnabled,
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
+            NativeMapLibreView(
+                currentLocation = mapsPulse.currentLatLon,
+                routePoints = mapsPulse.routePolylineGeo,
+                headingDegrees = telemetry.headingDegrees,
+                accent = accent,
+                modifier = Modifier.weight(1f).fillMaxHeight()
             )
         }
     } else {
         // Smartphone Portrait: Full-bleed interactive map beneath a velocity-responsive Draggable Laminar Sheet
         Box(modifier = modifier.fillMaxSize()) {
-            InteractiveMapCanvas(
-                telemetry = telemetry,
-                markers = mapsPulse.markers,
-                selectedMarkerId = mapsPulse.selectedMarkerId,
-                showTrafficOverlay = settings.showTrafficOverlay,
-                showSatelliteGrid = settings.showSatelliteGrid,
-                isNavigating = mapsPulse.isNavigating,
-                onSelectMarker = onSelectMarker,
-                onToggleTraffic = onToggleTraffic,
-                onToggleSatellite = onToggleSatellite,
-                currentLatLon = mapsPulse.currentLatLon,
-                destinationLatLon = mapsPulse.destinationLatLon,
-                routePolylineGeo = mapsPulse.routePolylineGeo,
-                navigationSourceLabel = mapsPulse.navigationSourceLabel,
-                isDemoMode = settings.demoSimulationEnabled,
+            NativeMapLibreView(
+                currentLocation = mapsPulse.currentLatLon,
+                routePoints = mapsPulse.routePolylineGeo,
+                headingDegrees = telemetry.headingDegrees,
+                accent = accent,
                 modifier = Modifier.fillMaxSize()
             )
 
