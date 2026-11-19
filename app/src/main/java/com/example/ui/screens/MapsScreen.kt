@@ -96,7 +96,6 @@ fun MapsScreen(
     locationGranted: Boolean,
     notificationAccessGranted: Boolean,
     onPermissionUpdated: () -> Unit,
-    onActivateVoiceDestinationSearch: () -> Unit,
     onConfirmDestination: (DestinationCandidate) -> Unit,
     onClearDestinationSearch: () -> Unit,
     onSelectMarker: (MapPlaceMarker) -> Unit,
