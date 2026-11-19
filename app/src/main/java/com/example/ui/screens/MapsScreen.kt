@@ -2,6 +2,9 @@ package com.example.ui.screens
 
 import android.Manifest
 import android.content.Intent
+import android.media.projection.MediaProjectionManager
+import android.os.Build
+import android.widget.Toast
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -39,8 +42,8 @@ import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.GpsFixed
 import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.Navigation
-import androidx.compose.material.icons.outlined.NotificationsActive
 import androidx.compose.material.icons.outlined.Place
+import androidx.compose.material.icons.outlined.NotificationsActive
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -49,6 +52,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -57,6 +62,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.example.core.NavigationScreenMirror
 import com.example.data.model.DestinationCandidate
 import com.example.data.model.MapPlaceMarker
 import com.example.data.model.ServiceAvailabilityState
@@ -113,6 +119,16 @@ fun MapsScreen(
         onPermissionUpdated()
     }
 
+    val isMirrorRunning = NavigationScreenMirror.isRunning.collectAsState().value
+    val mirrorLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        val captureData = result.data
+        if (result.resultCode == android.app.Activity.RESULT_OK && captureData != null) {
+            NavigationScreenMirror.start(context, result.resultCode, captureData)
+        }
+    }
+
     val routeContent: @Composable (Modifier) -> Unit = { contentMod ->
         Column(
             modifier = contentMod.animateContentSize(
@@ -120,6 +136,11 @@ fun MapsScreen(
             ),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            Text(
+                text = "DESTINATION",
+                style = MaterialTheme.typography.labelMedium,
+                color = IceBlue
+            )
             // Voice Destination Trigger
             LiquidGlassLens(
                 selected = true,
@@ -152,7 +173,7 @@ fun MapsScreen(
                             text = if (mapsPulse.destinationQuery.isNotBlank()) {
                                 mapsPulse.destinationQuery
                             } else {
-                                "Speak destination"
+                                "Search by voice"
                             },
                             style = MaterialTheme.typography.titleMedium,
                             color = GlassWhite,
@@ -178,7 +199,7 @@ fun MapsScreen(
                 }
             }
 
-            // Minimal Service Indicators + 1-Tap Google Maps Sync Prompt
+            // Minimal Service Indicators + External Navigation Sync Prompt
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -188,7 +209,7 @@ fun MapsScreen(
                     ServiceStateBadge(state = mapsPulse.gpsServiceState, labelPrefix = "GPS")
                     ServiceStateBadge(
                         state = if (notificationAccessGranted) ServiceAvailabilityState.LIVE else ServiceAvailabilityState.PERMISSION_DENIED,
-                        labelPrefix = "GMaps Sync"
+                        labelPrefix = "Nav Sync"
                     )
                 }
                 if (!locationGranted) {
@@ -231,14 +252,65 @@ fun MapsScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.NotificationsActive,
-                            contentDescription = "Sync Google Maps",
+                            contentDescription = "Enable navigation sync",
                             tint = accent,
                             modifier = Modifier.size(13.dp)
                         )
-                        Text("Sync GMaps", style = MaterialTheme.typography.labelSmall, color = IceBlue)
+                        Text("Sync Nav", style = MaterialTheme.typography.labelSmall, color = IceBlue)
                     }
                 }
             }
+
+            // User-consented app-window mirroring: select the external navigation app in Android's chooser.
+            LiquidGlassLens(
+                selected = isMirrorRunning,
+                onClick = {
+                    if (isMirrorRunning) {
+                        NavigationScreenMirror.stop(context)
+                    } else if (Build.VERSION.SDK_INT >= 34) {
+                        val manager = context.getSystemService(MediaProjectionManager::class.java)
+                        mirrorLauncher.launch(manager.createScreenCaptureIntent())
+                    } else {
+                        Toast.makeText(
+                            context,
+                            "Live app-window mirroring requires Android 14 or newer. Navigation notifications remain available on this device.",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                },
+                cornerRadius = 14.dp,
+                testTag = "maps_mirror_external_navigation",
+                modifier = Modifier.fillMaxWidth().height(48.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Navigation,
+                        contentDescription = null,
+                        tint = accent,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(Modifier.width(9.dp))
+                    Text(
+                        text = if (isMirrorRunning) "Stop live map mirror" else "Mirror navigation app window",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = GlassWhite
+                    )
+                }
+            }
+            Text(
+                text = if (Build.VERSION.SDK_INT >= 34) {
+                    "In the Android prompt, choose App window, then Google Maps, Waze or Mappls. Avoid Entire screen."
+                } else {
+                    "App-window mirroring needs Android 14+. Turn instructions can still sync through notifications."
+                },
+                style = MaterialTheme.typography.labelSmall,
+                color = TextSecondary,
+                modifier = Modifier.padding(horizontal = 4.dp)
+            )
 
             // Continuous Container Morphing between Destination Confirmation / Search Status / None
             val bannerState = when {
