@@ -99,7 +99,6 @@ fun NativeMapLibreView(
                     map.uiSettings.isCompassEnabled = false
                     map.uiSettings.isRotateGesturesEnabled = true
                     map.uiSettings.isTiltGesturesEnabled = false
-                    map.uiSettings.isZoomControlsEnabled = false
                     map.setStyle(Style.Builder().fromUri(AUVIONYX_DARK_STYLE)) { style ->
                         if (style.getSource(ROUTE_SOURCE_ID) == null) {
                             style.addSource(GeoJsonSource(ROUTE_SOURCE_ID, emptyFeatureCollection()))
