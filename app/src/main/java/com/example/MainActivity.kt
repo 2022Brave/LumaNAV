@@ -460,6 +460,8 @@ private fun ModuleContentRouter(
                 notificationAccessGranted = permissions.notificationAccessGranted,
                 onPermissionUpdated = { viewModel.refreshPermissionsAndGps() },
                 onConfirmDestination = { viewModel.confirmDestinationCandidate(it) },
+                onDestinationQueryChange = { viewModel.updateMapsDestinationQuery(it) },
+                onSearchDestination = { viewModel.searchDestinationFromMaps(it) },
                 onClearDestinationSearch = { viewModel.clearDestinationSearch() },
                 onSelectMarker = { viewModel.selectMarker(it) },
                 onSelectRoute = { viewModel.selectRoute(it) },
