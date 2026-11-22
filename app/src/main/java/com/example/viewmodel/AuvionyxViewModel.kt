@@ -12,6 +12,7 @@ import com.example.core.LiveGoogleMapsSyncBridge
 import com.example.data.ai.AuvionyxAiRepository
 import com.example.data.ai.ParsedNaturalVoiceIntent
 import com.example.data.maps.DestinationSearchRepository
+import com.example.data.maps.RouteMatcher
 import com.example.data.media.MediaSessionBridge
 import com.example.data.media.MediaSessionBridgeStatus
 import com.example.data.model.AodStyle
@@ -589,15 +590,32 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
                             val confirmed = state.confirmedDestination
                             val cLat = confirmed?.latitude
                             val cLon = confirmed?.longitude
-                            val updatedDist = if (cLat != null && cLon != null && !state.isExternalGoogleMapsSyncActive) {
-                                DestinationSearchRepository.haversineKm(
-                                    reading.latitude,
-                                    reading.longitude,
-                                    cLat,
-                                    cLon
+                            val routeMatch = if (state.routePolylineGeo.size >= 2) {
+                                RouteMatcher.matchLocationToRoute(
+                                    latitude = reading.latitude,
+                                    longitude = reading.longitude,
+                                    route = state.routePolylineGeo
                                 )
                             } else {
                                 null
+                            }
+                            val acceptableRouteMatch = routeMatch?.takeIf {
+                                val accuracyAllowance = (reading.accuracyMeters ?: 0f) * 2.0
+                                it.distanceToRouteMeters <= maxOf(75.0, accuracyAllowance)
+                            }
+                            val updatedDist = when {
+                                acceptableRouteMatch != null -> {
+                                    (acceptableRouteMatch.remainingDistanceMeters / 1000.0).toFloat()
+                                }
+                                cLat != null && cLon != null && !state.isExternalGoogleMapsSyncActive -> {
+                                    DestinationSearchRepository.haversineKm(
+                                        reading.latitude,
+                                        reading.longitude,
+                                        cLat,
+                                        cLon
+                                    )
+                                }
+                                else -> null
                             }
                             if (updatedDist != null) {
                                 _telemetry.update { t ->
