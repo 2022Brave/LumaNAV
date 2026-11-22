@@ -1,4 +1,4 @@
-## LUMANAV
+# LumaNav
 
 **Find your way. Feel the drive.**
 
