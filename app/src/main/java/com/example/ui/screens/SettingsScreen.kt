@@ -93,10 +93,6 @@ fun SettingsScreen(
         contract = ActivityResultContracts.RequestPermission()
     ) { onRefreshPermissions() }
 
-    val audioLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { onRefreshPermissions() }
-
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -390,7 +386,7 @@ fun SettingsScreen(
         item {
             ExpandableGlassPanel(
                 title = "Permission Manager",
-                subtitle = "Real Android Runtime Permissions (Location & Voice Mic)",
+                subtitle = "Location and navigation notification access",
                 expanded = permissionsExpanded,
                 onToggle = { permissionsExpanded = !permissionsExpanded }
             ) {
@@ -399,13 +395,6 @@ fun SettingsScreen(
                     granted = permissions.locationGranted,
                     testTag = "perm_request_location",
                     onRequest = { locLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION) }
-                )
-                Spacer(Modifier.height(10.dp))
-                PermissionRow(
-                    title = "Microphone for Auvionyx Voice (RECORD_AUDIO)",
-                    granted = permissions.audioGranted,
-                    testTag = "perm_request_audio",
-                    onRequest = { audioLauncher.launch(Manifest.permission.RECORD_AUDIO) }
                 )
                 Spacer(Modifier.height(10.dp))
                 PermissionRow(
