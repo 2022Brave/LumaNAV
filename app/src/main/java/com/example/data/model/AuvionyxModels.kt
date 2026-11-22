@@ -164,6 +164,7 @@ data class VehicleTelemetry(
     val driveMode: DriveMode = DriveMode.TOUR,
     val tirePsi: List<Int> = emptyList(),
     val isLiveGpsActive: Boolean = false,
+    val isLocationFallback: Boolean = false,
     val isSimulationRunning: Boolean = false,
     val isLiveWeather: Boolean = false
 )
