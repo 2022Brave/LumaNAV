@@ -1,4 +1,4 @@
-name: Auvionyx Android CI
+name: LumaNav Android CI
 
 on:
   workflow_dispatch:
@@ -6,6 +6,7 @@ on:
     branches:
       - development
       - "feature/**"
+      - "branding/**"
     paths:
       - ".github/workflows/android-ci.yml"
       - "app/**"
@@ -22,7 +23,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: auvionyx-android-ci-${{ github.ref }}
+  group: lumanav-android-ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -112,7 +113,7 @@ jobs:
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: auvionyx-debug-${{ github.sha }}
+          name: lumanav-debug-${{ github.sha }}
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 14
@@ -124,7 +125,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: auvionyx-test-reports-${{ github.sha }}
+          name: lumanav-test-reports-${{ github.sha }}
           path: app/build/reports/tests/testDebugUnitTest/
           if-no-files-found: ignore
           retention-days: 14
