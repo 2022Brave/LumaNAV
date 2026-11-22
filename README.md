@@ -38,7 +38,7 @@ For local development, copy the example to `app/google-services.json` and replac
 
 ## Important implementation notes
 
-- The current map view is a custom Compose canvas; Google Maps SDK tiles are not included in this snapshot.
+- The Maps screen uses a native MapLibre view with OpenFreeMap style tiles; the HUD also contains a separate stylized Compose canvas preview. Google Maps SDK tiles are not included.
 - OSRM is used for driving-route requests and Open-Meteo for weather, as documented in the inventory.
 - Voice uses Android `SpeechRecognizer` and `TextToSpeech` APIs.
 - External media control and metadata use Android media-session APIs and require Notification Access.
