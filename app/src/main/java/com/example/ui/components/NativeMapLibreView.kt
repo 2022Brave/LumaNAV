@@ -1,6 +1,6 @@
 package com.example.ui.components
 
-import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -122,52 +122,6 @@ fun NativeMapLibreView(
         }
     }
 
-    AndroidView(
-        modifier = modifier,
-        factory = {
-            mapView.apply {
-                getMapAsync { map ->
-                    mapLibreMap = map
-                    map.uiSettings.isCompassEnabled = false
-                    map.uiSettings.isRotateGesturesEnabled = true
-                    map.uiSettings.isTiltGesturesEnabled = true
-                    map.addOnCameraMoveStartedListener(cameraGestureListener)
-                    map.cameraPosition = CameraPosition.Builder()
-                        .target(LatLng(28.6139, 77.2090))
-                        .zoom(10.5)
-                        .build()
-                    map.setStyle(Style.Builder().fromUri(AUVIONYX_DARK_STYLE)) { style ->
-                        styleError = null
-                        if (style.getSource(ROUTE_SOURCE_ID) == null) {
-                            style.addSource(GeoJsonSource(ROUTE_SOURCE_ID, emptyFeatureCollection()))
-                            style.addLayer(
-                                LineLayer(ROUTE_LAYER_ID, ROUTE_SOURCE_ID).withProperties(
-                                    lineColor(accent.toHexColor()),
-                                    lineWidth(5.5f),
-                                    lineCap(Property.LINE_CAP_ROUND),
-                                    lineJoin(Property.LINE_JOIN_ROUND)
-                                )
-                            )
-                        }
-                        if (style.getSource(POSITION_SOURCE_ID) == null) {
-                            style.addSource(GeoJsonSource(POSITION_SOURCE_ID, emptyFeatureCollection()))
-                            style.addLayer(
-                                CircleLayer(POSITION_LAYER_ID, POSITION_SOURCE_ID).withProperties(
-                                    circleRadius(7.5f),
-                                    circleColor(accent.toHexColor()),
-                                    circleStrokeColor("#FFFFFF"),
-                                    circleStrokeWidth(2.2f)
-                                )
-                            )
-                        }
-                        loadedStyle = style
-                        styleLoaded = true
-                    }
-                }
-            }
-        },
-        update = { /* Map updates are driven below without recreating the native view. */ }
-    )
 
     LaunchedEffect(retryToken, mapLibreMap) {
         if (retryToken > 0 && mapLibreMap != null) {
@@ -260,7 +214,48 @@ fun NativeMapLibreView(
     Box(modifier = modifier) {
         AndroidView(
             modifier = Modifier.matchParentSize(),
-            factory = { mapView },
+            factory = {
+            mapView.apply {
+                getMapAsync { map ->
+                    mapLibreMap = map
+                    map.uiSettings.isCompassEnabled = false
+                    map.uiSettings.isRotateGesturesEnabled = true
+                    map.uiSettings.isTiltGesturesEnabled = true
+                    map.addOnCameraMoveStartedListener(cameraGestureListener)
+                    map.cameraPosition = CameraPosition.Builder()
+                        .target(LatLng(28.6139, 77.2090))
+                        .zoom(10.5)
+                        .build()
+                    map.setStyle(Style.Builder().fromUri(AUVIONYX_DARK_STYLE)) { style ->
+                        styleError = null
+                        if (style.getSource(ROUTE_SOURCE_ID) == null) {
+                            style.addSource(GeoJsonSource(ROUTE_SOURCE_ID, emptyFeatureCollection()))
+                            style.addLayer(
+                                LineLayer(ROUTE_LAYER_ID, ROUTE_SOURCE_ID).withProperties(
+                                    lineColor(accent.toHexColor()),
+                                    lineWidth(5.5f),
+                                    lineCap(Property.LINE_CAP_ROUND),
+                                    lineJoin(Property.LINE_JOIN_ROUND)
+                                )
+                            )
+                        }
+                        if (style.getSource(POSITION_SOURCE_ID) == null) {
+                            style.addSource(GeoJsonSource(POSITION_SOURCE_ID, emptyFeatureCollection()))
+                            style.addLayer(
+                                CircleLayer(POSITION_LAYER_ID, POSITION_SOURCE_ID).withProperties(
+                                    circleRadius(7.5f),
+                                    circleColor(accent.toHexColor()),
+                                    circleStrokeColor("#FFFFFF"),
+                                    circleStrokeWidth(2.2f)
+                                )
+                            )
+                        }
+                        loadedStyle = style
+                        styleLoaded = true
+                    }
+                }
+            }
+        }
             update = { /* Native map view is retained. */ }
         )
         Surface(
@@ -316,7 +311,7 @@ fun NativeMapLibreView(
             }
             if (styleError != null) {
                 Surface(
-                    modifier = Modifier.align(Alignment.Center).padding(top = 76.dp),
+                    modifier = Modifier.align(Alignment.Center).padding(top = 76.dp).clickable { retryToken += 1; hasCenteredOnFix = false },
                     color = accent.copy(alpha = 0.18f),
                     shape = CircleShape,
                     contentColor = Color.White
