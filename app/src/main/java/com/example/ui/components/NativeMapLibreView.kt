@@ -98,8 +98,9 @@ fun NativeMapLibreView(
     }
     val mapFailureListener = remember(mapView) {
         MapView.OnDidFailLoadingMapListener { message ->
-            styleError = message.take(180).ifBlank { "Map tiles or style could not be loaded." }
-            styleLoaded = false
+            // Tile failures can happen after the base style is already visible. Do not
+            // replace a working/partially rendered map with the full-screen error state.
+            styleError = message.take(180).ifBlank { "Some map resources could not be loaded." }
         }
     }
 
