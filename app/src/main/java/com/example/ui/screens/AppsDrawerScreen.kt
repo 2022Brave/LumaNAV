@@ -54,14 +54,14 @@ fun AppsDrawerScreen(
 ) {
     val accent = LocalAuvionyxPalette.current.accentPrimary
     val entries = listOf(
-        AppLauncherEntry("Auvionyx Drive", "Split Cockpit", Icons.Outlined.Home, AuvionyxModule.DRIVE, "app_drive"),
-        AppLauncherEntry("Auvionyx Maps", "Navigation & Routes", Icons.Outlined.Navigation, AuvionyxModule.MAPS, "app_maps"),
-        AppLauncherEntry("Auvionyx Music", "Unified Media Hub", Icons.Outlined.MusicNote, AuvionyxModule.MUSIC, "app_music"),
-        AppLauncherEntry("Auvionyx HUD", "Heads-Up & Designer", Icons.Outlined.Speed, AuvionyxModule.HUD, "app_hud"),
-        AppLauncherEntry("Auvionyx Pulse", "Traffic Pulse & Alerts", Icons.Outlined.Traffic, AuvionyxModule.PULSE, "app_pulse"),
-        AppLauncherEntry("Auvionyx AOD", "Ambient Display", Icons.Outlined.Nightlight, AuvionyxModule.AOD, "app_aod"),
-        AppLauncherEntry("Auvionyx Vehicle", "Range & Climate", Icons.Outlined.DirectionsCar, AuvionyxModule.VEHICLE, "app_vehicle"),
-        AppLauncherEntry("Auvionyx Settings", "System & Designer", Icons.Outlined.Settings, AuvionyxModule.SETTINGS, "app_settings"),
+        AppLauncherEntry("LumaNav Drive", "Split Cockpit", Icons.Outlined.Home, AuvionyxModule.DRIVE, "app_drive"),
+        AppLauncherEntry("LumaNav Maps", "Navigation & Routes", Icons.Outlined.Navigation, AuvionyxModule.MAPS, "app_maps"),
+        AppLauncherEntry("LumaNav Music", "Unified Media Hub", Icons.Outlined.MusicNote, AuvionyxModule.MUSIC, "app_music"),
+        AppLauncherEntry("LumaNav HUD", "Heads-Up & Designer", Icons.Outlined.Speed, AuvionyxModule.HUD, "app_hud"),
+        AppLauncherEntry("LumaNav Pulse", "Traffic Pulse & Alerts", Icons.Outlined.Traffic, AuvionyxModule.PULSE, "app_pulse"),
+        AppLauncherEntry("LumaNav AOD", "Ambient Display", Icons.Outlined.Nightlight, AuvionyxModule.AOD, "app_aod"),
+        AppLauncherEntry("LumaNav Vehicle", "Range & Climate", Icons.Outlined.DirectionsCar, AuvionyxModule.VEHICLE, "app_vehicle"),
+        AppLauncherEntry("LumaNav Settings", "System & Designer", Icons.Outlined.Settings, AuvionyxModule.SETTINGS, "app_settings"),
         AppLauncherEntry("Phone Dialer", "Android System Call", Icons.Outlined.Phone, null, "app_phone")
     )
 
@@ -69,7 +69,7 @@ fun AppsDrawerScreen(
         modifier = modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Text("Auvionyx Ecosystem", style = MaterialTheme.typography.headlineMedium, color = GlassWhite)
+        Text("LumaNav Cockpit", style = MaterialTheme.typography.headlineMedium, color = GlassWhite)
         LazyVerticalGrid(
             columns = GridCells.Fixed(if (isLandscapeWide) 5 else 2),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
