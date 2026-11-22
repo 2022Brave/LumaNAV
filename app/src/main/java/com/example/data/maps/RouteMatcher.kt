@@ -2,7 +2,6 @@ package com.example.data.maps
 
 import kotlin.math.cos
 import kotlin.math.max
-import kotlin.math.min
 import kotlin.math.sqrt
 
 data class RouteMatch(
@@ -37,11 +36,10 @@ object RouteMatcher {
                 Math.toRadians(point.first - latitude)
 
         var cumulativeMeters = 0.0
-        var totalMeters = 0.0
         val segmentLengths = DoubleArray(route.size - 1) { index ->
             haversineMeters(route[index], route[index + 1])
         }
-        totalMeters = segmentLengths.sum()
+        val totalMeters = segmentLengths.sum()
 
         var bestDistance = Double.POSITIVE_INFINITY
         var bestAlong = 0.0
