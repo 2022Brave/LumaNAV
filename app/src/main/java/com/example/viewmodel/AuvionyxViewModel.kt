@@ -34,6 +34,7 @@ import com.example.data.model.TrafficSeverity
 import com.example.data.model.VehicleTelemetry
 import com.example.data.preferences.AuvionyxPreferencesRepository
 import com.example.data.preferences.AuvionyxSettingsState
+import com.example.data.sensor.GpsReadingPolicy
 import com.example.data.sensor.TelemetryProvider
 import com.example.data.voice.AuvionyxVoiceEngine
 import com.example.data.voice.NativeVoiceBridgeStatus
@@ -558,16 +559,30 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
             gpsJob = viewModelScope.launch {
                 telemetryProvider.observeGpsLocation().collect { reading ->
                     if (reading != null) {
-                        val cardinal = bearingToCardinal(reading.bearingDeg)
+                        val isFreshLiveFix = GpsReadingPolicy.isFreshLiveFix(
+                            isLastKnown = reading.isLastKnown,
+                            ageMillis = reading.ageMillis
+                        )
                         val latLon = reading.latitude to reading.longitude
                         _telemetry.update { current ->
+                            val stableHeading = if (reading.hasBearing) {
+                                GpsReadingPolicy.stabilizedHeading(
+                                    previousDegrees = current.headingDegrees,
+                                    targetDegrees = reading.bearingDeg,
+                                    speedKmh = reading.speedKmh
+                                )
+                            } else {
+                                current.headingDegrees
+                            }
                             current.copy(
-                                speedKmh = reading.speedKmh,
-                                headingDegrees = reading.bearingDeg,
-                                headingCardinal = cardinal,
+                                speedKmh = if (isFreshLiveFix) reading.speedKmh else 0,
+                                headingDegrees = stableHeading,
+                                headingCardinal = bearingToCardinal(stableHeading),
                                 gpsAccuracyMeters = reading.accuracyMeters,
-                                isLiveGpsActive = true,
-                                isSimulationRunning = false
+                                isLiveGpsActive = isFreshLiveFix,
+                                isLocationFallback = !isFreshLiveFix,
+                                isSimulationRunning = false,
+                                currentLocationLabel = if (isFreshLiveFix) current.currentLocationLabel else "Last known location"
                             )
                         }
                         _mapsPulse.update { state ->
@@ -591,7 +606,11 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
                             }
                             state.copy(
                                 currentLatLon = latLon,
-                                gpsServiceState = ServiceAvailabilityState.LIVE,
+                                gpsServiceState = if (isFreshLiveFix) {
+                                    ServiceAvailabilityState.LIVE
+                                } else {
+                                    ServiceAvailabilityState.API_UNAVAILABLE
+                                },
                                 mapsServiceState = if (state.routePolylineGeo.isNotEmpty() || state.isExternalGoogleMapsSyncActive || destinationSearchRepo.isNetworkOnline()) {
                                     ServiceAvailabilityState.LIVE
                                 } else {
@@ -599,7 +618,9 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
                                 }
                             )
                         }
-                        maybeReverseGeocodeAndWeather(reading.latitude, reading.longitude)
+                        if (isFreshLiveFix) {
+                            maybeReverseGeocodeAndWeather(reading.latitude, reading.longitude)
+                        }
                     } else {
                         _telemetry.update { it.copy(isLiveGpsActive = false) }
                         _mapsPulse.update {
