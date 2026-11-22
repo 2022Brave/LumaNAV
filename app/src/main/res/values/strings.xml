@@ -1,6 +1,6 @@
 <resources>
     <string name="app_name">LumaNav</string>
-    <string name="brand_tagline">Intelligence in Motion.</string>
+    <string name="brand_tagline">Find your way. Feel the drive.</string>
     <string name="boot_powering_up">Powering Up…</string>
     <string name="skip_boot">Skip</string>
     <string name="cd_velocity_a_logo">LumaNav navigation logo</string>
