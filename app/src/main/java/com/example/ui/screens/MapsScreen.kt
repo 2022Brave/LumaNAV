@@ -29,6 +29,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -40,6 +42,8 @@ import androidx.compose.material.icons.outlined.GpsFixed
 import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.Navigation
 import androidx.compose.material.icons.outlined.Place
+import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.Clear
 import androidx.compose.material.icons.outlined.NotificationsActive
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -57,6 +61,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.data.model.DestinationCandidate
@@ -97,6 +102,8 @@ fun MapsScreen(
     notificationAccessGranted: Boolean,
     onPermissionUpdated: () -> Unit,
     onConfirmDestination: (DestinationCandidate) -> Unit,
+    onDestinationQueryChange: (String) -> Unit,
+    onSearchDestination: (String) -> Unit,
     onClearDestinationSearch: () -> Unit,
     onSelectMarker: (MapPlaceMarker) -> Unit,
     onSelectRoute: (String) -> Unit,
@@ -121,11 +128,35 @@ fun MapsScreen(
             ),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text(
-                text = "DESTINATION",
-                style = MaterialTheme.typography.labelMedium,
-                color = IceBlue
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedTextField(
+                    value = mapsPulse.destinationQuery,
+                    onValueChange = onDestinationQueryChange,
+                    modifier = Modifier.weight(1f).testTag("maps_destination_search"),
+                    singleLine = true,
+                    placeholder = { Text("Search destination…", color = TextSecondary) },
+                    leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = "Search destination", tint = accent) },
+                    trailingIcon = {
+                        if (mapsPulse.destinationQuery.isNotBlank()) {
+                            IconButton(onClick = onClearDestinationSearch) {
+                                Icon(Icons.Outlined.Clear, contentDescription = "Clear destination", tint = TextSecondary)
+                            }
+                        }
+                    },
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    keyboardActions = KeyboardActions(onSearch = { onSearchDestination(mapsPulse.destinationQuery) })
+                )
+                IconButton(
+                    onClick = { onSearchDestination(mapsPulse.destinationQuery) },
+                    modifier = Modifier.testTag("maps_search_submit")
+                ) {
+                    Icon(Icons.Outlined.Search, contentDescription = "Search", tint = accent)
+                }
+            }
             // Minimal Service Indicators + External Navigation Sync Prompt
             Row(
                 modifier = Modifier.fillMaxWidth(),
