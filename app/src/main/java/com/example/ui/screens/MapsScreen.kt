@@ -223,6 +223,7 @@ fun MapsScreen(
 
             // Continuous Container Morphing between Destination Confirmation / Search Status / None
             val bannerState = when {
+                mapsPulse.isExternalGoogleMapsSyncActive -> 3
                 mapsPulse.confirmedDestination != null -> 1
                 mapsPulse.destinationSearchState != null && mapsPulse.destinationCandidates.isEmpty() -> 2
                 else -> 0
@@ -293,6 +294,39 @@ fun MapsScreen(
                                         color = TextSecondary
                                     )
                                 }
+                            }
+                        }
+                    }
+                    3 -> {
+                        Surface(
+                            color = DeepBlue.copy(alpha = 0.16f),
+                            shape = RoundedCornerShape(14.dp),
+                            border = BorderStroke(0.8.dp, accent.copy(alpha = 0.45f)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text(
+                                    text = mapsPulse.navigationSourceLabel ?: "External navigation active",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = accent
+                                )
+                                Text(
+                                    text = telemetry.nextTurnInstruction,
+                                    style = MaterialTheme.typography.titleSmall,
+                                    color = GlassWhite,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Text(
+                                    text = "${telemetry.nextTurnDistanceLabel} · ${mapsPulse.destinationSearchMessage.orEmpty()}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = TextSecondary,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis
+                                )
                             }
                         }
                     }
