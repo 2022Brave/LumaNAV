@@ -64,6 +64,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.unit.dp
 import com.example.data.model.DestinationCandidate
 import com.example.data.model.MapPlaceMarker
@@ -463,7 +464,7 @@ fun MapsScreen(
                 routePoints = mapsPulse.routePolylineGeo,
                 headingDegrees = telemetry.headingDegrees,
                 accent = accent,
-                modifier = Modifier.weight(1f).fillMaxHeight()
+                modifier = Modifier.weight(1f).fillMaxHeight().zIndex(0f)
             )
         }
     } else {
@@ -474,7 +475,7 @@ fun MapsScreen(
                 routePoints = mapsPulse.routePolylineGeo,
                 headingDegrees = telemetry.headingDegrees,
                 accent = accent,
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.fillMaxSize().zIndex(0f)
             )
 
             DraggableLaminarSheet(
@@ -484,6 +485,7 @@ fun MapsScreen(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .testTag("maps_portrait_laminar_sheet")
+                    .zIndex(1f)
             ) {
                 routeContent(Modifier.fillMaxSize())
             }
