@@ -255,7 +255,7 @@ fun NativeMapLibreView(
                     }
                 }
             }
-        }
+        },
             update = { /* Native map view is retained. */ }
         )
         Surface(
