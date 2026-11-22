@@ -12,6 +12,7 @@ import com.example.core.LiveGoogleMapsSyncBridge
 import com.example.data.ai.AuvionyxAiRepository
 import com.example.data.ai.ParsedNaturalVoiceIntent
 import com.example.data.maps.DestinationSearchRepository
+import com.example.data.maps.OffRouteGuard
 import com.example.data.maps.RouteMatcher
 import com.example.data.media.MediaSessionBridge
 import com.example.data.media.MediaSessionBridgeStatus
@@ -225,6 +226,7 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
     private val aiRepo = AuvionyxAiRepository()
     private val telemetryProvider = TelemetryProvider(application)
     private val destinationSearchRepo = DestinationSearchRepository(application)
+    private val offRouteGuard = OffRouteGuard()
     private val mediaSessionBridge = MediaSessionBridge(application)
 
     val settings: StateFlow<AuvionyxSettingsState> = prefsRepo.settingsFlow
@@ -635,6 +637,34 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
                                     state.mapsServiceState
                                 }
                             )
+                        }
+                        val routeState = _mapsPulse.value
+                        val routeMatchForGuard = if (
+                            isFreshLiveFix &&
+                            routeState.isNavigating &&
+                            !routeState.isExternalGoogleMapsSyncActive &&
+                            routeState.routePolylineGeo.size >= 2
+                        ) {
+                            RouteMatcher.matchLocationToRoute(
+                                latitude = reading.latitude,
+                                longitude = reading.longitude,
+                                route = routeState.routePolylineGeo
+                            )
+                        } else {
+                            null
+                        }
+                        val shouldAutoReroute = if (routeMatchForGuard != null) {
+                            offRouteGuard.shouldReroute(
+                                distanceToRouteMeters = routeMatchForGuard.distanceToRouteMeters,
+                                accuracyMeters = reading.accuracyMeters,
+                                nowMillis = System.currentTimeMillis()
+                            )
+                        } else {
+                            offRouteGuard.reset()
+                            false
+                        }
+                        if (shouldAutoReroute) {
+                            routeState.confirmedDestination?.let { computeOsrmRouteToDestination(it) }
                         }
                         if (isFreshLiveFix) {
                             maybeReverseGeocodeAndWeather(reading.latitude, reading.longitude)
