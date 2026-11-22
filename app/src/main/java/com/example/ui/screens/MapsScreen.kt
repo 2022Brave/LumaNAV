@@ -166,7 +166,10 @@ fun MapsScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    ServiceStateBadge(state = mapsPulse.gpsServiceState, labelPrefix = "GPS")
+                    ServiceStateBadge(
+                        state = mapsPulse.gpsServiceState,
+                        labelPrefix = if (telemetry.isLocationFallback) "GPS · LAST KNOWN" else "GPS"
+                    )
                     ServiceStateBadge(
                         state = if (notificationAccessGranted) ServiceAvailabilityState.LIVE else ServiceAvailabilityState.PERMISSION_DENIED,
                         labelPrefix = "Nav Sync"
