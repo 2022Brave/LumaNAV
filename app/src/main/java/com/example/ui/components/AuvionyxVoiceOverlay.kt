@@ -66,7 +66,7 @@ import com.example.ui.theme.ElectricCyan
 import com.example.ui.theme.GlassSurfaceHigh
 import com.example.ui.theme.GlassWhite
 import com.example.ui.theme.IceBlue
-import com.example.ui.theme.LocalLumaNavMotion
+import com.example.ui.theme.LocalAuvionyxMotion
 import com.example.ui.theme.ObsidianBlack
 import com.example.ui.theme.PulseCongestion
 import com.example.ui.theme.TextMuted
@@ -88,7 +88,7 @@ fun FloatingVoiceMicOverlay(
     onOpenVoiceConsole: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val reducedMotion = LocalLumaNavMotion.current.reducedMotion
+    val reducedMotion = LocalAuvionyxMotion.current.reducedMotion
 
     AnimatedContent(
         targetState = voiceState.visualState == VoiceVisualState.IDLE,
