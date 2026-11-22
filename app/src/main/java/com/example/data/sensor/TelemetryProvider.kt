@@ -48,6 +48,7 @@ class TelemetryProvider(private val context: Context) {
 
     @SuppressLint("MissingPermission")
     fun observeGpsLocation(): Flow<LiveGpsReading?> = callbackFlow {
+        var lastAcceptedTimestampMillis = 0L
         if (!hasLocationPermission()) {
             trySend(null)
             close()
@@ -64,6 +65,7 @@ class TelemetryProvider(private val context: Context) {
         fun emitLocation(location: Location, isLastKnown: Boolean) {
             val ageMillis = (System.currentTimeMillis() - location.time).coerceAtLeast(0L)
             val accuracy = if (location.hasAccuracy()) location.accuracy else null
+            if (!isLastKnown && location.time < lastAcceptedTimestampMillis) return
             if (!GpsReadingPolicy.isAcceptableFix(
                     latitude = location.latitude,
                     longitude = location.longitude,
@@ -73,6 +75,7 @@ class TelemetryProvider(private val context: Context) {
                 )
             ) return
 
+            lastAcceptedTimestampMillis = maxOf(lastAcceptedTimestampMillis, location.time)
             val speedKmh = if (location.hasSpeed()) {
                 (location.speed * 3.6f).roundToInt().coerceAtLeast(0)
             } else {
