@@ -105,7 +105,7 @@ fun SettingsScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column {
-                    Text("Auvionyx Settings", style = MaterialTheme.typography.headlineMedium, color = GlassWhite)
+                    Text("LumaNav Settings", style = MaterialTheme.typography.headlineMedium, color = GlassWhite)
                     Text(
                         "Personalisation, Dashboard Designer & Native Capability Status",
                         style = MaterialTheme.typography.bodyMedium,
@@ -314,7 +314,7 @@ fun SettingsScreen(
                 Spacer(Modifier.height(10.dp))
                 SettingsToggleRow(
                     title = "Optional Car Home Launcher Mode",
-                    subtitle = "Remain optional; boot directly into Auvionyx Drive when enabled",
+                    subtitle = "Remain optional; boot directly into LumaNav Drive when enabled",
                     checked = settings.optionalCarLauncherEnabled,
                     testTag = "settings_launcher_toggle",
                     onCheckedChange = onSetOptionalLauncher
@@ -409,7 +409,7 @@ fun SettingsScreen(
                 )
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    text = "Notification Access lets Auvionyx read active navigation notifications from supported apps to show turn instructions, distance and ETA. Android may require App info → ⋮ → Allow restricted settings before this can be enabled.",
+                    text = "Notification Access lets LumaNav read active navigation notifications from supported apps to show turn instructions, distance and ETA. Android may require App info → ⋮ → Allow restricted settings before this can be enabled.",
                     style = MaterialTheme.typography.bodySmall,
                     color = TextMuted,
                     modifier = Modifier.fillMaxWidth()
@@ -430,7 +430,7 @@ fun SettingsScreen(
                     }.testTag("open_app_info_restricted_settings")
                 ) {
                     Text(
-                        text = "Open Auvionyx App Info",
+                        text = "Open LumaNav App Info",
                         color = GlassWhite,
                         style = MaterialTheme.typography.labelMedium,
                         modifier = Modifier.padding(horizontal = 14.dp, vertical = 9.dp)
