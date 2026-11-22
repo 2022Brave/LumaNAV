@@ -2,6 +2,7 @@ package com.example.ui.screens
 
 import android.Manifest
 import android.content.Intent
+import android.net.Uri
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -89,10 +90,6 @@ fun SettingsScreen(
     var permissionsExpanded by remember { mutableStateOf(true) }
 
     val locLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { onRefreshPermissions() }
-
-    val audioLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { onRefreshPermissions() }
 
@@ -389,7 +386,7 @@ fun SettingsScreen(
         item {
             ExpandableGlassPanel(
                 title = "Permission Manager",
-                subtitle = "Real Android Runtime Permissions (Location & Voice Mic)",
+                subtitle = "Location and navigation notification access",
                 expanded = permissionsExpanded,
                 onToggle = { permissionsExpanded = !permissionsExpanded }
             ) {
@@ -401,14 +398,7 @@ fun SettingsScreen(
                 )
                 Spacer(Modifier.height(10.dp))
                 PermissionRow(
-                    title = "Microphone for Auvionyx Voice (RECORD_AUDIO)",
-                    granted = permissions.audioGranted,
-                    testTag = "perm_request_audio",
-                    onRequest = { audioLauncher.launch(Manifest.permission.RECORD_AUDIO) }
-                )
-                Spacer(Modifier.height(10.dp))
-                PermissionRow(
-                    title = "Google Maps & Media Session Sync (Notification Access)",
+                    title = "Navigation Notifications (Maps, Waze & Mappls)",
                     granted = permissions.notificationAccessGranted,
                     testTag = "perm_request_notification_sync",
                     onRequest = {
@@ -417,6 +407,35 @@ fun SettingsScreen(
                         }
                     }
                 )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = "Notification Access lets Auvionyx read active navigation notifications from supported apps to show turn instructions, distance and ETA. Android may require App info → ⋮ → Allow restricted settings before this can be enabled.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = TextMuted,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(Modifier.height(6.dp))
+                Surface(
+                    color = LocalAuvionyxPalette.current.accentPrimary.copy(alpha = 0.15f),
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(0.8.dp, LocalAuvionyxPalette.current.accentPrimary.copy(alpha = 0.6f)),
+                    modifier = Modifier.clickable {
+                        runCatching {
+                            context.startActivity(
+                                Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                    data = Uri.fromParts("package", context.packageName, null)
+                                }
+                            )
+                        }
+                    }.testTag("open_app_info_restricted_settings")
+                ) {
+                    Text(
+                        text = "Open Auvionyx App Info",
+                        color = GlassWhite,
+                        style = MaterialTheme.typography.labelMedium,
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 9.dp)
+                    )
+                }
             }
         }
     }

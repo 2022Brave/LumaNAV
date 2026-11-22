@@ -15,7 +15,6 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.DirectionsCar
 import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.MusicNote
 import androidx.compose.material.icons.outlined.Navigation
 import androidx.compose.material.icons.outlined.Nightlight
@@ -60,7 +59,6 @@ fun AppsDrawerScreen(
         AppLauncherEntry("Auvionyx Music", "Unified Media Hub", Icons.Outlined.MusicNote, AuvionyxModule.MUSIC, "app_music"),
         AppLauncherEntry("Auvionyx HUD", "Heads-Up & Designer", Icons.Outlined.Speed, AuvionyxModule.HUD, "app_hud"),
         AppLauncherEntry("Auvionyx Pulse", "Traffic Pulse & Alerts", Icons.Outlined.Traffic, AuvionyxModule.PULSE, "app_pulse"),
-        AppLauncherEntry("Auvionyx Voice", "Hands-Free Control", Icons.Outlined.Mic, AuvionyxModule.VOICE, "app_voice"),
         AppLauncherEntry("Auvionyx AOD", "Ambient Display", Icons.Outlined.Nightlight, AuvionyxModule.AOD, "app_aod"),
         AppLauncherEntry("Auvionyx Vehicle", "Range & Climate", Icons.Outlined.DirectionsCar, AuvionyxModule.VEHICLE, "app_vehicle"),
         AppLauncherEntry("Auvionyx Settings", "System & Designer", Icons.Outlined.Settings, AuvionyxModule.SETTINGS, "app_settings"),
@@ -88,7 +86,7 @@ fun AppsDrawerScreen(
                             if (item.module != null) onSelectModule(item.module) else onOpenPhoneDialer()
                         },
                     cornerRadius = 22.dp,
-                    highlighted = item.module == AuvionyxModule.VOICE,
+                    highlighted = false,
                     contentPadding = PaddingValues(14.dp)
                 ) {
                     Column(

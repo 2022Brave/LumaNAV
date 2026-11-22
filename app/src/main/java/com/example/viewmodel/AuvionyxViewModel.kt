@@ -3,6 +3,7 @@ package com.example.viewmodel
 import android.app.Application
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
 import android.os.BatteryManager
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -62,6 +63,8 @@ import java.util.Locale
 import java.util.UUID
 import kotlin.math.roundToInt
 
+private const val DEFAULT_ACCENT_ARGB = -16721419 // 0xFF00D9F5 (Electric Cyan)
+
 enum class PulseFeedTab(val label: String) {
     LIVE("Corridors"),
     FORECAST("Forecast"),
@@ -86,6 +89,9 @@ data class MediaPlayerState(
     val externalAlbum: String? = null,
     val externalDurationSec: Int? = null,
     val externalPositionSec: Int? = null,
+    val externalAppLabel: String? = null,
+    val externalArtwork: Bitmap? = null,
+    val externalAccentArgb: Int = DEFAULT_ACCENT_ARGB,
     val userStartedLocalPlayback: Boolean = false
 ) {
     val currentTrack: MediaTrack
@@ -97,7 +103,7 @@ data class MediaPlayerState(
                 album = externalAlbum.orEmpty(),
                 durationSec = (externalDurationSec ?: 1).coerceAtLeast(1),
                 source = activeSessionSource,
-                adaptiveColor = ElectricCyan,
+                adaptiveColor = androidx.compose.ui.graphics.Color(externalAccentArgb),
                 artVariant = 0
             )
         } else if (userStartedLocalPlayback) {
@@ -366,7 +372,7 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
             _mapsPulse.update { state ->
                 val updatedRoutes = listOf(
                     RouteAlternative(
-                        id = "gmaps_live_route",
+                        id = "external_live_route",
                         name = liveNav.headline,
                         viaRoad = liveNav.turnInstruction,
                         durationMin = liveNav.remainingMinutes ?: 0,
@@ -380,14 +386,14 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
                     destinationQuery = liveNav.headline,
                     isNavigating = true,
                     isExternalGoogleMapsSyncActive = true,
-                    navigationSourceLabel = "Google Maps Sync",
+                    navigationSourceLabel = "${liveNav.providerLabel} Sync",
                     mapsServiceState = ServiceAvailabilityState.LIVE,
                     routes = updatedRoutes,
                     destinationSearchMessage = liveNav.remainingSummary.ifBlank { liveNav.turnInstruction }
                 )
             }
         } else if (_mapsPulse.value.isExternalGoogleMapsSyncActive) {
-            // Google Maps navigation ended
+            // External navigation provider stopped publishing an active navigation notification
             val hasCustomRoute = _mapsPulse.value.confirmedDestination != null
             _mapsPulse.update { state ->
                 state.copy(
@@ -403,7 +409,7 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
                     it.copy(
                         nextTurnDistanceLabel = "--",
                         nextTurnRoad = "No Active Route",
-                        nextTurnInstruction = "Set a destination in Google Maps or via Voice",
+                        nextTurnInstruction = "Start navigation in Google Maps, Waze or Mappls",
                         etaTimeLabel = "--:--",
                         remainingMinutes = 0,
                         remainingDistanceKm = 0f,
@@ -429,7 +435,10 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
                     externalArtist = snap.artist,
                     externalAlbum = snap.album,
                     externalDurationSec = snap.durationSec,
-                    externalPositionSec = snap.positionSec
+                    externalPositionSec = snap.positionSec,
+                    externalAppLabel = snap.appLabel,
+                    externalArtwork = snap.artwork,
+                    externalAccentArgb = snap.artworkAccentArgb
                 )
             }
         } else {
@@ -441,7 +450,10 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
                     externalArtist = null,
                     externalAlbum = null,
                     externalDurationSec = null,
-                    externalPositionSec = null
+                    externalPositionSec = null,
+                    externalAppLabel = null,
+                    externalArtwork = null,
+                    externalAccentArgb = DEFAULT_ACCENT_ARGB
                 )
             }
         }
@@ -683,6 +695,9 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
                                 externalAlbum = null,
                                 externalDurationSec = null,
                                 externalPositionSec = null,
+                                externalAppLabel = null,
+                                externalArtwork = null,
+                                externalAccentArgb = DEFAULT_ACCENT_ARGB,
                                 isPlaying = false
                             )
                         } else if (!state.isPlaying || !state.userStartedLocalPlayback) {
@@ -1341,6 +1356,30 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
             customConfirmation = customConfirmation
         )
         publishVoiceCommandRecognised(outcome)
+    }
+
+    fun updateMapsDestinationQuery(query: String) {
+        _mapsPulse.update { it.copy(destinationQuery = query) }
+    }
+
+    fun searchDestinationFromMaps(query: String) {
+        val clean = query.trim()
+        if (clean.isEmpty()) {
+            _mapsPulse.update {
+                it.copy(
+                    destinationSearchState = ServiceAvailabilityState.API_UNAVAILABLE,
+                    destinationSearchMessage = "Enter a destination to search.",
+                    destinationCandidates = emptyList()
+                )
+            }
+            return
+        }
+        performRealDestinationSearch(
+            query = clean,
+            action = VoiceCommandAction.NAVIGATE_TO,
+            recognizedPhrase = clean,
+            usedGemini = false
+        )
     }
 
     private fun performRealDestinationSearch(

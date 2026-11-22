@@ -1,6 +1,12 @@
 package com.example
 
 import android.Manifest
+import androidx.core.view.WindowInsetsControllerCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowCompat
+import androidx.compose.runtime.SideEffect
+import android.os.Build
+import android.app.Activity
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -86,7 +92,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.core.configureAppCheck
 import com.example.data.model.AuvionyxModule
 import com.example.data.voice.VoiceVisualState
-import com.example.ui.components.FloatingVoiceMicOverlay
 import com.example.ui.components.GlassBottomDock
 import com.example.ui.components.GlassNavigationRail
 import com.example.ui.components.GlassTopStatusBar
@@ -155,6 +160,21 @@ fun AuvionyxRootApp(viewModel: AuvionyxViewModel) {
     val voiceState by viewModel.voiceState.collectAsStateWithLifecycle()
 
     val context = LocalContext.current
+    val activity = context as? ComponentActivity
+    val isHudMode = activeModule == AuvionyxModule.HUD
+
+    SideEffect {
+        activity?.window?.let { window ->
+            val controller = WindowCompat.getInsetsController(window, window.decorView)
+            if (isHudMode) {
+                controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                controller.hide(WindowInsetsCompat.Type.systemBars())
+            } else {
+                controller.show(WindowInsetsCompat.Type.systemBars())
+            }
+        }
+    }
+
     val lifecycleOwner = LocalLifecycleOwner.current
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -184,21 +204,9 @@ fun AuvionyxRootApp(viewModel: AuvionyxViewModel) {
         }
     }
 
-    val voiceAudioPermLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { granted ->
-        viewModel.refreshPermissionsAndGps()
-        if (granted) {
-            viewModel.activateVoiceListening()
-        }
-    }
-
+    // Voice capture is disabled in the navigation-focused build; never request microphone access.
     fun triggerVoiceCapture() {
-        if (permissions.audioGranted) {
-            viewModel.activateVoiceListening()
-        } else {
-            voiceAudioPermLauncher.launch(Manifest.permission.RECORD_AUDIO)
-        }
+        if (permissions.audioGranted) viewModel.activateVoiceListening()
     }
 
     fun openPhoneDialer() {
@@ -247,8 +255,8 @@ fun AuvionyxRootApp(viewModel: AuvionyxViewModel) {
                 .fillMaxSize()
                 .background(ObsidianBlack),
             containerColor = ObsidianBlack,
-            contentWindowInsets = WindowInsets.safeDrawing,
-            snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
+            snackbarHost = { if (!isHudMode) SnackbarHost(hostState = snackbarHostState) },
+            contentWindowInsets = if (isHudMode) WindowInsets(0, 0, 0, 0) else WindowInsets.safeDrawing
         ) { innerPadding ->
             BoxWithConstraints(
                 modifier = Modifier
@@ -286,6 +294,7 @@ fun AuvionyxRootApp(viewModel: AuvionyxViewModel) {
                 }
 
                 Column(modifier = Modifier.fillMaxSize()) {
+                    if (!isHudMode) {
                     GlassTopStatusBar(
                         currentLocation = telemetry.currentLocationLabel,
                         weatherTempC = telemetry.weatherTempC,
@@ -295,6 +304,7 @@ fun AuvionyxRootApp(viewModel: AuvionyxViewModel) {
                         onOpenSettings = { viewModel.navigateTo(AuvionyxModule.SETTINGS) },
                         isIdleCockpit = isIdleCockpit && activeModule == AuvionyxModule.DRIVE && isLandscapeWide
                     )
+                    }
 
                     if (isLandscapeWide) {
                         val cockpitIdleActive = isIdleCockpit && activeModule == AuvionyxModule.DRIVE
@@ -303,13 +313,13 @@ fun AuvionyxRootApp(viewModel: AuvionyxViewModel) {
                                 .fillMaxWidth()
                                 .weight(1f)
                                 .padding(
-                                    horizontal = if (cockpitIdleActive) 0.dp else 14.dp,
-                                    vertical = if (cockpitIdleActive) 0.dp else 4.dp
+                                    horizontal = if (cockpitIdleActive || isHudMode) 0.dp else 14.dp,
+                                    vertical = if (cockpitIdleActive || isHudMode) 0.dp else 4.dp
                                 ),
-                            horizontalArrangement = Arrangement.spacedBy(if (cockpitIdleActive) 0.dp else 12.dp)
+                            horizontalArrangement = Arrangement.spacedBy(if (cockpitIdleActive || isHudMode) 0.dp else 12.dp)
                         ) {
                             AnimatedVisibility(
-                                visible = !cockpitIdleActive,
+                                visible = !cockpitIdleActive && !isHudMode,
                                 enter = fadeIn(tween(LivingFlow.StandardDurationMs, easing = LivingFlow.LaminarEasing)) +
                                     expandHorizontally(tween(LivingFlow.StandardDurationMs, easing = LivingFlow.LaminarEasing)) +
                                     slideInHorizontally(LivingFlow.LaminarIntOffsetSpec) { -it / 3 },
@@ -335,13 +345,13 @@ fun AuvionyxRootApp(viewModel: AuvionyxViewModel) {
                                     isIdleCockpit = cockpitIdleActive,
                                     viewModel = viewModel,
                                     onActivateVoiceCapture = ::triggerVoiceCapture,
-                                    onOpenPhoneDialer = ::openPhoneDialer
-                                )
+                                    onOpenPhoneDialer = ::openPhoneDialer,
+                                    )
                             }
                         }
 
                         AnimatedVisibility(
-                            visible = !cockpitIdleActive,
+                            visible = !cockpitIdleActive && !isHudMode,
                             enter = fadeIn(tween(LivingFlow.StandardDurationMs, easing = LivingFlow.LaminarEasing)) +
                                 expandVertically(tween(LivingFlow.StandardDurationMs, easing = LivingFlow.LaminarEasing)) +
                                 slideInVertically(LivingFlow.LaminarIntOffsetSpec) { it / 3 },
@@ -353,8 +363,6 @@ fun AuvionyxRootApp(viewModel: AuvionyxViewModel) {
                                 activeModule = activeModule,
                                 onSelectModule = { viewModel.navigateTo(it) },
                                 onOpenPhoneDialer = ::openPhoneDialer,
-                                onActivateVoice = ::triggerVoiceCapture,
-                                isVoiceActive = voiceState.visualState != VoiceVisualState.IDLE
                             )
                         }
                     } else {
@@ -370,48 +378,20 @@ fun AuvionyxRootApp(viewModel: AuvionyxViewModel) {
                                 isIdleCockpit = false,
                                 viewModel = viewModel,
                                 onActivateVoiceCapture = ::triggerVoiceCapture,
-                                onOpenPhoneDialer = ::openPhoneDialer
+                                onOpenPhoneDialer = ::openPhoneDialer,
                             )
                         }
 
+                        if (!isHudMode) {
                         SmartphoneBottomNavBar(
                             activeModule = activeModule,
                             onSelectModule = { viewModel.navigateTo(it) }
                         )
+                        }
                     }
                 }
 
-                // Voice Overlay: In landscape, dock's center glowing Mic Orb launches Voice cleanly;
-                // FloatingVoiceMicOverlay expands when active/listening/processing/confirming or in portrait.
-                val showVoiceOverlay = activeModule != AuvionyxModule.VOICE &&
-                    (!isLandscapeWide || voiceState.visualState != VoiceVisualState.IDLE)
-                if (showVoiceOverlay) {
-                    val alignment = if (voiceState.visualState == VoiceVisualState.IDLE) {
-                        Alignment.BottomEnd
-                    } else if (isLandscapeWide) {
-                        Alignment.BottomCenter
-                    } else {
-                        Alignment.BottomCenter
-                    }
-                    FloatingVoiceMicOverlay(
-                        voiceState = voiceState,
-                        onActivateMic = ::triggerVoiceCapture,
-                        onStopMic = { viewModel.stopVoiceListening() },
-                        onDismiss = { viewModel.resetVoiceStateToIdle() },
-                        onRequestAudioPermission = {
-                            voiceAudioPermLauncher.launch(Manifest.permission.RECORD_AUDIO)
-                        },
-                        onConfirmCandidate = { viewModel.confirmDestinationCandidate(it) },
-                        onOpenVoiceConsole = { viewModel.navigateTo(AuvionyxModule.VOICE) },
-                        modifier = Modifier
-                            .align(alignment)
-                            .padding(
-                                start = 16.dp,
-                                end = if (isLandscapeWide) 22.dp else 16.dp,
-                                bottom = if (isLandscapeWide) 84.dp else 84.dp
-                            )
-                    )
-                }
+
             }
         }
     }
@@ -424,7 +404,7 @@ private fun ModuleContentRouter(
     isIdleCockpit: Boolean,
     viewModel: AuvionyxViewModel,
     onActivateVoiceCapture: () -> Unit,
-    onOpenPhoneDialer: () -> Unit
+    onOpenPhoneDialer: () -> Unit,
 ) {
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val mediaState by viewModel.mediaState.collectAsStateWithLifecycle()
@@ -479,8 +459,9 @@ private fun ModuleContentRouter(
                 locationGranted = permissions.locationGranted,
                 notificationAccessGranted = permissions.notificationAccessGranted,
                 onPermissionUpdated = { viewModel.refreshPermissionsAndGps() },
-                onActivateVoiceDestinationSearch = onActivateVoiceCapture,
                 onConfirmDestination = { viewModel.confirmDestinationCandidate(it) },
+                onDestinationQueryChange = { viewModel.updateMapsDestinationQuery(it) },
+                onSearchDestination = { viewModel.searchDestinationFromMaps(it) },
                 onClearDestinationSearch = { viewModel.clearDestinationSearch() },
                 onSelectMarker = { viewModel.selectMarker(it) },
                 onSelectRoute = { viewModel.selectRoute(it) },
@@ -509,10 +490,11 @@ private fun ModuleContentRouter(
                 hudConfig = settings.hudConfig,
                 settings = settings,
                 telemetry = telemetry,
-                mapsPulse = mapsPulse,
                 mediaState = mediaState,
+                currentLocation = mapsPulse.currentLatLon,
+                routePoints = mapsPulse.routePolylineGeo,
+                headingDegrees = telemetry.headingDegrees,
                 onSelectModule = { viewModel.navigateTo(it) },
-                onSelectMarker = { viewModel.selectMarker(it) },
                 onPlayPause = { viewModel.togglePlayPause() },
                 onNextTrack = { viewModel.nextTrack() },
                 onPrevTrack = { viewModel.previousTrack() }
@@ -593,7 +575,6 @@ private fun SmartphoneBottomNavBar(
         Triple(AuvionyxModule.DRIVE, Icons.Outlined.Home, "Drive"),
         Triple(AuvionyxModule.MAPS, Icons.Outlined.Navigation, "Maps"),
         Triple(AuvionyxModule.MUSIC, Icons.Outlined.MusicNote, "Music"),
-        Triple(AuvionyxModule.VOICE, Icons.Outlined.Mic, "Voice"),
         Triple(AuvionyxModule.APPS, Icons.Outlined.Apps, "Apps")
     )
 

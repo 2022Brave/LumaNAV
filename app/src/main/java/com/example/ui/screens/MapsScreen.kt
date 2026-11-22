@@ -29,6 +29,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -39,23 +41,30 @@ import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.GpsFixed
 import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.Navigation
-import androidx.compose.material.icons.outlined.NotificationsActive
 import androidx.compose.material.icons.outlined.Place
+import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.Clear
+import androidx.compose.material.icons.outlined.NotificationsActive
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.unit.dp
 import com.example.data.model.DestinationCandidate
 import com.example.data.model.MapPlaceMarker
@@ -64,7 +73,7 @@ import com.example.data.model.VehicleTelemetry
 import com.example.data.preferences.AuvionyxSettingsState
 import com.example.ui.components.DraggableLaminarSheet
 import com.example.ui.components.GlassCard
-import com.example.ui.components.InteractiveMapCanvas
+import com.example.ui.components.NativeMapLibreView
 import com.example.ui.components.LiquidGlassLens
 import com.example.ui.components.LivingFlow
 import com.example.ui.components.ServiceStateBadge
@@ -94,8 +103,9 @@ fun MapsScreen(
     locationGranted: Boolean,
     notificationAccessGranted: Boolean,
     onPermissionUpdated: () -> Unit,
-    onActivateVoiceDestinationSearch: () -> Unit,
     onConfirmDestination: (DestinationCandidate) -> Unit,
+    onDestinationQueryChange: (String) -> Unit,
+    onSearchDestination: (String) -> Unit,
     onClearDestinationSearch: () -> Unit,
     onSelectMarker: (MapPlaceMarker) -> Unit,
     onSelectRoute: (String) -> Unit,
@@ -120,65 +130,36 @@ fun MapsScreen(
             ),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Voice Destination Trigger
-            LiquidGlassLens(
-                selected = true,
-                onClick = onActivateVoiceDestinationSearch,
-                cornerRadius = 16.dp,
-                testTag = "maps_voice_destination_button",
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 14.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Mic,
-                            contentDescription = "Voice destination search",
-                            tint = accent,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Text(
-                            text = if (mapsPulse.destinationQuery.isNotBlank()) {
-                                mapsPulse.destinationQuery
-                            } else {
-                                "Speak destination"
-                            },
-                            style = MaterialTheme.typography.titleMedium,
-                            color = GlassWhite,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                    if (mapsPulse.destinationQuery.isNotBlank()) {
-                        IconButton(
-                            onClick = onClearDestinationSearch,
-                            modifier = Modifier
-                                .photonLuminousTouch(pressScale = 0.90f)
-                                .testTag("maps_clear_destination")
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.Close,
-                                contentDescription = "Clear destination",
-                                tint = TextSecondary,
-                                modifier = Modifier.size(18.dp)
-                            )
+                OutlinedTextField(
+                    value = mapsPulse.destinationQuery,
+                    onValueChange = onDestinationQueryChange,
+                    modifier = Modifier.weight(1f).testTag("maps_destination_search"),
+                    singleLine = true,
+                    placeholder = { Text("Search destination…", color = TextSecondary) },
+                    leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = "Search destination", tint = accent) },
+                    trailingIcon = {
+                        if (mapsPulse.destinationQuery.isNotBlank()) {
+                            IconButton(onClick = onClearDestinationSearch) {
+                                Icon(Icons.Outlined.Clear, contentDescription = "Clear destination", tint = TextSecondary)
+                            }
                         }
-                    }
+                    },
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    keyboardActions = KeyboardActions(onSearch = { onSearchDestination(mapsPulse.destinationQuery) })
+                )
+                IconButton(
+                    onClick = { onSearchDestination(mapsPulse.destinationQuery) },
+                    modifier = Modifier.testTag("maps_search_submit")
+                ) {
+                    Icon(Icons.Outlined.Search, contentDescription = "Search", tint = accent)
                 }
             }
-
-            // Minimal Service Indicators + 1-Tap Google Maps Sync Prompt
+            // Minimal Service Indicators + External Navigation Sync Prompt
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -188,7 +169,7 @@ fun MapsScreen(
                     ServiceStateBadge(state = mapsPulse.gpsServiceState, labelPrefix = "GPS")
                     ServiceStateBadge(
                         state = if (notificationAccessGranted) ServiceAvailabilityState.LIVE else ServiceAvailabilityState.PERMISSION_DENIED,
-                        labelPrefix = "GMaps Sync"
+                        labelPrefix = "Nav Sync"
                     )
                 }
                 if (!locationGranted) {
@@ -231,17 +212,18 @@ fun MapsScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.NotificationsActive,
-                            contentDescription = "Sync Google Maps",
+                            contentDescription = "Enable navigation sync",
                             tint = accent,
                             modifier = Modifier.size(13.dp)
                         )
-                        Text("Sync GMaps", style = MaterialTheme.typography.labelSmall, color = IceBlue)
+                        Text("Sync Nav", style = MaterialTheme.typography.labelSmall, color = IceBlue)
                     }
                 }
             }
 
             // Continuous Container Morphing between Destination Confirmation / Search Status / None
             val bannerState = when {
+                mapsPulse.isExternalGoogleMapsSyncActive -> 3
                 mapsPulse.confirmedDestination != null -> 1
                 mapsPulse.destinationSearchState != null && mapsPulse.destinationCandidates.isEmpty() -> 2
                 else -> 0
@@ -312,6 +294,39 @@ fun MapsScreen(
                                         color = TextSecondary
                                     )
                                 }
+                            }
+                        }
+                    }
+                    3 -> {
+                        Surface(
+                            color = DeepBlue.copy(alpha = 0.16f),
+                            shape = RoundedCornerShape(14.dp),
+                            border = BorderStroke(0.8.dp, accent.copy(alpha = 0.45f)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text(
+                                    text = mapsPulse.navigationSourceLabel ?: "External navigation active",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = accent
+                                )
+                                Text(
+                                    text = telemetry.nextTurnInstruction,
+                                    style = MaterialTheme.typography.titleSmall,
+                                    color = GlassWhite,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Text(
+                                    text = "${telemetry.nextTurnDistanceLabel} · ${mapsPulse.destinationSearchMessage.orEmpty()}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = TextSecondary,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis
+                                )
                             }
                         }
                     }
@@ -478,45 +493,23 @@ fun MapsScreen(
             ) {
                 routeContent(Modifier.fillMaxSize())
             }
-            InteractiveMapCanvas(
-                telemetry = telemetry,
-                markers = mapsPulse.markers,
-                selectedMarkerId = mapsPulse.selectedMarkerId,
-                showTrafficOverlay = settings.showTrafficOverlay,
-                showSatelliteGrid = settings.showSatelliteGrid,
-                isNavigating = mapsPulse.isNavigating,
-                onSelectMarker = onSelectMarker,
-                onToggleTraffic = onToggleTraffic,
-                onToggleSatellite = onToggleSatellite,
-                currentLatLon = mapsPulse.currentLatLon,
-                destinationLatLon = mapsPulse.destinationLatLon,
-                routePolylineGeo = mapsPulse.routePolylineGeo,
-                navigationSourceLabel = mapsPulse.navigationSourceLabel,
-                isDemoMode = settings.demoSimulationEnabled,
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
+            NativeMapLibreView(
+                currentLocation = mapsPulse.currentLatLon,
+                routePoints = mapsPulse.routePolylineGeo,
+                headingDegrees = telemetry.headingDegrees,
+                accent = accent,
+                modifier = Modifier.weight(1f).fillMaxHeight().zIndex(0f)
             )
         }
     } else {
         // Smartphone Portrait: Full-bleed interactive map beneath a velocity-responsive Draggable Laminar Sheet
         Box(modifier = modifier.fillMaxSize()) {
-            InteractiveMapCanvas(
-                telemetry = telemetry,
-                markers = mapsPulse.markers,
-                selectedMarkerId = mapsPulse.selectedMarkerId,
-                showTrafficOverlay = settings.showTrafficOverlay,
-                showSatelliteGrid = settings.showSatelliteGrid,
-                isNavigating = mapsPulse.isNavigating,
-                onSelectMarker = onSelectMarker,
-                onToggleTraffic = onToggleTraffic,
-                onToggleSatellite = onToggleSatellite,
-                currentLatLon = mapsPulse.currentLatLon,
-                destinationLatLon = mapsPulse.destinationLatLon,
-                routePolylineGeo = mapsPulse.routePolylineGeo,
-                navigationSourceLabel = mapsPulse.navigationSourceLabel,
-                isDemoMode = settings.demoSimulationEnabled,
-                modifier = Modifier.fillMaxSize()
+            NativeMapLibreView(
+                currentLocation = mapsPulse.currentLatLon,
+                routePoints = mapsPulse.routePolylineGeo,
+                headingDegrees = telemetry.headingDegrees,
+                accent = accent,
+                modifier = Modifier.fillMaxSize().zIndex(0f)
             )
 
             DraggableLaminarSheet(
@@ -526,6 +519,7 @@ fun MapsScreen(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .testTag("maps_portrait_laminar_sheet")
+                    .zIndex(1f)
             ) {
                 routeContent(Modifier.fillMaxSize())
             }
