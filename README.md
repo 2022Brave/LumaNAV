@@ -1,8 +1,8 @@
-# AUVIONYX
+## LUMANAV
 
-**Intelligence in Motion.**
+**Find your way. Feel the drive.**
 
-AUVIONYX is a personal Android automotive cockpit project built with Kotlin, Jetpack Compose and Material 3.
+LumaNav is a personal Android automotive cockpit and navigation project built with Kotlin, Jetpack Compose and Material 3.
 
 ## Project snapshot
 
