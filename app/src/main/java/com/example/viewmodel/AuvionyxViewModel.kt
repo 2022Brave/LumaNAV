@@ -1358,6 +1358,30 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
         publishVoiceCommandRecognised(outcome)
     }
 
+    fun updateMapsDestinationQuery(query: String) {
+        _mapsPulse.update { it.copy(destinationQuery = query) }
+    }
+
+    fun searchDestinationFromMaps(query: String) {
+        val clean = query.trim()
+        if (clean.isEmpty()) {
+            _mapsPulse.update {
+                it.copy(
+                    destinationSearchState = ServiceAvailabilityState.API_UNAVAILABLE,
+                    destinationSearchMessage = "Enter a destination to search.",
+                    destinationCandidates = emptyList()
+                )
+            }
+            return
+        }
+        performRealDestinationSearch(
+            query = clean,
+            action = VoiceCommandAction.NAVIGATE_TO,
+            recognizedPhrase = clean,
+            usedGemini = false
+        )
+    }
+
     private fun performRealDestinationSearch(
         query: String,
         action: VoiceCommandAction,
