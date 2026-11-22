@@ -622,7 +622,9 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
                             maybeReverseGeocodeAndWeather(reading.latitude, reading.longitude)
                         }
                     } else {
-                        _telemetry.update { it.copy(isLiveGpsActive = false) }
+                        _telemetry.update {
+                            it.copy(isLiveGpsActive = false, isLocationFallback = false, speedKmh = 0)
+                        }
                         _mapsPulse.update {
                             it.copy(
                                 gpsServiceState = if (settings.value.demoSimulationEnabled) {
