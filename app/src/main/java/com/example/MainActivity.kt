@@ -204,21 +204,9 @@ fun AuvionyxRootApp(viewModel: AuvionyxViewModel) {
         }
     }
 
-    val voiceAudioPermLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { granted ->
-        viewModel.refreshPermissionsAndGps()
-        if (granted) {
-            viewModel.activateVoiceListening()
-        }
-    }
-
+    // Voice capture is disabled in the navigation-focused build; never request microphone access.
     fun triggerVoiceCapture() {
-        if (permissions.audioGranted) {
-            viewModel.activateVoiceListening()
-        } else {
-            voiceAudioPermLauncher.launch(Manifest.permission.RECORD_AUDIO)
-        }
+        if (permissions.audioGranted) viewModel.activateVoiceListening()
     }
 
     fun openPhoneDialer() {
