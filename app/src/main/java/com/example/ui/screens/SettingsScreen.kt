@@ -398,7 +398,7 @@ fun SettingsScreen(
                 )
                 Spacer(Modifier.height(10.dp))
                 PermissionRow(
-                    title = "Google Maps & Media Session Sync (Notification Access)",
+                    title = "Navigation Notifications (Maps, Waze & Mappls)",
                     granted = permissions.notificationAccessGranted,
                     testTag = "perm_request_notification_sync",
                     onRequest = {
@@ -409,7 +409,7 @@ fun SettingsScreen(
                 )
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    text = "If Android shows Restricted setting blocked, open App info, tap ⋮, choose Allow restricted settings, then return here and grant Notification Access.",
+                    text = "Notification Access lets Auvionyx read active navigation notifications from supported apps to show turn instructions, distance and ETA. Android may require App info → ⋮ → Allow restricted settings before this can be enabled.",
                     style = MaterialTheme.typography.bodySmall,
                     color = TextMuted,
                     modifier = Modifier.fillMaxWidth()
