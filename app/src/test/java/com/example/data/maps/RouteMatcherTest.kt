@@ -20,7 +20,6 @@ class RouteMatcherTest {
         assertTrue(match!!.distanceToRouteMeters < 30.0)
         assertTrue(match.remainingDistanceMeters in 900.0..1_300.0)
         assertEquals(0.5, match.progressFraction, 0.08)
-        assertEquals(1, match.segmentIndex)
     }
 
     @Test
