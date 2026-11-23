@@ -4,7 +4,6 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -34,10 +33,9 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import com.example.R
+import com.example.ui.components.LumaNavLogo
 import com.example.ui.theme.DeepBlue
 import com.example.ui.theme.ElectricCyan
 import com.example.ui.theme.IceBlue
@@ -130,10 +128,8 @@ fun BootSplashScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Image(
-                painter = painterResource(id = R.drawable.auvionyx_launcher_fg),
+            LumaNavLogo(
                 contentDescription = stringResource(id = R.string.cd_velocity_a_logo),
-                contentScale = ContentScale.Fit,
                 modifier = Modifier.size(280.dp)
             )
             Spacer(Modifier.height(16.dp))
