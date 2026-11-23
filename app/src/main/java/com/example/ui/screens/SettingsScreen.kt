@@ -1,8 +1,6 @@
 package com.example.ui.screens
 
 import android.Manifest
-import android.app.Activity
-import android.media.projection.MediaProjectionManager
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
@@ -44,7 +42,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
-import com.example.core.NavigationCaptureService
 import com.example.data.model.AuvionyxModule
 import com.example.data.model.DashboardSplitRatio
 import com.example.data.model.HudLayoutMode
@@ -95,15 +92,6 @@ fun SettingsScreen(
     val locLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { onRefreshPermissions() }
-
-    val captureLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        val captureData = result.data
-        if (result.resultCode == Activity.RESULT_OK && captureData != null) {
-            NavigationCaptureService.start(context, result.resultCode, captureData)
-        }
-    }
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),
@@ -427,23 +415,6 @@ fun SettingsScreen(
                     modifier = Modifier.fillMaxWidth()
                 )
                 Spacer(Modifier.height(12.dp))
-                Button(
-                    onClick = {
-                        val manager = context.getSystemService(android.content.Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
-                        captureLauncher.launch(manager.createScreenCaptureIntent())
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = accent, contentColor = ObsidianBlack),
-                    shape = RoundedCornerShape(14.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Start Navigation Screen Capture")
-                }
-                Text(
-                    "Android will ask you to choose what to share and confirm each capture session. This starts the secure capture service; the in-app mirrored view is the next integration step.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = TextMuted
-                )
-                Spacer(Modifier.height(6.dp))
                 Surface(
                     color = LocalAuvionyxPalette.current.accentPrimary.copy(alpha = 0.15f),
                     shape = RoundedCornerShape(12.dp),
