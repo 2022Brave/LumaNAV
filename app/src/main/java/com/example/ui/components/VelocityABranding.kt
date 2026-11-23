@@ -58,8 +58,8 @@ fun VelocityACompactWordmark(
         }
         Text(
             text = buildAnnotatedString {
-                withStyle(SpanStyle(color = GlassWhite)) { append("AUVIONY") }
-                withStyle(SpanStyle(color = accent)) { append("X") }
+                withStyle(SpanStyle(color = GlassWhite)) { append("Luma") }
+                withStyle(SpanStyle(color = accent)) { append("Nav") }
             },
             fontFamily = SpaceGroteskFontFamily,
             fontWeight = FontWeight.Bold,
