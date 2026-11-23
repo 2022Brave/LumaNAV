@@ -38,11 +38,13 @@ For local development, copy the example to `app/google-services.json` and replac
 
 ## Important implementation notes
 
-- The Maps screen uses a native MapLibre view with OpenFreeMap style tiles; the HUD also contains a separate stylized Compose canvas preview. Google Maps SDK tiles are not included.
+- Maps, Drive, HUD, Traffic Pulse and AOD map mode use the native MapLibre view with OpenFreeMap style tiles. Google Maps SDK tiles are not included.
 - OSRM is used for driving-route requests and Open-Meteo for weather, as documented in the inventory.
 - Voice uses Android `SpeechRecognizer` and `TextToSpeech` APIs.
 - External media control and metadata use Android media-session APIs and require Notification Access.
-- Some dashboard/vehicle/traffic content remains demonstration data when live services are unavailable.
+- OSRM supplies road geometry and initial maneuver data for destination routes. Turn-by-turn guidance still needs further device validation.
+- No live traffic incident/forecast provider is connected yet. Traffic Pulse does not claim sample incidents are live; driver-submitted reports are local to the app.
+- Vehicle simulation is an optional preview and must remain visibly marked as demo.
 - This is a direct Android app project. It is not yet an Android Auto app and does not replace the Android Auto projection interface.
 
 ## Brand
