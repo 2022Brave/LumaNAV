@@ -1,6 +1,6 @@
-# AUVIONYX — Project Inventory & Source Recovery Guide
+# LumaNav — Project Inventory & Source Recovery Guide
 
-**Snapshot Identifier:** `AUVIONYX v1.0` (`versionCode = 1`, `applicationId = com.aistudio.auvionyx.kxvrqm`)  
+**Snapshot Identifier:** `LumaNav v1.0` (`versionCode = 1`, `applicationId = com.aistudio.auvionyx.kxvrqm`)  
 **Milestone:** Visual Reconstruction (1280×800 Landscape Cockpit) + Voice-First Architecture (`Auvionyx Voice`) + ColorOS "Living Flow" UI/Motion Integration  
 **Export Date:** 2026-11-17  
 **Platform:** Native Android (Kotlin + Jetpack Compose + Material 3)
