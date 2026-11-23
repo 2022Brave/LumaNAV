@@ -64,7 +64,7 @@ import com.example.ui.components.DraggableLaminarSheet
 import com.example.ui.components.GlassCard
 import com.example.ui.components.IdleNextTurnPill
 import com.example.ui.components.IdleProminentSpeedometer
-import com.example.ui.components.InteractiveMapCanvas
+import com.example.ui.components.NativeMapLibreView
 import com.example.ui.components.LivingFlow
 import com.example.ui.components.MediaControlCluster
 import com.example.ui.components.photonLuminousTouch
@@ -80,6 +80,47 @@ import com.example.ui.theme.PulseSlow
 import com.example.ui.theme.TextSecondary
 import com.example.viewmodel.MapsAndPulseState
 import com.example.viewmodel.MediaPlayerState
+
+
+@Composable
+private fun CockpitNativeMapPanel(
+    currentLocation: Pair<Double, Double>?,
+    routePoints: List<Pair<Double, Double>>,
+    headingDegrees: Int,
+    accent: Color,
+    isNavigating: Boolean,
+    nextTurnDistance: String,
+    nextTurnRoad: String,
+    modifier: Modifier = Modifier
+) {
+    Box(modifier = modifier.clip(RoundedCornerShape(24.dp))) {
+        NativeMapLibreView(
+            currentLocation = currentLocation,
+            routePoints = routePoints,
+            headingDegrees = headingDegrees,
+            accent = accent,
+            modifier = Modifier.fillMaxSize()
+        )
+        Surface(
+            modifier = Modifier.align(Alignment.TopStart).padding(12.dp),
+            color = Color(0xCC07111D),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Text(
+                text = if (isNavigating && routePoints.size >= 2) {
+                    "$nextTurnDistance · $nextTurnRoad"
+                } else if (currentLocation != null) {
+                    "GPS FIXED · NO ACTIVE ROUTE"
+                } else {
+                    "WAITING FOR GPS"
+                },
+                color = GlassWhite,
+                style = MaterialTheme.typography.labelSmall,
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+            )
+        }
+    }
+}
 
 private data class ResolvedCockpitDisplay(
     val speedDisplay: Int,
@@ -102,7 +143,7 @@ private fun resolveCockpitDisplay(
     mapsPulse: MapsAndPulseState
 ): ResolvedCockpitDisplay {
     val hasLiveSession = telemetry.isLiveGpsActive || mapsPulse.isNavigating || telemetry.isSimulationRunning
-    val rawSpeedKmh = if (hasLiveSession) telemetry.speedKmh else 86
+    val rawSpeedKmh = telemetry.speedKmh
     val speedDisplay = if (settings.useMetricUnits) {
         rawSpeedKmh
     } else {
@@ -114,17 +155,17 @@ private fun resolveCockpitDisplay(
     val nextTurnDist = if (mapsPulse.isNavigating && telemetry.nextTurnDistanceLabel != "--") {
         telemetry.nextTurnDistanceLabel
     } else {
-        "2.4 km"
+        "--"
     }
     val nextTurnRoad = if (mapsPulse.isNavigating && telemetry.nextTurnRoad != "No Active Route") {
         telemetry.nextTurnRoad
     } else {
-        "Rajpur Road"
+        "No active route"
     }
-    val remMinutes = if (mapsPulse.isNavigating && telemetry.remainingMinutes > 0) telemetry.remainingMinutes else 19
-    val remKm = if (mapsPulse.isNavigating && telemetry.remainingDistanceKm > 0f) telemetry.remainingDistanceKm else 12.6f
-    val eta = if (mapsPulse.isNavigating && telemetry.etaTimeLabel != "--:--") telemetry.etaTimeLabel else "10:43"
-    val limit = telemetry.speedLimitKmh ?: if (!hasLiveSession) 100 else null
+    val remMinutes = if (mapsPulse.isNavigating && telemetry.remainingMinutes > 0) telemetry.remainingMinutes else 0
+    val remKm = if (mapsPulse.isNavigating && telemetry.remainingDistanceKm > 0f) telemetry.remainingDistanceKm else 0f
+    val eta = if (mapsPulse.isNavigating && telemetry.etaTimeLabel != "--:--") telemetry.etaTimeLabel else "--:--"
+    val limit = telemetry.speedLimitKmh
 
     return ResolvedCockpitDisplay(
         speedDisplay = speedDisplay,
@@ -264,30 +305,14 @@ private fun LandscapeCockpitSurface(
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     // Large Left/Center Map (~64% content area)
-                    InteractiveMapCanvas(
-                        telemetry = telemetry,
-                        markers = mapsPulse.markers,
-                        selectedMarkerId = mapsPulse.selectedMarkerId,
-                        showTrafficOverlay = settings.showTrafficOverlay,
-                        showSatelliteGrid = settings.showSatelliteGrid,
+                    CockpitNativeMapPanel(
+                        currentLocation = mapsPulse.currentLatLon,
+                        routePoints = mapsPulse.routePolylineGeo,
+                        headingDegrees = telemetry.headingDegrees,
+                        accent = LocalAuvionyxPalette.current.accentPrimary,
                         isNavigating = mapsPulse.isNavigating,
-                        onSelectMarker = onSelectMarker,
-                        onToggleTraffic = onToggleTraffic,
-                        onToggleSatellite = onToggleSatellite,
-                        currentLatLon = mapsPulse.currentLatLon,
-                        destinationLatLon = mapsPulse.destinationLatLon,
-                        routePolylineGeo = mapsPulse.routePolylineGeo,
-                        navigationSourceLabel = mapsPulse.navigationSourceLabel,
-                        isDemoMode = resolved.isDemoPreview || settings.demoSimulationEnabled,
-                        showMapControls = true,
-                        compactHudMode = false,
-                        showFullScreenBorder = true,
-                        displayNextTurnDistance = resolved.nextTurnDistance,
-                        displayNextTurnRoad = resolved.nextTurnRoad,
-                        displayRemainingMinutes = resolved.remainingMinutes,
-                        displayRemainingKm = resolved.remainingKm,
-                        displayEtaLabel = resolved.etaLabel,
-                        onExpandMap = { onSelectModule(AuvionyxModule.MAPS) },
+                        nextTurnDistance = telemetry.nextTurnDistanceLabel,
+                        nextTurnRoad = telemetry.nextTurnRoad,
                         modifier = Modifier
                             .weight(0.64f)
                             .fillMaxHeight()
@@ -358,24 +383,14 @@ private fun LandscapeCockpitSurface(
                         .testTag("idle_cockpit_root")
                 ) {
                     // Expanded Full-Bleed Map (secondary controls & card borders hidden)
-                    InteractiveMapCanvas(
-                        telemetry = telemetry,
-                        markers = emptyList(),
-                        selectedMarkerId = null,
-                        showTrafficOverlay = settings.showTrafficOverlay,
-                        showSatelliteGrid = settings.showSatelliteGrid,
-                        isNavigating = mapsPulse.isNavigating || resolved.isDemoPreview,
-                        onSelectMarker = {},
-                        onToggleTraffic = {},
-                        onToggleSatellite = {},
-                        currentLatLon = mapsPulse.currentLatLon,
-                        destinationLatLon = mapsPulse.destinationLatLon,
-                        routePolylineGeo = mapsPulse.routePolylineGeo,
-                        navigationSourceLabel = mapsPulse.navigationSourceLabel,
-                        isDemoMode = resolved.isDemoPreview,
-                        showMapControls = false,
-                        compactHudMode = true,
-                        showFullScreenBorder = false,
+                    CockpitNativeMapPanel(
+                        currentLocation = mapsPulse.currentLatLon,
+                        routePoints = mapsPulse.routePolylineGeo,
+                        headingDegrees = telemetry.headingDegrees,
+                        accent = LocalAuvionyxPalette.current.accentPrimary,
+                        isNavigating = mapsPulse.isNavigating,
+                        nextTurnDistance = telemetry.nextTurnDistanceLabel,
+                        nextTurnRoad = telemetry.nextTurnRoad,
                         modifier = Modifier
                             .fillMaxSize()
                             .sharedBounds(
@@ -483,32 +498,18 @@ private fun SmartphonePortraitDriveDashboard(
             contentPadding = PaddingValues(bottom = 132.dp)
         ) {
             item {
-                InteractiveMapCanvas(
-                    telemetry = telemetry,
-                    markers = mapsPulse.markers,
-                    selectedMarkerId = mapsPulse.selectedMarkerId,
-                    showTrafficOverlay = settings.showTrafficOverlay,
-                    showSatelliteGrid = settings.showSatelliteGrid,
-                    isNavigating = mapsPulse.isNavigating,
-                    onSelectMarker = onSelectMarker,
-                    onToggleTraffic = onToggleTraffic,
-                    onToggleSatellite = onToggleSatellite,
-                    currentLatLon = mapsPulse.currentLatLon,
-                    destinationLatLon = mapsPulse.destinationLatLon,
-                    routePolylineGeo = mapsPulse.routePolylineGeo,
-                    navigationSourceLabel = mapsPulse.navigationSourceLabel,
-                    isDemoMode = resolved.isDemoPreview || settings.demoSimulationEnabled,
-                    showMapControls = false,
-                    displayNextTurnDistance = resolved.nextTurnDistance,
-                    displayNextTurnRoad = resolved.nextTurnRoad,
-                    displayRemainingMinutes = resolved.remainingMinutes,
-                    displayRemainingKm = resolved.remainingKm,
-                    displayEtaLabel = resolved.etaLabel,
-                    onExpandMap = { onSelectModule(AuvionyxModule.MAPS) },
-                    modifier = Modifier
+                CockpitNativeMapPanel(
+                        currentLocation = mapsPulse.currentLatLon,
+                        routePoints = mapsPulse.routePolylineGeo,
+                        headingDegrees = telemetry.headingDegrees,
+                        accent = LocalAuvionyxPalette.current.accentPrimary,
+                        isNavigating = mapsPulse.isNavigating,
+                        nextTurnDistance = telemetry.nextTurnDistanceLabel,
+                        nextTurnRoad = telemetry.nextTurnRoad,
+                        modifier = Modifier
                         .fillMaxWidth()
                         .height(210.dp)
-                )
+                    )
             }
 
             item {
