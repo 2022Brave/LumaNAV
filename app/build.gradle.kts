@@ -63,20 +63,16 @@ android {
     compose = true
     buildConfig = true
   }
-  testOptions {
-    unitTests {
-      isIncludeAndroidResources = true
-      all {
-        // Robolectric defaults to repo1.maven.org, which rate-limited CI (HTTP 429)
-        // while downloading android-all-instrumented. Use Maven Central's canonical host.
-        systemProperty("robolectric.dependency.repo.url", "https://repo.maven.apache.org/maven2")
-      }
-    }
-  }
+  testOptions { unitTests { isIncludeAndroidResources = true } }
   dependenciesInfo {
     includeInApk = false
     includeInBundle = true
   }
+}
+
+// Point Robolectric's runtime SDK downloads at Maven Central's canonical endpoint.
+tasks.withType<org.gradle.api.tasks.testing.Test>().configureEach {
+  systemProperty("robolectric.dependency.repo.url", "https://repo.maven.apache.org/maven2")
 }
 
 // Configure the Secrets Gradle Plugin to use .env and .env.example files
