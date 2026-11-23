@@ -63,7 +63,16 @@ android {
     compose = true
     buildConfig = true
   }
-  testOptions { unitTests { isIncludeAndroidResources = true } }
+  testOptions {
+    unitTests {
+      isIncludeAndroidResources = true
+      all {
+        // Robolectric defaults to repo1.maven.org, which rate-limited CI (HTTP 429)
+        // while downloading android-all-instrumented. Use Maven Central's canonical host.
+        systemProperty("robolectric.dependency.repo.url", "https://repo.maven.apache.org/maven2")
+      }
+    }
+  }
   dependenciesInfo {
     includeInApk = false
     includeInBundle = true
