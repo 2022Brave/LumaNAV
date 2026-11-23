@@ -67,7 +67,7 @@ fun VehicleScreen(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("Auvionyx Vehicle", style = MaterialTheme.typography.headlineMedium, color = GlassWhite)
+            Text("LumaNav Vehicle", style = MaterialTheme.typography.headlineMedium, color = GlassWhite)
             Surface(
                 color = IceBlue.copy(alpha = 0.14f),
                 shape = RoundedCornerShape(50),
