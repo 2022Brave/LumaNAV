@@ -105,7 +105,7 @@ fun MusicScreen(
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = if (isExternal) mediaState.externalAppLabel ?: "Now Playing" else "AUVIONYX PLAYER",
+                            text = if (isExternal) mediaState.externalAppLabel ?: "Now Playing" else "LUMANAV PLAYER",
                             style = MaterialTheme.typography.labelMedium,
                             color = accent,
                             maxLines = 1,
