@@ -35,6 +35,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.example.R
 import com.example.ui.components.LumaNavLogo
 import com.example.ui.theme.DeepBlue
 import com.example.ui.theme.ElectricCyan
