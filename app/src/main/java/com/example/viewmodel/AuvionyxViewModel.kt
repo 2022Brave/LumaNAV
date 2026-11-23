@@ -1744,7 +1744,7 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
                     category = VoiceCommandCategory.VEHICLE,
                     action = command.action,
                     recognizedPhrase = recognizedPhrase,
-                    confirmationTitle = customConfirmation ?: "Opening Auvionyx HUD",
+                    confirmationTitle = customConfirmation ?: "Opening LumaNav HUD",
                     confirmationDetail = "Minimalist HUD active.",
                     serviceState = _mapsPulse.value.gpsServiceState,
                     usedGeminiInterpreter = usedGemini
@@ -1786,7 +1786,7 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
                     category = VoiceCommandCategory.INTERFACE,
                     action = command.action,
                     recognizedPhrase = recognizedPhrase,
-                    confirmationTitle = customConfirmation ?: "Opening Auvionyx Maps",
+                    confirmationTitle = customConfirmation ?: "Opening LumaNav Maps",
                     confirmationDetail = "Navigation ready.",
                     serviceState = _mapsPulse.value.mapsServiceState,
                     usedGeminiInterpreter = usedGemini
@@ -1799,7 +1799,7 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
                     category = VoiceCommandCategory.INTERFACE,
                     action = command.action,
                     recognizedPhrase = recognizedPhrase,
-                    confirmationTitle = customConfirmation ?: "Opening Auvionyx Music",
+                    confirmationTitle = customConfirmation ?: "Opening LumaNav Music",
                     confirmationDetail = "Unified Media Hub displayed.",
                     serviceState = _mediaState.value.bridgeStatus.serviceState,
                     usedGeminiInterpreter = usedGemini
