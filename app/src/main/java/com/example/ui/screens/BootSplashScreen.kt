@@ -131,10 +131,16 @@ fun BootSplashScreen(
             verticalArrangement = Arrangement.Center
         ) {
             Image(
-                painter = painterResource(id = R.drawable.auvionyx_velocity_a),
+                painter = painterResource(id = R.drawable.auvionyx_launcher_fg),
                 contentDescription = stringResource(id = R.string.cd_velocity_a_logo),
                 contentScale = ContentScale.Fit,
                 modifier = Modifier.size(280.dp)
+            )
+            Spacer(Modifier.height(16.dp))
+            Text(
+                text = "LumaNav",
+                style = MaterialTheme.typography.headlineLarge,
+                color = ElectricCyan
             )
         }
 
