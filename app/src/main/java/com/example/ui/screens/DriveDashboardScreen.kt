@@ -178,7 +178,7 @@ private fun resolveCockpitDisplay(
         remainingMinutes = remMinutes,
         remainingKm = remKm,
         etaLabel = eta,
-        isDemoPreview = !hasLiveSession
+        isDemoPreview = telemetry.isSimulationRunning || settings.demoSimulationEnabled
     )
 }
 
