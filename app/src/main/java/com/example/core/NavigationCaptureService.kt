@@ -51,6 +51,7 @@ class NavigationCaptureService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_STOP) {
             releaseCaptureResources(stopProjection = true)
+            stopForeground(STOP_FOREGROUND_REMOVE)
             stopSelf()
             return START_NOT_STICKY
         }
@@ -64,12 +65,14 @@ class NavigationCaptureService : Service() {
         }
 
         _captureError.value = null
+        releaseCaptureResources(stopProjection = true)
         startCaptureForeground()
         runCatching { startProjection(resultCode, resultData) }
             .onFailure { error ->
                 releaseCaptureResources(stopProjection = true)
                 _captureError.value = error.message?.takeIf(String::isNotBlank)
                     ?: "LumaNav could not start screen capture."
+                stopForeground(STOP_FOREGROUND_REMOVE)
                 stopSelf()
             }
         return START_NOT_STICKY
@@ -104,8 +107,6 @@ class NavigationCaptureService : Service() {
     }
 
     private fun startProjection(resultCode: Int, resultData: Intent) {
-        releaseCaptureResources(stopProjection = true)
-
         val manager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
         val activeProjection = manager.getMediaProjection(resultCode, resultData)
             ?: error("Android did not grant a screen capture session.")
@@ -127,6 +128,7 @@ class NavigationCaptureService : Service() {
         val callback = object : MediaProjection.Callback() {
             override fun onStop() {
                 releaseCaptureResources(stopProjection = false)
+                stopForeground(STOP_FOREGROUND_REMOVE)
                 stopSelf()
             }
 
@@ -245,6 +247,7 @@ class NavigationCaptureService : Service() {
 
     override fun onDestroy() {
         releaseCaptureResources(stopProjection = true)
+        stopForeground(STOP_FOREGROUND_REMOVE)
         super.onDestroy()
     }
 
