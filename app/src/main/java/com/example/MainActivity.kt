@@ -236,6 +236,10 @@ fun AuvionyxRootApp(viewModel: AuvionyxViewModel) {
                 aodStyle = settings.aodStyle,
                 telemetry = telemetry,
                 useMetricUnits = settings.useMetricUnits,
+                currentLocation = mapsPulse.currentLatLon,
+                routePoints = mapsPulse.routePolylineGeo,
+                headingDegrees = telemetry.headingDegrees,
+                isNavigating = mapsPulse.isNavigating,
                 onSelectAodStyle = { viewModel.setAodStyle(it) },
                 onExitAod = { viewModel.navigateTo(AuvionyxModule.DRIVE) }
             )
