@@ -811,16 +811,6 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
                             isSimulationRunning = true
                         )
                     }
-                    _mapsPulse.update { state ->
-                        if (state.routes.isEmpty() && state.confirmedDestination == null && !state.isExternalGoogleMapsSyncActive) {
-                            state.copy(
-                                routes = AuvionyxSampleData.routes,
-                                markers = AuvionyxSampleData.placeMarkers,
-                                incidents = AuvionyxSampleData.incidents,
-                                navigationSourceLabel = "Demo Preview"
-                            )
-                        } else state
-                    }
                 } else {
                     _telemetry.update { current ->
                         current.copy(
