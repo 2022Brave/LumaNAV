@@ -39,16 +39,22 @@ import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.android.maps.Style
 import org.maplibre.android.style.layers.CircleLayer
+import org.maplibre.android.style.layers.FillExtrusionLayer
 import org.maplibre.android.style.layers.LineLayer
 import org.maplibre.android.style.layers.Property
 import org.maplibre.android.style.layers.PropertyFactory.circleColor
 import org.maplibre.android.style.layers.PropertyFactory.circleRadius
 import org.maplibre.android.style.layers.PropertyFactory.circleStrokeColor
 import org.maplibre.android.style.layers.PropertyFactory.circleStrokeWidth
+import org.maplibre.android.style.layers.PropertyFactory.fillExtrusionBase
+import org.maplibre.android.style.layers.PropertyFactory.fillExtrusionColor
+import org.maplibre.android.style.layers.PropertyFactory.fillExtrusionHeight
+import org.maplibre.android.style.layers.PropertyFactory.fillExtrusionOpacity
 import org.maplibre.android.style.layers.PropertyFactory.lineCap
 import org.maplibre.android.style.layers.PropertyFactory.lineColor
 import org.maplibre.android.style.layers.PropertyFactory.lineJoin
 import org.maplibre.android.style.layers.PropertyFactory.lineWidth
+import org.maplibre.android.style.expressions.Expression
 import org.maplibre.android.style.sources.GeoJsonSource
 import org.maplibre.geojson.Feature
 import org.maplibre.geojson.FeatureCollection
@@ -152,6 +158,7 @@ fun NativeMapLibreView(
                         )
                     )
                 }
+                addLumaNav3DBuildings(style)
                 loadedStyle = style
                 styleLoaded = true
             }
@@ -193,7 +200,7 @@ fun NativeMapLibreView(
                     .target(LatLng(latitude, longitude))
                     .zoom(16.2)
                     .bearing(headingDegrees.toDouble())
-                    .tilt(32.0)
+                    .tilt(48.0)
                     .build()
                 if (!hasCenteredOnFix) {
                     mapLibreMap?.moveCamera(CameraUpdateFactory.newCameraPosition(camera))
@@ -251,6 +258,7 @@ fun NativeMapLibreView(
                                 )
                             )
                         }
+                        addLumaNav3DBuildings(style)
                         loadedStyle = style
                         styleLoaded = true
                     }
@@ -325,6 +333,28 @@ fun NativeMapLibreView(
             }
         }
     }
+}
+
+
+/**
+ * OpenFreeMap exposes OSM building polygons in the "building" vector source-layer.
+ * Extrusion heights are only available where OSM contributors supplied building data.
+ */
+private fun addLumaNav3DBuildings(style: Style) {
+    if (style.getLayer("lumanav-buildings-3d") != null) return
+    if (style.getSource("openmaptiles") == null) return
+
+    val buildings = FillExtrusionLayer("lumanav-buildings-3d", "openmaptiles").apply {
+        sourceLayer = "building"
+        minZoom = 15f
+        setProperties(
+            fillExtrusionColor("#26384B"),
+            fillExtrusionHeight(Expression.get("render_height")),
+            fillExtrusionBase(Expression.get("render_min_height")),
+            fillExtrusionOpacity(0.88f)
+        )
+    }
+    style.addLayer(buildings)
 }
 
 private fun emptyFeatureCollection(): FeatureCollection =
