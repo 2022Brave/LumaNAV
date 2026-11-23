@@ -53,7 +53,7 @@ class NavigationCaptureService : Service() {
         }
 
         val resultCode = intent?.getIntExtra(EXTRA_RESULT_CODE, 0) ?: 0
-        val resultData = intent?.parcelableIntent(EXTRA_RESULT_DATA)
+        val resultData = intent?.parcelableIntent<Intent>(EXTRA_RESULT_DATA)
         if (resultCode == 0 || resultData == null) {
             stopSelf()
             return START_NOT_STICKY
@@ -88,6 +88,10 @@ class NavigationCaptureService : Service() {
         stopCapture()
         val manager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
         val mediaProjection = manager.getMediaProjection(resultCode, resultData)
+        if (mediaProjection == null) {
+            stopSelf()
+            return
+        }
         projection = mediaProjection
 
         val metrics = DisplayMetrics()
@@ -159,11 +163,16 @@ class NavigationCaptureService : Service() {
         imageReader?.setOnImageAvailableListener(null, null)
         imageReader?.close()
         imageReader = null
+        val activeProjection = projection
         projectionCallback?.let { callback ->
-            runCatching { projection?.unregisterCallback(callback) }
+            if (activeProjection != null) {
+                runCatching { activeProjection.unregisterCallback(callback) }
+            }
         }
         projectionCallback = null
-        runCatching { projection?.stop() }
+        if (activeProjection != null) {
+            runCatching { activeProjection.stop() }
+        }
         projection = null
         workerThread?.quitSafely()
         workerThread = null
