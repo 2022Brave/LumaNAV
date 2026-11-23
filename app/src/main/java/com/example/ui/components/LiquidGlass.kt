@@ -661,7 +661,7 @@ fun TrafficPulseBadge(
 
 /**
  * Authoritative Top Branding & Status Bar matching Active & Idle Cockpit blueprints:
- * - Left: Velocity A + AUVIONYX wordmark
+ * - Left: Velocity A + LumaNav wordmark
  * - Bottom center: Subtle Electric Cyan horizon shimmer hairline
  * - Right: Stacked Time/Date, Divider, Weather Icon + Temp + Locality, Signal, Wi-Fi, Bluetooth, Settings gear
  */
@@ -690,9 +690,9 @@ fun GlassTopStatusBar(
     val localityDisplay = when {
         isLiveGps && !currentLocation.contains("Acquiring", ignoreCase = true) ->
             currentLocation.substringBefore(",").take(18)
-        else -> "Noida (Demo)"
+        else -> "Location unavailable"
     }
-    val tempDisplay = weatherTempC ?: 24
+    val tempDisplay = weatherTempC?.let { "${it}°C" } ?: "--"
 
     Box(
         modifier = modifier
@@ -723,7 +723,7 @@ fun GlassTopStatusBar(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            // Left: Official Velocity A + AUVIONYX wordmark (tap for AOD)
+            // Left: LumaNav wordmark (tap for AOD)
             VelocityACompactWordmark(
                 modifier = Modifier
                     .testTag("top_aod_button")
@@ -767,7 +767,7 @@ fun GlassTopStatusBar(
                     )
                     Column {
                         Text(
-                            text = "${tempDisplay}°C",
+                            text = tempDisplay,
                             style = MaterialTheme.typography.titleMedium,
                             color = GlassWhite
                         )
