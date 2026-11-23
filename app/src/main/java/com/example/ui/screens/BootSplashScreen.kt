@@ -134,14 +134,31 @@ fun BootSplashScreen(
             }
         }
 
-        // Official Velocity A Hero Lockup
+        // Cyan halo breathing behind the logo.
+        Canvas(
+            modifier = Modifier
+                .size(340.dp)
+                .align(Alignment.Center)
+        ) {
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(ElectricCyan.copy(alpha = glowPulse), DeepBlue.copy(alpha = glowPulse * 0.28f), Color.Transparent),
+                    radius = size.minDimension * 0.48f
+                ),
+                radius = size.minDimension * 0.48f
+            )
+        }
+
+        // Animated logo reveal: scale-up, slight tilt correction, then a gentle breathing pulse.
         Column(
             modifier = Modifier
                 .align(Alignment.Center)
                 .graphicsLayer {
                     alpha = lockupAlpha.value
-                    scaleX = 0.92f + 0.08f * lockupAlpha.value
-                    scaleY = 0.92f + 0.08f * lockupAlpha.value
+                    val entrance = 0.72f + 0.28f * lockupAlpha.value
+                    scaleX = entrance * logoPulse
+                    scaleY = entrance * logoPulse
+                    rotationZ = (1f - lockupAlpha.value) * -5.5f
                 },
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
