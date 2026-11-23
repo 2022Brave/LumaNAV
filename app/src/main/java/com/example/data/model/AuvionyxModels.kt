@@ -12,7 +12,7 @@ enum class AuvionyxModule(val route: String, val label: String) {
     MUSIC("music", "Music"),
     HUD("hud", "HUD"),
     PULSE("pulse", "Traffic Pulse"),
-    VOICE("voice", "Auvionyx Voice"),
+    VOICE("voice", "LumaNav Voice"),
     AOD("aod", "AOD"),
     VEHICLE("vehicle", "Vehicle"),
     SETTINGS("settings", "Settings"),
