@@ -60,6 +60,19 @@ fun BootSplashScreen(
     val reducedMotion = LocalAuvionyxMotion.current.reducedMotion
     val wakeProgress = remember { Animatable(0f) }
     val lockupAlpha = remember { Animatable(0f) }
+    val ambient = rememberInfiniteTransition(label = "lumanav_splash_ambient")
+    val logoPulse by ambient.animateFloat(
+        initialValue = 0.985f,
+        targetValue = 1.018f,
+        animationSpec = infiniteRepeatable(tween(1500, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+        label = "logoPulse"
+    )
+    val glowPulse by ambient.animateFloat(
+        initialValue = 0.24f,
+        targetValue = 0.62f,
+        animationSpec = infiniteRepeatable(tween(1800, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+        label = "glowPulse"
+    )
 
     LaunchedEffect(reducedMotion) {
         if (reducedMotion) {
