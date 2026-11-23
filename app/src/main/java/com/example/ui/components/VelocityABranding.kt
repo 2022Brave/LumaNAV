@@ -19,8 +19,12 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.asImageBitmap
+import android.graphics.BitmapFactory
+import android.util.Base64
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -46,13 +50,9 @@ fun VelocityACompactWordmark(
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (showIcon) {
-            Image(
-                painter = painterResource(id = R.drawable.auvionyx_launcher_fg),
+            LumaNavLogo(
                 contentDescription = stringResource(id = R.string.cd_velocity_a_logo),
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .size(30.dp)
-                    .clip(RoundedCornerShape(8.dp))
+                modifier = Modifier.size(30.dp).clip(RoundedCornerShape(8.dp))
             )
             Spacer(Modifier.width(8.dp))
         }
@@ -80,10 +80,8 @@ fun VelocityAHeroLockup(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Image(
-            painter = painterResource(id = R.drawable.auvionyx_launcher_fg),
+        LumaNavLogo(
             contentDescription = stringResource(id = R.string.cd_velocity_a_logo),
-            contentScale = ContentScale.Fit,
             modifier = Modifier
                 .size(logoSize)
                 .drawBehind {
@@ -113,4 +111,26 @@ fun VelocityAHeroLockup(
             color = TextSecondary
         )
     }
+}
+
+
+@Composable
+fun LumaNavLogo(
+    contentDescription: String,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    val logoBitmap = remember(context) {
+        val encoded = context.resources.openRawResource(R.raw.lumanav_logo_base64)
+            .bufferedReader()
+            .use { it.readText() }
+        val bytes = Base64.decode(encoded, Base64.DEFAULT)
+        BitmapFactory.decodeByteArray(bytes, 0, bytes.size).asImageBitmap()
+    }
+    Image(
+        bitmap = logoBitmap,
+        contentDescription = contentDescription,
+        contentScale = ContentScale.Fit,
+        modifier = modifier
+    )
 }
