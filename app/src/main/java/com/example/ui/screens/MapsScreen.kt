@@ -333,7 +333,7 @@ fun MapsScreen(
                         Text(
                             buildList {
                                 if (navigation.nextTurnDistanceLabel != "--") add("Next: ${navigation.nextTurnDistanceLabel}")
-                                navigation.remainingSummary.takeIf(String::isNotBlank)?.let(::add)
+                                navigation.remainingSummary.takeIf(String::isNotBlank)?.let { add(it) }
                                 navigation.etaTimeLabel?.let { add("ETA $it") }
                             }.joinToString(" · ").ifBlank { "Live guidance notification detected" },
                             style = MaterialTheme.typography.labelSmall,
