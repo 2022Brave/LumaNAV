@@ -409,7 +409,7 @@ fun SettingsScreen(
                 )
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    text = "Notification Access lets LumaNav read active navigation notifications from supported apps to show turn instructions, distance and ETA. Android may require App info → ⋮ → Allow restricted settings before this can be enabled.",
+                    text = "If this switch is greyed out on ColorOS/Android, it is likely blocked because LumaNav was sideloaded. Open App Info → tap ⋮ (top-right) → Allow restricted settings. Then return here and enable LumaNav under Notification access. This is an Android security restriction, not an app bug.",
                     style = MaterialTheme.typography.bodySmall,
                     color = TextMuted,
                     modifier = Modifier.fillMaxWidth()
