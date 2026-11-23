@@ -98,8 +98,8 @@ fun VelocityAHeroLockup(
         Spacer(Modifier.height(14.dp))
         Text(
             text = buildAnnotatedString {
-                withStyle(SpanStyle(color = GlassWhite)) { append("AUVIONY") }
-                withStyle(SpanStyle(color = ElectricCyan)) { append("X") }
+                withStyle(SpanStyle(color = GlassWhite)) { append("Luma") }
+                withStyle(SpanStyle(color = ElectricCyan)) { append("Nav") }
             },
             fontFamily = SpaceGroteskFontFamily,
             fontWeight = FontWeight.Bold,
