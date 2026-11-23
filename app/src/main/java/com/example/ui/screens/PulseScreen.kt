@@ -58,7 +58,7 @@ import com.example.data.model.TrafficSeverity
 import com.example.data.model.VehicleTelemetry
 import com.example.data.preferences.AuvionyxSettingsState
 import com.example.ui.components.GlassCard
-import com.example.ui.components.InteractiveMapCanvas
+import com.example.ui.components.NativeMapLibreView
 import com.example.ui.components.LiquidGlassLens
 import com.example.ui.components.LivingFlow
 import com.example.ui.components.ServiceStateBadge
@@ -146,12 +146,15 @@ fun PulseScreen(
                         style = MaterialTheme.typography.labelLarge,
                         color = TextSecondary
                     )
-                    ServiceStateBadge(state = ServiceAvailabilityState.DEMO)
+                    ServiceStateBadge(state = mapsPulse.mapsServiceState)
                 }
 
                 if (mapsPulse.activePulseTab == PulseFeedTab.FORECAST) {
-                    TrafficTimelineForecastCard(
-                        modifier = Modifier.fillMaxWidth()
+                    Text(
+                        text = "Live traffic forecast is not connected yet.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = TextSecondary,
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp)
                     )
                 }
 
@@ -160,8 +163,19 @@ fun PulseScreen(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(mapsPulse.incidents, key = { it.id }) { incident ->
-                        PulseIncidentCard(incident = incident)
+                    if (mapsPulse.incidents.isEmpty()) {
+                        item {
+                            Text(
+                                text = "No verified live traffic reports are available. Reports submitted by drivers will appear here.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = TextSecondary,
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 20.dp)
+                            )
+                        }
+                    } else {
+                        items(mapsPulse.incidents, key = { it.id }) { incident ->
+                            PulseIncidentCard(incident = incident)
+                        }
                     }
                 }
 
@@ -291,21 +305,11 @@ fun PulseScreen(
             modifier = modifier.fillMaxSize(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            InteractiveMapCanvas(
-                telemetry = telemetry,
-                markers = mapsPulse.markers,
-                selectedMarkerId = mapsPulse.selectedMarkerId,
-                showTrafficOverlay = true,
-                showSatelliteGrid = settings.showSatelliteGrid,
-                isNavigating = mapsPulse.isNavigating,
-                onSelectMarker = onSelectMarker,
-                onToggleTraffic = onToggleTraffic,
-                onToggleSatellite = onToggleSatellite,
-                currentLatLon = mapsPulse.currentLatLon,
-                destinationLatLon = mapsPulse.destinationLatLon,
-                routePolylineGeo = mapsPulse.routePolylineGeo,
-                navigationSourceLabel = mapsPulse.navigationSourceLabel,
-                isDemoMode = settings.demoSimulationEnabled,
+            NativeMapLibreView(
+                currentLocation = mapsPulse.currentLatLon,
+                routePoints = mapsPulse.routePolylineGeo,
+                headingDegrees = telemetry.headingDegrees,
+                accent = accent,
                 modifier = Modifier
                     .weight(0.56f)
                     .fillMaxHeight()
@@ -317,21 +321,11 @@ fun PulseScreen(
             modifier = modifier.fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            InteractiveMapCanvas(
-                telemetry = telemetry,
-                markers = mapsPulse.markers,
-                selectedMarkerId = mapsPulse.selectedMarkerId,
-                showTrafficOverlay = true,
-                showSatelliteGrid = settings.showSatelliteGrid,
-                isNavigating = mapsPulse.isNavigating,
-                onSelectMarker = onSelectMarker,
-                onToggleTraffic = onToggleTraffic,
-                onToggleSatellite = onToggleSatellite,
-                currentLatLon = mapsPulse.currentLatLon,
-                destinationLatLon = mapsPulse.destinationLatLon,
-                routePolylineGeo = mapsPulse.routePolylineGeo,
-                navigationSourceLabel = mapsPulse.navigationSourceLabel,
-                isDemoMode = settings.demoSimulationEnabled,
+            NativeMapLibreView(
+                currentLocation = mapsPulse.currentLatLon,
+                routePoints = mapsPulse.routePolylineGeo,
+                headingDegrees = telemetry.headingDegrees,
+                accent = accent,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(215.dp)
