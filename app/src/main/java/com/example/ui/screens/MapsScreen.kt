@@ -1,8 +1,8 @@
 package com.example.ui.screens
 
 import android.Manifest
-import android.app.Activity
 import android.content.Intent
+import android.media.projection.MediaProjectionManager
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
