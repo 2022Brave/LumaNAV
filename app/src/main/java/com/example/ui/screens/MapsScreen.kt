@@ -1,6 +1,7 @@
 package com.example.ui.screens
 
 import android.Manifest
+import android.app.Activity
 import android.content.Intent
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -16,6 +17,7 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -59,6 +61,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -66,6 +70,8 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.zIndex
 import androidx.compose.ui.unit.dp
+import com.example.core.LiveGoogleMapsSyncBridge
+import com.example.core.NavigationCaptureService
 import com.example.data.model.DestinationCandidate
 import com.example.data.model.MapPlaceMarker
 import com.example.data.model.ServiceAvailabilityState
@@ -121,6 +127,20 @@ fun MapsScreen(
         contract = ActivityResultContracts.RequestPermission()
     ) {
         onPermissionUpdated()
+    }
+
+    val captureActive by NavigationCaptureService.captureActive.collectAsState()
+    val latestCaptureFrame by NavigationCaptureService.latestFrame.collectAsState()
+    val captureError by NavigationCaptureService.captureError.collectAsState()
+    val externalNavigation by LiveGoogleMapsSyncBridge.activeNavigation.collectAsState()
+
+    val captureLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        val captureData = result.data
+        if (result.resultCode == Activity.RESULT_OK && captureData != null) {
+            NavigationCaptureService.start(context, result.resultCode, captureData)
+        }
     }
 
     val routeContent: @Composable (Modifier) -> Unit = { contentMod ->
@@ -220,6 +240,123 @@ fun MapsScreen(
                             modifier = Modifier.size(13.dp)
                         )
                         Text("Sync Nav", style = MaterialTheme.typography.labelSmall, color = IceBlue)
+                    }
+                }
+            }
+
+            // In-app mirror for user-selected Google Maps, Waze or Mappls app windows.
+            Surface(
+                color = Color(0xFF08111C),
+                shape = RoundedCornerShape(16.dp),
+                border = BorderStroke(0.8.dp, accent.copy(alpha = 0.38f)),
+                modifier = Modifier.fillMaxWidth().testTag("maps_navigation_mirror_panel")
+            ) {
+                Column(
+                    modifier = Modifier.padding(10.dp),
+                    verticalArrangement = Arrangement.spacedBy(7.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                "NAVIGATION MIRROR",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = accent
+                            )
+                            Text(
+                                when {
+                                    captureActive -> "Selected app window is being mirrored"
+                                    externalNavigation != null -> "${externalNavigation!!.providerLabel} guidance detected"
+                                    else -> "Mirror a navigation app inside LumaNav"
+                                },
+                                style = MaterialTheme.typography.labelSmall,
+                                color = TextSecondary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                        Button(
+                            onClick = {
+                                if (captureActive) {
+                                    NavigationCaptureService.stop(context)
+                                } else {
+                                    val manager = context.getSystemService(
+                                        android.content.Context.MEDIA_PROJECTION_SERVICE
+                                    ) as MediaProjectionManager
+                                    captureLauncher.launch(manager.createScreenCaptureIntent())
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (captureActive) Color(0xFF7A2632) else accent,
+                                contentColor = if (captureActive) GlassWhite else ObsidianBlack
+                            ),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                            modifier = Modifier.testTag("maps_navigation_mirror_toggle")
+                        ) {
+                            Text(if (captureActive) "Stop" else "Mirror")
+                        }
+                    }
+
+                    if (captureActive) {
+                        val frame = latestCaptureFrame
+                        if (frame != null && !frame.isRecycled) {
+                            Image(
+                                bitmap = frame.asImageBitmap(),
+                                contentDescription = "Live mirrored navigation app window",
+                                contentScale = ContentScale.Fit,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(if (isLandscapeWide) 150.dp else 112.dp)
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .testTag("maps_navigation_mirror_frame")
+                            )
+                        } else {
+                            Text(
+                                "Waiting for the selected app window…",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = TextSecondary
+                            )
+                        }
+                    }
+
+                    externalNavigation?.let { navigation ->
+                        Text(
+                            "${navigation.providerLabel} · ${navigation.turnInstruction}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = GlassWhite,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            buildList {
+                                if (navigation.nextTurnDistanceLabel != "--") add("Next: ${navigation.nextTurnDistanceLabel}")
+                                navigation.remainingSummary.takeIf(String::isNotBlank)?.let(::add)
+                                navigation.etaTimeLabel?.let { add("ETA $it") }
+                            }.joinToString(" · ").ifBlank { "Live guidance notification detected" },
+                            style = MaterialTheme.typography.labelSmall,
+                            color = TextSecondary,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+
+                    captureError?.let { message ->
+                        Text(
+                            message,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color(0xFFFF8A80)
+                        )
+                    }
+
+                    if (!captureActive) {
+                        Text(
+                            "Start navigation in Maps, Waze or Mappls, tap Mirror, then choose that app's window in Android's sharing picker. Avoid Entire screen if you don't want LumaNav to mirror itself.",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = TextSecondary
+                        )
                     }
                 }
             }
