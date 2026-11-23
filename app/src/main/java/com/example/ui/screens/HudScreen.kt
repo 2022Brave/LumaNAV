@@ -122,6 +122,9 @@ fun HudScreen(
                     routePoints = routePoints,
                     headingDegrees = headingDegrees,
                     accent = hudAccent,
+                    isNavigating = routePoints.size >= 2,
+                    nextTurnDistance = telemetry.nextTurnDistanceLabel,
+                    nextTurnRoad = telemetry.nextTurnRoad,
                     modifier = Modifier.weight(0.73f).fillMaxHeight()
                 )
             }
@@ -146,6 +149,9 @@ fun HudScreen(
                 routePoints = routePoints,
                 headingDegrees = headingDegrees,
                 accent = hudAccent,
+                isNavigating = routePoints.size >= 2,
+                nextTurnDistance = telemetry.nextTurnDistanceLabel,
+                nextTurnRoad = telemetry.nextTurnRoad,
                 modifier = Modifier.fillMaxWidth().weight(1f)
             )
         }
@@ -168,6 +174,9 @@ private fun AuvionyxNativeMapPanel(
     routePoints: List<Pair<Double, Double>>,
     headingDegrees: Int,
     accent: Color,
+    isNavigating: Boolean,
+    nextTurnDistance: String,
+    nextTurnRoad: String,
     modifier: Modifier = Modifier
 ) {
     Box(
@@ -184,6 +193,21 @@ private fun AuvionyxNativeMapPanel(
             accent = accent,
             modifier = Modifier.fillMaxSize()
         )
+
+        Surface(
+            modifier = Modifier.align(Alignment.TopStart).padding(12.dp),
+            color = Color(0xCC03070C),
+            shape = RoundedCornerShape(12.dp),
+            border = BorderStroke(1.dp, accent.copy(alpha = 0.35f))
+        ) {
+            Text(
+                text = if (isNavigating) "$nextTurnDistance · $nextTurnRoad" else "NO ACTIVE ROUTE",
+                color = GlassWhite,
+                style = MaterialTheme.typography.labelSmall,
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+            )
+        }
+
         if (currentLocation == null) {
             Text(
                 text = "WAITING FOR GPS",
