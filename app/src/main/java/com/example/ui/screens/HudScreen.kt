@@ -125,6 +125,7 @@ fun HudScreen(
                     isNavigating = routePoints.size >= 2,
                     nextTurnDistance = telemetry.nextTurnDistanceLabel,
                     nextTurnRoad = telemetry.nextTurnRoad,
+                    nextTurnInstruction = telemetry.nextTurnInstruction,
                     modifier = Modifier.weight(0.73f).fillMaxHeight()
                 )
             }
@@ -152,6 +153,7 @@ fun HudScreen(
                 isNavigating = routePoints.size >= 2,
                 nextTurnDistance = telemetry.nextTurnDistanceLabel,
                 nextTurnRoad = telemetry.nextTurnRoad,
+                nextTurnInstruction = telemetry.nextTurnInstruction,
                 modifier = Modifier.fillMaxWidth().weight(1f)
             )
         }
@@ -177,6 +179,7 @@ private fun AuvionyxNativeMapPanel(
     isNavigating: Boolean,
     nextTurnDistance: String,
     nextTurnRoad: String,
+    nextTurnInstruction: String,
     modifier: Modifier = Modifier
 ) {
     Box(
@@ -201,7 +204,7 @@ private fun AuvionyxNativeMapPanel(
             border = BorderStroke(1.dp, accent.copy(alpha = 0.35f))
         ) {
             Text(
-                text = if (isNavigating) "$nextTurnDistance · $nextTurnRoad" else "NO ACTIVE ROUTE",
+                text = if (isNavigating) "$nextTurnDistance · ${nextTurnInstruction.ifBlank { nextTurnRoad }}" else "NO ACTIVE ROUTE",
                 color = GlassWhite,
                 style = MaterialTheme.typography.labelSmall,
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
