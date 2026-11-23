@@ -146,7 +146,7 @@ fun PulseScreen(
                         style = MaterialTheme.typography.labelLarge,
                         color = TextSecondary
                     )
-                    ServiceStateBadge(state = mapsPulse.mapsServiceState)
+                    ServiceStateBadge(state = ServiceAvailabilityState.API_UNAVAILABLE)
                 }
 
                 if (mapsPulse.activePulseTab == PulseFeedTab.FORECAST) {
