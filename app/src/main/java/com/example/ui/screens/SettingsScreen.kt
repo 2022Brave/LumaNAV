@@ -488,7 +488,7 @@ private fun PermissionRow(
             Column {
                 Text(title, style = MaterialTheme.typography.bodyMedium, color = GlassWhite)
                 Text(
-                    text = if (granted) "Granted" else "Not granted",
+                    text = if (granted) "Granted" else "Enable in system settings · may be restricted for sideloaded apps",
                     style = MaterialTheme.typography.labelSmall,
                     color = if (granted) accent else TextMuted
                 )
