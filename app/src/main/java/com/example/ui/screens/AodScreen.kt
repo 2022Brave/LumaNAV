@@ -162,7 +162,7 @@ fun AodScreen(
                             modifier = Modifier.size(28.dp)
                         )
                         Text(
-                            text = if (isNavigating && routePoints.size >= 2) "${telemetry.nextTurnDistanceLabel} · ${telemetry.nextTurnRoad}" else "No active route",
+                            text = if (isNavigating && routePoints.size >= 2) "${telemetry.nextTurnDistanceLabel} · ${telemetry.nextTurnInstruction}" else "No active route",
                             style = MaterialTheme.typography.headlineMedium,
                             color = GlassWhite.copy(alpha = 0.85f)
                         )
