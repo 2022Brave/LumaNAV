@@ -430,7 +430,7 @@ fun SettingsScreen(
                     }.testTag("open_app_info_restricted_settings")
                 ) {
                     Text(
-                        text = "Open LumaNav App Info",
+                        text = "Open App Info · Allow restricted settings",
                         color = GlassWhite,
                         style = MaterialTheme.typography.labelMedium,
                         modifier = Modifier.padding(horizontal = 14.dp, vertical = 9.dp)
