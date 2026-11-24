@@ -67,6 +67,7 @@ fun SettingsScreen(
     permissions: PermissionsSnapshot,
     onRefreshPermissions: () -> Unit,
     onSetAdaptiveAlbumColors: (Boolean) -> Unit,
+    onSetDaylightHighContrast: (Boolean) -> Unit,
     onSetReducedMotion: (Boolean) -> Unit,
     onSetDashboardRatio: (DashboardSplitRatio) -> Unit,
     onSetHudLayout: (HudLayoutMode) -> Unit,
@@ -131,6 +132,14 @@ fun SettingsScreen(
                     onCheckedChange = { locked -> onSetAdaptiveAlbumColors(!locked) }
                 )
                 Spacer(Modifier.height(10.dp))
+                Spacer(Modifier.height(10.dp))
+                SettingsToggleRow(
+                    title = "Daylight High-Contrast",
+                    subtitle = "Brighter secondary text, borders and controls for IPS screens",
+                    checked = settings.daylightHighContrast,
+                    testTag = "settings_daylight_contrast_toggle",
+                    onCheckedChange = onSetDaylightHighContrast
+                )
                 SettingsToggleRow(
                     title = "Adaptive Album-Art Colours",
                     subtitle = "Optional dynamic accent tint derived from active track",
