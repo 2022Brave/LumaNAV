@@ -894,7 +894,7 @@ fun IdleNextTurnPill(
 
                 Text(
                     text = if (remainingMinutes > 0) {
-                        "$remainingMinutes min  ·  $remainingDistanceKm km"
+                        "$remainingMinutes min  ·  ${formatNavigationDistance(remainingDistanceKm)}"
                     } else {
                         "Route Ready"
                     },
