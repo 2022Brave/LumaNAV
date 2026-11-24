@@ -110,8 +110,18 @@ fun AodScreen(
             .fillMaxSize()
             .background(ObsidianBlack)
             .systemBarsPadding()
-            .padding(24.dp)
+            .padding(if (aodStyle == AodStyle.MAP) 0.dp else 24.dp)
     ) {
+        if (aodStyle == AodStyle.MAP) {
+            NativeMapLibreView(
+                currentLocation = currentLocation,
+                routePoints = routePoints,
+                headingDegrees = headingDegrees,
+                accent = ElectricCyan,
+                modifier = Modifier.fillMaxSize()
+            )
+            Box(Modifier.fillMaxSize().background(Color(0x55000000)))
+        }
         Column(
             modifier = Modifier
                 .align(Alignment.Center)
@@ -142,15 +152,12 @@ fun AodScreen(
                 }
 
                 AodStyle.MAP -> {
-                    Box(modifier = Modifier.size(220.dp).clip(RoundedCornerShape(18.dp))) {
-                        NativeMapLibreView(
-                            currentLocation = currentLocation,
-                            routePoints = routePoints,
-                            headingDegrees = headingDegrees,
-                            accent = ElectricCyan,
-                            modifier = Modifier.fillMaxSize()
-                        )
-                    }
+                    Text(
+                        text = if (isNavigating && routePoints.size >= 2) telemetry.destinationLabel.ifBlank { "ACTIVE NAVIGATION" } else "NO ACTIVE ROUTE",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = GlassWhite,
+                        modifier = Modifier.padding(top = 56.dp)
+                    )
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
