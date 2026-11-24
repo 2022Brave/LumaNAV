@@ -25,14 +25,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Devices
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Security
-import androidx.compose.material.icons.outlined.Speed
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -42,7 +42,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
-import com.example.data.model.AuvionyxModule
+import com.example.core.UpdateManager
 import com.example.data.model.DashboardSplitRatio
 import com.example.data.model.HudLayoutMode
 import com.example.data.model.MediaAppSource
@@ -55,7 +55,6 @@ import com.example.ui.components.LiquidGlassToggle
 import com.example.ui.theme.GlassWhite
 import com.example.ui.theme.IceBlue
 import com.example.ui.theme.LocalAuvionyxPalette
-import com.example.ui.theme.ObsidianBlack
 import com.example.ui.theme.TextMuted
 import com.example.ui.theme.TextSecondary
 import com.example.viewmodel.PermissionsSnapshot
@@ -71,7 +70,6 @@ fun SettingsScreen(
     onSetReducedMotion: (Boolean) -> Unit,
     onSetDashboardRatio: (DashboardSplitRatio) -> Unit,
     onSetHudLayout: (HudLayoutMode) -> Unit,
-    onOpenHudDesigner: () -> Unit,
     onSetMetricUnits: (Boolean) -> Unit,
     onSetTrafficOverlay: (Boolean) -> Unit,
     onSetSatelliteGrid: (Boolean) -> Unit,
@@ -115,6 +113,8 @@ fun SettingsScreen(
                 }
             }
         }
+
+        item { SoftwareUpdatesCard() }
 
         // 1. Appearance & Motion
         item {
@@ -210,17 +210,6 @@ fun SettingsScreen(
                             )
                         }
                     }
-                }
-                Spacer(Modifier.height(10.dp))
-                Button(
-                    onClick = onOpenHudDesigner,
-                    colors = ButtonDefaults.buttonColors(containerColor = accent, contentColor = ObsidianBlack),
-                    shape = RoundedCornerShape(14.dp),
-                    modifier = Modifier.testTag("settings_open_hud")
-                ) {
-                    Icon(Icons.Outlined.Speed, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(8.dp))
-                    Text("Open Full HUD Designer")
                 }
             }
         }
@@ -519,6 +508,60 @@ private fun PermissionRow(
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp)
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun SoftwareUpdatesCard() {
+    val context = LocalContext.current
+    val update by UpdateManager.state.collectAsState()
+    LaunchedEffect(Unit) {
+        if (update.latestVersion == null && !update.checking) {
+            UpdateManager.check(context.applicationContext)
+        }
+    }
+    ExpandableGlassPanel(
+        title = "Software Updates",
+        subtitle = update.statusMessage,
+        expanded = true,
+        onToggle = {}
+    ) {
+        Text("Installed version · ${update.currentVersion}", color = GlassWhite, style = MaterialTheme.typography.bodyMedium)
+        update.latestVersion?.let {
+            Text("Latest release · $it", color = TextSecondary, style = MaterialTheme.typography.labelSmall)
+        }
+        if (update.releaseNotes.isNotBlank()) {
+            Text(
+                text = update.releaseNotes,
+                color = TextSecondary,
+                style = MaterialTheme.typography.bodySmall,
+                maxLines = 5
+            )
+        }
+        if (update.downloading) {
+            LinearProgressIndicator(
+                progress = { update.downloadProgress / 100f },
+                modifier = Modifier.fillMaxWidth()
+            )
+            Text("${update.downloadProgress}% downloaded", color = TextSecondary, style = MaterialTheme.typography.labelSmall)
+        }
+        Button(
+            onClick = {
+                if (update.updateAvailable) UpdateManager.downloadAndInstall(context.applicationContext)
+                else UpdateManager.check(context.applicationContext, force = true)
+            },
+            enabled = !update.checking && !update.downloading,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(
+                when {
+                    update.downloading -> "Downloading…"
+                    update.updateAvailable -> "Download & Install"
+                    update.checking -> "Checking…"
+                    else -> "Check for Updates"
+                }
+            )
         }
     }
 }
