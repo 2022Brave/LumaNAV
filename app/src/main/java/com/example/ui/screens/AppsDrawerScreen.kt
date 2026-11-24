@@ -21,7 +21,6 @@ import androidx.compose.material.icons.outlined.Nightlight
 import androidx.compose.material.icons.outlined.Phone
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Speed
-import androidx.compose.material.icons.outlined.Traffic
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -58,7 +57,6 @@ fun AppsDrawerScreen(
         AppLauncherEntry("LumaNav Maps", "Navigation & Routes", Icons.Outlined.Navigation, AuvionyxModule.MAPS, "app_maps"),
         AppLauncherEntry("LumaNav Music", "Unified Media Hub", Icons.Outlined.MusicNote, AuvionyxModule.MUSIC, "app_music"),
         AppLauncherEntry("LumaNav HUD", "Heads-Up & Designer", Icons.Outlined.Speed, AuvionyxModule.HUD, "app_hud"),
-        AppLauncherEntry("LumaNav Pulse", "Traffic Pulse & Alerts", Icons.Outlined.Traffic, AuvionyxModule.PULSE, "app_pulse"),
         AppLauncherEntry("LumaNav AOD", "Ambient Display", Icons.Outlined.Nightlight, AuvionyxModule.AOD, "app_aod"),
         AppLauncherEntry("LumaNav Vehicle", "Range & Climate", Icons.Outlined.DirectionsCar, AuvionyxModule.VEHICLE, "app_vehicle"),
         AppLauncherEntry("LumaNav Settings", "System & Designer", Icons.Outlined.Settings, AuvionyxModule.SETTINGS, "app_settings"),
