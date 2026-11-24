@@ -32,6 +32,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -86,6 +90,7 @@ fun HudScreen(
     onPrevTrack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var mirrorForWindshield by remember { mutableStateOf(hudConfig.mirrorFlipForWindshield) }
     val hudAccent = hudConfig.accentChoice.color
     val speedDisplay = if (settings.useMetricUnits) telemetry.speedKmh
         else (telemetry.speedKmh * 0.621371f).toInt()
@@ -93,10 +98,23 @@ fun HudScreen(
 
     Column(
         modifier = modifier.fillMaxSize().background(ObsidianBlack).graphicsLayer {
-            if (hudConfig.mirrorFlipForWindshield) scaleY = -1f
+            if (mirrorForWindshield) scaleX = -1f
         },
         verticalArrangement = Arrangement.spacedBy(if (isLandscapeWide) 8.dp else 10.dp)
     ) {
+        Surface(
+            onClick = { mirrorForWindshield = !mirrorForWindshield },
+            color = if (mirrorForWindshield) hudAccent.copy(alpha = 0.22f) else Color(0xFF101722),
+            shape = RoundedCornerShape(12.dp),
+            border = BorderStroke(1.dp, hudAccent.copy(alpha = 0.42f))
+        ) {
+            Text(
+                text = if (mirrorForWindshield) "WINDSHIELD MIRROR · ON" else "WINDSHIELD MIRROR · OFF",
+                color = GlassWhite,
+                style = MaterialTheme.typography.labelSmall,
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp)
+            )
+        }
         if (isLandscapeWide) {
             Row(
                 modifier = Modifier.fillMaxWidth().weight(1f),
