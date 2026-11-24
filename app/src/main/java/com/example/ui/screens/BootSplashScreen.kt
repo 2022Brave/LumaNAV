@@ -13,17 +13,13 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
@@ -37,7 +33,6 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.R
@@ -47,7 +42,6 @@ import com.example.ui.theme.IceBlue
 import com.example.ui.theme.LocalAuvionyxMotion
 import com.example.ui.theme.ObsidianBlack
 import com.example.ui.theme.TextMuted
-import com.example.ui.theme.TextSecondary
 import kotlinx.coroutines.delay
 import kotlin.math.PI
 import kotlin.math.sin
@@ -79,13 +73,13 @@ fun BootSplashScreen(
     LaunchedEffect(reducedMotion) {
         if (reducedMotion) {
             wakeProgress.snapTo(1f)
-            lockupAlpha.animateTo(1f, tween(350))
-            delay(500L)
+            lockupAlpha.animateTo(1f, tween(300))
+            delay(250L)
             onBootComplete()
         } else {
-            wakeProgress.animateTo(1f, tween(1100, easing = FastOutSlowInEasing))
-            lockupAlpha.animateTo(1f, tween(900, easing = FastOutSlowInEasing))
-            delay(750L)
+            wakeProgress.animateTo(1f, tween(650, easing = FastOutSlowInEasing))
+            lockupAlpha.animateTo(1f, tween(500, easing = FastOutSlowInEasing))
+            delay(350L)
             onBootComplete()
         }
     }
@@ -94,7 +88,6 @@ fun BootSplashScreen(
         modifier = modifier
             .fillMaxSize()
             .background(ObsidianBlack)
-            .systemBarsPadding()
             .padding(24.dp)
     ) {
         // Wake / Arc-build cyan light streak behind lockup
@@ -167,7 +160,7 @@ fun BootSplashScreen(
         ) {
             // Animate the official uploaded LumaNav logo itself, rather than a substitute mark.
             LumaNavLogo(
-                contentDescription = "LumaNav",
+                contentDescription = "LumaNAV",
                 modifier = Modifier
                     .size(224.dp)
                     .graphicsLayer {
@@ -179,7 +172,7 @@ fun BootSplashScreen(
             )
             Spacer(Modifier.height(18.dp))
             Text(
-                text = buildString { append("Luma"); append("Nav") },
+                text = buildString { append("Luma"); append("NAV") },
                 style = MaterialTheme.typography.headlineLarge,
                 color = ElectricCyan
             )
@@ -191,29 +184,5 @@ fun BootSplashScreen(
             )
         }
 
-        // Bottom status & skip
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.BottomCenter),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = stringResource(id = R.string.boot_powering_up),
-                style = MaterialTheme.typography.labelLarge,
-                color = TextSecondary
-            )
-            TextButton(
-                onClick = onBootComplete,
-                modifier = Modifier.testTag("skip_boot_button")
-            ) {
-                Text(
-                    text = stringResource(id = R.string.skip_boot),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = ElectricCyan
-                )
-            }
-        }
     }
 }
