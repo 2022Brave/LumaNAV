@@ -84,19 +84,17 @@ fun MusicScreen(
         contentAlignment = Alignment.Center
     ) {
         GlassCard(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(if (isLandscapeWide) 22.dp else 8.dp),
+            modifier = Modifier.fillMaxSize(),
             cornerRadius = 28.dp,
             highlighted = mediaState.isPlaying,
             contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                horizontal = if (isLandscapeWide) 26.dp else 18.dp,
-                vertical = 18.dp
+                horizontal = if (isLandscapeWide) 34.dp else 22.dp,
+                vertical = if (isLandscapeWide) 26.dp else 20.dp
             )
         ) {
             Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(if (isLandscapeWide) 22.dp else 18.dp)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -129,7 +127,7 @@ fun MusicScreen(
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(if (isLandscapeWide) 164.dp else 112.dp)
+                            .size(if (isLandscapeWide) 260.dp else 220.dp)
                             .clip(RoundedCornerShape(20.dp))
                             .background(Color(0xFF090E16))
                             .border(
