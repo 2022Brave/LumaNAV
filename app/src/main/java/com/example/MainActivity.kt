@@ -120,6 +120,19 @@ import kotlinx.coroutines.launch
 class MainActivity : ComponentActivity() {
     private var appViewModel: AuvionyxViewModel? = null
 
+    @Suppress("DEPRECATION")
+    private fun requestHighestSupportedRefreshRate() {
+        val display = windowManager.defaultDisplay
+        val requestedRate = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            display.supportedModes.maxByOrNull { it.refreshRate }?.refreshRate ?: display.refreshRate
+        } else {
+            display.refreshRate
+        }
+        window.attributes = window.attributes.apply {
+            preferredRefreshRate = requestedRate
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -130,6 +143,8 @@ class MainActivity : ComponentActivity() {
             statusBarStyle = SystemBarStyle.dark(android.graphics.Color.BLACK),
             navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.BLACK)
         )
+
+        requestHighestSupportedRefreshRate()
 
         setContent {
             val viewModel: AuvionyxViewModel = viewModel()
