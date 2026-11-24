@@ -90,6 +90,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.core.UpdateManager
 import com.example.core.configureAppCheck
 import com.example.data.model.AuvionyxModule
 import com.example.data.voice.VoiceVisualState
@@ -135,6 +136,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        UpdateManager.check(applicationContext)
 
         // Configure Firebase App Check with launch intent before rendering UI or ViewModels.
         configureAppCheck(this, intent)
@@ -551,7 +553,6 @@ private fun ModuleContentRouter(
                 onSetReducedMotion = { viewModel.setReducedMotion(it) },
                 onSetDashboardRatio = { viewModel.setDashboardRatio(it) },
                 onSetHudLayout = { viewModel.updateHudConfig(settings.hudConfig.copy(layoutMode = it)) },
-                onOpenHudDesigner = { viewModel.navigateTo(AuvionyxModule.HUD) },
                 onSetMetricUnits = { viewModel.setMetricUnits(it) },
                 onSetTrafficOverlay = { viewModel.setTrafficOverlay(it) },
                 onSetSatelliteGrid = { viewModel.setSatelliteGrid(it) },
