@@ -173,6 +173,7 @@ fun HudScreen(
                 nextTurnDistance = telemetry.nextTurnDistanceLabel,
                 nextTurnRoad = telemetry.nextTurnRoad,
                 nextTurnInstruction = telemetry.nextTurnInstruction,
+                telemetryDestinationLabel = telemetry.destinationLabel,
                 modifier = Modifier.fillMaxWidth().weight(1f)
             )
         }
