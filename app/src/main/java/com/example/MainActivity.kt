@@ -59,6 +59,7 @@ import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.MusicNote
 import androidx.compose.material.icons.outlined.Navigation
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -579,6 +580,7 @@ private fun SmartphoneBottomNavBar(
         Triple(AuvionyxModule.DRIVE, Icons.Outlined.Home, "Drive"),
         Triple(AuvionyxModule.MAPS, Icons.Outlined.Navigation, "Maps"),
         Triple(AuvionyxModule.MUSIC, Icons.Outlined.MusicNote, "Music"),
+        Triple(AuvionyxModule.SETTINGS, Icons.Outlined.Settings, "Settings"),
         Triple(AuvionyxModule.APPS, Icons.Outlined.Apps, "Apps")
     )
 
