@@ -1008,6 +1008,7 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
                 nextTurnDistanceLabel = if (approxKm > 0f) String.format(Locale.US, "%.1f km", approxKm) else "--",
                 nextTurnRoad = candidate.name,
                 nextTurnInstruction = candidate.addressSummary,
+                destinationLabel = candidate.name,
                 remainingDistanceKm = approxKm,
                 remainingMinutes = approxMin,
                 etaTimeLabel = etaStr
