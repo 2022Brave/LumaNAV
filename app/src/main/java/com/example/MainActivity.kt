@@ -370,21 +370,6 @@ fun AuvionyxRootApp(viewModel: AuvionyxViewModel) {
                             }
                         }
 
-                        AnimatedVisibility(
-                            visible = !cockpitIdleActive && !isHudMode,
-                            enter = fadeIn(tween(LivingFlow.StandardDurationMs, easing = LivingFlow.LaminarEasing)) +
-                                expandVertically(tween(LivingFlow.StandardDurationMs, easing = LivingFlow.LaminarEasing)) +
-                                slideInVertically(LivingFlow.LaminarIntOffsetSpec) { it / 3 },
-                            exit = fadeOut(tween(LivingFlow.CompactDurationMs, easing = LivingFlow.LaminarEasing)) +
-                                shrinkVertically(tween(LivingFlow.StandardDurationMs, easing = LivingFlow.LaminarEasing)) +
-                                slideOutVertically(LivingFlow.LaminarIntOffsetSpec) { it / 3 }
-                        ) {
-                            GlassBottomDock(
-                                activeModule = activeModule,
-                                onSelectModule = { viewModel.navigateTo(it) },
-                                onOpenPhoneDialer = ::openPhoneDialer,
-                            )
-                        }
                     } else {
                         Box(
                             modifier = Modifier
@@ -562,6 +547,7 @@ private fun ModuleContentRouter(
                 permissions = permissions,
                 onRefreshPermissions = { viewModel.refreshPermissionsAndGps() },
                 onSetAdaptiveAlbumColors = { viewModel.setAdaptiveAlbumColors(it) },
+                onSetDaylightHighContrast = { viewModel.setDaylightHighContrast(it) },
                 onSetReducedMotion = { viewModel.setReducedMotion(it) },
                 onSetDashboardRatio = { viewModel.setDashboardRatio(it) },
                 onSetHudLayout = { viewModel.updateHudConfig(settings.hudConfig.copy(layoutMode = it)) },
