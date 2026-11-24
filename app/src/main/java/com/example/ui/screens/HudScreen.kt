@@ -144,6 +144,7 @@ fun HudScreen(
                     nextTurnDistance = telemetry.nextTurnDistanceLabel,
                     nextTurnRoad = telemetry.nextTurnRoad,
                     nextTurnInstruction = telemetry.nextTurnInstruction,
+                    telemetryDestinationLabel = telemetry.destinationLabel,
                     modifier = Modifier.weight(0.73f).fillMaxHeight()
                 )
             }
@@ -198,6 +199,7 @@ private fun AuvionyxNativeMapPanel(
     nextTurnDistance: String,
     nextTurnRoad: String,
     nextTurnInstruction: String,
+    telemetryDestinationLabel: String,
     modifier: Modifier = Modifier
 ) {
     Box(
@@ -221,12 +223,24 @@ private fun AuvionyxNativeMapPanel(
             shape = RoundedCornerShape(12.dp),
             border = BorderStroke(1.dp, accent.copy(alpha = 0.35f))
         ) {
-            Text(
-                text = if (isNavigating) "$nextTurnDistance · ${nextTurnInstruction.ifBlank { nextTurnRoad }}" else "NO ACTIVE ROUTE",
-                color = GlassWhite,
-                style = MaterialTheme.typography.labelSmall,
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
-            )
+            Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
+                Text(
+                    text = if (isNavigating) "$nextTurnDistance · ${nextTurnInstruction.ifBlank { nextTurnRoad }}" else "NO ACTIVE ROUTE",
+                    color = GlassWhite,
+                    style = MaterialTheme.typography.labelSmall,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+                if (isNavigating && telemetryDestinationLabel.isNotBlank()) {
+                    Text(
+                        text = "TO · $telemetryDestinationLabel",
+                        color = accent,
+                        style = MaterialTheme.typography.labelSmall,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
         }
 
         if (currentLocation == null) {
