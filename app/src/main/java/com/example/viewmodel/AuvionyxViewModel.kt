@@ -1174,6 +1174,10 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch { prefsRepo.setAdaptiveAlbumColors(enabled) }
     }
 
+    fun setDaylightHighContrast(enabled: Boolean) {
+        viewModelScope.launch { prefsRepo.setDaylightHighContrast(enabled) }
+    }
+
     fun setReducedMotion(enabled: Boolean) {
         viewModelScope.launch { prefsRepo.setReducedMotion(enabled) }
     }
