@@ -72,6 +72,9 @@ fun AodScreen(
     routePoints: List<Pair<Double, Double>>,
     headingDegrees: Int,
     isNavigating: Boolean,
+    nowPlayingTitle: String? = null,
+    nowPlayingArtist: String? = null,
+    hasActiveMedia: Boolean = false,
     onSelectAodStyle: (AodStyle) -> Unit,
     onExitAod: () -> Unit,
     modifier: Modifier = Modifier
@@ -131,10 +134,26 @@ fun AodScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text(
-                text = "LUMANAV AOD · ${aodStyle.label.uppercase()}",
+                text = "LumaNAV · ${aodStyle.label}",
                 style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 2.5.sp),
                 color = ElectricCyan.copy(alpha = 0.72f)
             )
+
+            Text(
+                text = "$speedVal $unit$speedSourceTag",
+                fontFamily = SpaceGroteskFontFamily,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = if (aodStyle == AodStyle.MAP) 40.sp else 34.sp,
+                color = ElectricCyan.copy(alpha = 0.92f)
+            )
+            if (hasActiveMedia && !nowPlayingTitle.isNullOrBlank()) {
+                Text(
+                    text = "♪ $nowPlayingTitle · ${nowPlayingArtist.orEmpty()}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = GlassWhite.copy(alpha = 0.48f),
+                    maxLines = 1
+                )
+            }
 
             when (aodStyle) {
                 AodStyle.MINIMAL -> {
@@ -146,9 +165,9 @@ fun AodScreen(
                         color = GlassWhite.copy(alpha = 0.84f)
                     )
                     Text(
-                        text = "$speedVal $unit$speedSourceTag · ${telemetry.headingCardinal}",
-                        style = MaterialTheme.typography.headlineMedium,
-                        color = ElectricCyan.copy(alpha = 0.88f)
+                        text = telemetry.headingCardinal,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = TextSecondary
                     )
                 }
 
@@ -203,7 +222,7 @@ fun AodScreen(
                             .height(5.dp)
                     )
                     Text(
-                        text = "$speedVal $unit$speedSourceTag · Next: ${telemetry.nextTurnRoad}",
+                        text = "Next: ${telemetry.nextTurnRoad}",
                         style = MaterialTheme.typography.bodyMedium,
                         color = TextSecondary
                     )
