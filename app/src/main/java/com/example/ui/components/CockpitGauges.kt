@@ -591,7 +591,7 @@ fun CockpitMediaPlayerCard(
                     ),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(24.dp)
+                        .height(48.dp)
                 )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
