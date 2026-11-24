@@ -258,6 +258,9 @@ fun AuvionyxRootApp(viewModel: AuvionyxViewModel) {
                 routePoints = mapsPulse.routePolylineGeo,
                 headingDegrees = telemetry.headingDegrees,
                 isNavigating = mapsPulse.isNavigating,
+                nowPlayingTitle = mediaState.currentTrack.title.takeIf { mediaState.isExternalSessionActive || mediaState.userStartedLocalPlayback },
+                nowPlayingArtist = mediaState.currentTrack.artist,
+                hasActiveMedia = mediaState.isExternalSessionActive || mediaState.userStartedLocalPlayback,
                 onSelectAodStyle = { viewModel.setAodStyle(it) },
                 onExitAod = { viewModel.navigateTo(AuvionyxModule.DRIVE) }
             )
