@@ -16,8 +16,9 @@ android {
     applicationId = "com.aistudio.auvionyx.kxvrqm"
     minSdk = 24
     targetSdk = 36
-    versionCode = 1
-    versionName = "1.0"
+    val ciRunNumber = providers.environmentVariable("GITHUB_RUN_NUMBER").orNull?.toIntOrNull() ?: 1
+    versionCode = ciRunNumber.coerceAtLeast(1)
+    versionName = "1.0.$ciRunNumber"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
@@ -28,8 +29,8 @@ android {
     create("release") {
       val keystorePath = System.getenv("KEYSTORE_PATH") ?: "${rootDir}/my-upload-key.jks"
       storeFile = file(keystorePath)
-      storePassword = System.getenv("STORE_PASSWORD")
-      keyAlias = "upload"
+      storePassword = System.getenv("KEYSTORE_PASSWORD")
+      keyAlias = System.getenv("KEY_ALIAS") ?: "upload"
       keyPassword = System.getenv("KEY_PASSWORD")
     }
     create("debugConfig") {
@@ -47,7 +48,13 @@ android {
       proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
       // Do not remove or modify this signingConfig assignment. It is necessary for Android apps in
       // AI Studio.
-      signingConfig = signingConfigs.getByName("release")
+      // Use the persistent release key when configured; otherwise allow a bootstrap/debug-signed APK.
+      signingConfig = if (
+        System.getenv("KEYSTORE_PATH") != null &&
+        System.getenv("KEYSTORE_PASSWORD") != null &&
+        System.getenv("KEY_ALIAS") != null &&
+        System.getenv("KEY_PASSWORD") != null
+      ) signingConfigs.getByName("release") else signingConfigs.getByName("debugConfig")
     }
     debug {
       // Do not remove or modify this signingConfig assignment. It is necessary for Android apps in
