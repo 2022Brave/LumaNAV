@@ -634,13 +634,28 @@ fun MapsScreen(
             ) {
                 routeContent(Modifier.fillMaxSize())
             }
-            NativeMapLibreView(
-                currentLocation = mapsPulse.currentLatLon,
-                routePoints = mapsPulse.routePolylineGeo,
-                headingDegrees = telemetry.headingDegrees,
-                accent = accent,
-                modifier = Modifier.weight(1f).fillMaxHeight().zIndex(0f)
-            )
+            Box(modifier = Modifier.weight(1f).fillMaxHeight().zIndex(0f)) {
+                NativeMapLibreView(
+                    currentLocation = mapsPulse.currentLatLon,
+                    routePoints = mapsPulse.routePolylineGeo,
+                    headingDegrees = telemetry.headingDegrees,
+                    accent = accent,
+                    modifier = Modifier.fillMaxSize()
+                )
+                if (mapsPulse.confirmedDestination != null) {
+                    Surface(
+                        modifier = Modifier.align(Alignment.TopStart).padding(14.dp),
+                        color = Color(0xE609111B),
+                        shape = RoundedCornerShape(14.dp),
+                        border = BorderStroke(1.dp, accent.copy(alpha = 0.48f))
+                    ) {
+                        Column(Modifier.padding(horizontal = 14.dp, vertical = 9.dp)) {
+                            Text("NAVIGATING TO", style = MaterialTheme.typography.labelSmall, color = accent)
+                            Text(mapsPulse.confirmedDestination.name, style = MaterialTheme.typography.titleSmall, color = GlassWhite, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        }
+                    }
+                }
+            }
         }
     } else {
         // Smartphone Portrait: Full-bleed interactive map beneath a velocity-responsive Draggable Laminar Sheet
@@ -652,6 +667,19 @@ fun MapsScreen(
                 accent = accent,
                 modifier = Modifier.fillMaxSize().zIndex(0f)
             )
+            if (mapsPulse.confirmedDestination != null) {
+                Surface(
+                    modifier = Modifier.align(Alignment.TopStart).padding(14.dp).zIndex(0.5f),
+                    color = Color(0xE609111B),
+                    shape = RoundedCornerShape(14.dp),
+                    border = BorderStroke(1.dp, accent.copy(alpha = 0.48f))
+                ) {
+                    Column(Modifier.padding(horizontal = 14.dp, vertical = 9.dp)) {
+                        Text("NAVIGATING TO", style = MaterialTheme.typography.labelSmall, color = accent)
+                        Text(mapsPulse.confirmedDestination.name, style = MaterialTheme.typography.titleSmall, color = GlassWhite, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                }
+            }
 
             DraggableLaminarSheet(
                 minHeight = 250.dp,
