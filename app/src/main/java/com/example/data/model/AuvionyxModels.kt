@@ -155,6 +155,7 @@ data class VehicleTelemetry(
     val remainingDistanceKm: Float = 0f,
     val journeyProgress: Float = 0f,
     val currentLocationLabel: String = "Acquiring GPS…",
+    val destinationLabel: String = "",
     val weatherTempC: Int? = null,
     val weatherCondition: String = "",
     val cabinDriverTempC: Float = 24.0f,
