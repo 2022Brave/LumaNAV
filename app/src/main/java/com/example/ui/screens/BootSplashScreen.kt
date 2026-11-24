@@ -7,6 +7,7 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.rememberInfiniteTransition
+import com.example.ui.components.LumaNavLogo
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -164,66 +165,18 @@ fun BootSplashScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // Draw the navigation mark as animated light paths instead of showing the
-            // static launcher artwork. The route is traced on from left to right.
-            Canvas(modifier = Modifier.size(224.dp)) {
-                val centerX = size.width / 2f
-                val start = Offset(size.width * 0.18f, size.height * 0.76f)
-                val apex = Offset(centerX, size.height * 0.18f)
-                val finish = Offset(size.width * 0.82f, size.height * 0.76f)
-                val progress = wakeProgress.value.coerceIn(0f, 1f)
-                val stroke = 5.dp.toPx()
-                val gradient = Brush.linearGradient(
-                    colors = listOf(DeepBlue, ElectricCyan, IceBlue),
-                    start = start,
-                    end = finish
-                )
-                fun pointBetween(a: Offset, b: Offset, t: Float) = Offset(
-                    a.x + (b.x - a.x) * t,
-                    a.y + (b.y - a.y) * t
-                )
-                if (progress <= 0.5f) {
-                    drawLine(gradient, start, pointBetween(start, apex, progress * 2f), stroke, cap = StrokeCap.Round)
-                } else {
-                    drawLine(gradient, start, apex, stroke, cap = StrokeCap.Round)
-                    drawLine(gradient, apex, pointBetween(apex, finish, (progress - 0.5f) * 2f), stroke, cap = StrokeCap.Round)
-                }
-
-                // A short inner route dash and a flowing road-like tail complete the mark.
-                if (progress > 0.58f) {
-                    val reveal = ((progress - 0.58f) / 0.42f).coerceIn(0f, 1f)
-                    drawLine(
-                        color = IceBlue.copy(alpha = reveal * 0.9f),
-                        start = Offset(centerX, size.height * 0.48f),
-                        end = Offset(centerX, size.height * (0.48f + 0.18f * reveal)),
-                        strokeWidth = 2.5.dp.toPx(),
-                        cap = StrokeCap.Round
-                    )
-                }
-                val tail = Path().apply {
-                    moveTo(size.width * 0.12f, size.height * 0.88f)
-                    cubicTo(
-                        size.width * 0.38f, size.height * 0.68f,
-                        size.width * 0.60f, size.height * 0.98f,
-                        size.width * 0.90f, size.height * 0.73f
-                    )
-                }
-                drawPath(
-                    tail,
-                    Brush.horizontalGradient(listOf(Color.Transparent, DeepBlue, ElectricCyan, IceBlue)),
-                    style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round),
-                    alpha = glowPulse
-                )
-                if (progress in 0.01f..0.99f) {
-                    val tip = if (progress <= 0.5f) {
-                        pointBetween(start, apex, progress * 2f)
-                    } else {
-                        pointBetween(apex, finish, (progress - 0.5f) * 2f)
+            // Animate the official uploaded LumaNav logo itself, rather than a substitute mark.
+            LumaNavLogo(
+                contentDescription = "LumaNav",
+                modifier = Modifier
+                    .size(224.dp)
+                    .graphicsLayer {
+                        alpha = wakeProgress.value.coerceIn(0f, 1f)
+                        scaleX = 0.78f + 0.22f * wakeProgress.value * logoPulse
+                        scaleY = 0.78f + 0.22f * wakeProgress.value * logoPulse
+                        rotationZ = (1f - wakeProgress.value) * -7f
                     }
-                    drawCircle(ElectricCyan.copy(alpha = 0.18f), radius = 22.dp.toPx(), center = tip)
-                    drawCircle(IceBlue, radius = 4.dp.toPx(), center = tip)
-                }
-            }
+            )
             Spacer(Modifier.height(18.dp))
             Text(
                 text = buildString { append("Luma"); append("Nav") },
