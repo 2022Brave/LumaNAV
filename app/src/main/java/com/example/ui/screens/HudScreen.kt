@@ -230,7 +230,7 @@ private fun AuvionyxNativeMapPanel(
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Icon(
-                    imageVector = Icons.Outlined.TurnRight,
+                    imageVector = Icons.Outlined.Navigation,
                     contentDescription = "Next maneuver",
                     tint = accent,
                     modifier = Modifier.size(58.dp)
