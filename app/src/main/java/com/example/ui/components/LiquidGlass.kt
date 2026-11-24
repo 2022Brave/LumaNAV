@@ -979,6 +979,14 @@ fun GlassBottomDock(
                 onClick = { onSelectModule(AuvionyxModule.APPS) },
                 modifier = Modifier.weight(1f)
             )
+            DockShortcutItem(
+                icon = Icons.Outlined.Settings,
+                label = "Settings",
+                selected = activeModule == AuvionyxModule.SETTINGS,
+                testTag = "dock_settings",
+                onClick = { onSelectModule(AuvionyxModule.SETTINGS) },
+                modifier = Modifier.weight(1f)
+            )
         }
     }
 }
