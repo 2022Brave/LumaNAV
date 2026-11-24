@@ -33,6 +33,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -74,6 +76,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -690,7 +693,7 @@ fun GlassTopStatusBar(
     val localityDisplay = when {
         isLiveGps && !currentLocation.contains("Acquiring", ignoreCase = true) ->
             currentLocation.substringBefore(",").take(18)
-        else -> "Location unavailable"
+        else -> "GPS pending"
     }
     val tempDisplay = weatherTempC?.let { "${it}°C" } ?: "--"
 
@@ -776,6 +779,7 @@ fun GlassTopStatusBar(
                             style = MaterialTheme.typography.labelSmall,
                             color = TextSecondary,
                             maxLines = 1,
+                            softWrap = false,
                             overflow = TextOverflow.Ellipsis
                         )
                     }
@@ -852,8 +856,11 @@ fun GlassNavigationRail(
         contentPadding = PaddingValues(vertical = 12.dp, horizontal = 6.dp)
     ) {
         Column(
-            modifier = Modifier.fillMaxHeight(),
-            verticalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier
+                .fillMaxHeight()
+                .heightIn(min = 328.dp)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             railItems.forEach { (module, icon, label) ->
