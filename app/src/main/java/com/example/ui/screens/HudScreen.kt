@@ -222,24 +222,44 @@ private fun AuvionyxNativeMapPanel(
             modifier = Modifier.align(Alignment.TopStart).padding(12.dp),
             color = Color(0xCC03070C),
             shape = RoundedCornerShape(12.dp),
-            border = BorderStroke(1.dp, accent.copy(alpha = 0.35f))
+            border = BorderStroke(1.5.dp, accent.copy(alpha = 0.72f))
         ) {
-            Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
-                Text(
-                    text = if (isNavigating) "$nextTurnDistance · ${nextTurnInstruction.ifBlank { nextTurnRoad }}" else "NO ACTIVE ROUTE",
-                    color = GlassWhite,
-                    style = MaterialTheme.typography.labelSmall,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
+            Row(
+                modifier = Modifier.padding(horizontal = 18.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.TurnRight,
+                    contentDescription = "Next maneuver",
+                    tint = accent,
+                    modifier = Modifier.size(58.dp)
                 )
-                if (isNavigating && telemetryDestinationLabel.isNotBlank()) {
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(
-                        text = "TO · $telemetryDestinationLabel",
-                        color = accent,
-                        style = MaterialTheme.typography.labelSmall,
+                        text = if (isNavigating) nextTurnDistance else "READY",
+                        color = GlassWhite,
+                        fontFamily = SpaceGroteskFontFamily,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 36.sp,
+                        maxLines = 1
+                    )
+                    Text(
+                        text = if (isNavigating) nextTurnInstruction.ifBlank { nextTurnRoad } else "NO ACTIVE ROUTE",
+                        color = GlassWhite.copy(alpha = 0.92f),
+                        style = MaterialTheme.typography.titleMedium,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
+                    if (isNavigating && telemetryDestinationLabel.isNotBlank()) {
+                        Text(
+                            text = "TO · $telemetryDestinationLabel",
+                            color = accent,
+                            style = MaterialTheme.typography.labelMedium,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
             }
         }
