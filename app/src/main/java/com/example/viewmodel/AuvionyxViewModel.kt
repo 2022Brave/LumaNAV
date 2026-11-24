@@ -667,6 +667,10 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
                             routeState.confirmedDestination?.let { computeOsrmRouteToDestination(it) }
                         }
                         if (isFreshLiveFix) {
+                            val pendingDestination = _mapsPulse.value.confirmedDestination
+                            if (pendingDestination != null && _mapsPulse.value.routePolylineGeo.size < 2 && routeJob?.isActive != true) {
+                                computeOsrmRouteToDestination(pendingDestination)
+                            }
                             maybeReverseGeocodeAndWeather(reading.latitude, reading.longitude)
                         }
                     } else {
@@ -990,9 +994,11 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
                 destinationCandidates = emptyList(),
                 destinationSearchState = ServiceAvailabilityState.LIVE,
                 destinationSearchMessage = candidate.addressSummary,
-                isNavigating = true,
+                isNavigating = false,
                 isExternalGoogleMapsSyncActive = false,
-                navigationSourceLabel = "Live Geocoder Route",
+                navigationSourceLabel = "Waiting for GPS fix",
+                routePolylineGeo = emptyList(),
+                routes = emptyList(),
                 mapsServiceState = ServiceAvailabilityState.LIVE
             )
         }
@@ -1034,48 +1040,38 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
     }
 
     private fun computeOsrmRouteToDestination(candidate: DestinationCandidate) {
-        val currentGeo = _mapsPulse.value.currentLatLon ?: return
-        val endLat = candidate.latitude ?: return
-        val endLon = candidate.longitude ?: return
-        routeJob?.cancel()
+        val endLat = candidate.latitude
+        val endLon = candidate.longitude
+        if (endLat == null || endLon == null) {
+            _mapsPulse.update { it.copy(isNavigating = false, navigationSourceLabel = "Route unavailable", destinationSearchMessage = "This search result has no usable coordinates. Choose another result.") }
+            return
+        }
+        val currentGeo = _mapsPulse.value.currentLatLon
+        if (currentGeo == null || !_telemetry.value.isLiveGpsActive || _telemetry.value.isLocationFallback) {
+            _mapsPulse.update { it.copy(isNavigating = false, navigationSourceLabel = "Waiting for GPS fix", destinationSearchMessage = "Destination selected. Waiting for a fresh GPS fix before calculating your route.") }
+            return
+        }
+        if (routeJob?.isActive == true) return
         routeJob = viewModelScope.launch {
-            val liveRoute = destinationSearchRepo.fetchDrivingRoute(
-                startLat = currentGeo.first,
-                startLon = currentGeo.second,
-                endLat = endLat,
-                endLon = endLon,
-                destinationFallbackName = candidate.name
-            )
-            if (liveRoute != null) {
-                val routeItem = RouteAlternative(
-                    id = "osrm_primary",
-                    name = candidate.name,
-                    viaRoad = liveRoute.nextTurnRoad,
-                    durationMin = liveRoute.durationMinutes,
-                    distanceKm = liveRoute.distanceKm,
-                    etaLabel = liveRoute.etaTimeLabel,
-                    trafficState = TrafficSeverity.CLEAR,
-                    isSelected = true
+            _mapsPulse.update { it.copy(isNavigating = false, navigationSourceLabel = "Calculating route", destinationSearchMessage = "Calculating a driving route…") }
+            try {
+                val liveRoute = destinationSearchRepo.fetchDrivingRoute(
+                    startLat = currentGeo.first, startLon = currentGeo.second,
+                    endLat = endLat, endLon = endLon, destinationFallbackName = candidate.name
                 )
-                _mapsPulse.update {
-                    it.copy(
-                        routePolylineGeo = liveRoute.polylinePoints,
-                        routes = listOf(routeItem),
-                        mapsServiceState = ServiceAvailabilityState.LIVE,
-                        navigationSourceLabel = "OSRM Live Route"
-                    )
+                if (liveRoute == null || liveRoute.polylinePoints.size < 2) {
+                    _mapsPulse.update { it.copy(isNavigating = false, navigationSourceLabel = "Route unavailable", mapsServiceState = ServiceAvailabilityState.API_UNAVAILABLE, destinationSearchMessage = "The routing service did not return a drivable route. Check your internet connection and try again.") }
+                    return@launch
                 }
-                _telemetry.update {
-                    it.copy(
-                        nextTurnDistanceLabel = liveRoute.nextTurnDistanceLabel,
-                        nextTurnRoad = liveRoute.nextTurnRoad,
-                        nextTurnInstruction = liveRoute.nextTurnInstruction,
-                        remainingDistanceKm = liveRoute.distanceKm,
-                        remainingMinutes = liveRoute.durationMinutes,
-                        etaTimeLabel = liveRoute.etaTimeLabel,
-                        journeyProgress = 0.05f
-                    )
-                }
+                val routeItem = RouteAlternative(
+                    id = "osrm_primary", name = candidate.name, viaRoad = liveRoute.nextTurnRoad,
+                    durationMin = liveRoute.durationMinutes, distanceKm = liveRoute.distanceKm,
+                    etaLabel = liveRoute.etaTimeLabel, trafficState = TrafficSeverity.CLEAR, isSelected = true
+                )
+                _mapsPulse.update { it.copy(routePolylineGeo = liveRoute.polylinePoints, routes = listOf(routeItem), isNavigating = true, mapsServiceState = ServiceAvailabilityState.LIVE, navigationSourceLabel = "LumaNav · OSRM", destinationSearchMessage = "Route ready · " + liveRoute.distanceKm + " km · " + liveRoute.durationMinutes + " min") }
+                _telemetry.update { it.copy(nextTurnDistanceLabel = liveRoute.nextTurnDistanceLabel, nextTurnRoad = liveRoute.nextTurnRoad, nextTurnInstruction = liveRoute.nextTurnInstruction, remainingDistanceKm = liveRoute.distanceKm, remainingMinutes = liveRoute.durationMinutes, etaTimeLabel = liveRoute.etaTimeLabel, journeyProgress = 0f) }
+            } finally {
+                routeJob = null
             }
         }
     }
