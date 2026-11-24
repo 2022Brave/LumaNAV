@@ -321,6 +321,7 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
     private var gpsJob: Job? = null
     private var voiceJob: Job? = null
     private var routeJob: Job? = null
+    private var suggestionJob: Job? = null
     private var lastReverseGeocodeLatLon: Pair<Double, Double>? = null
     private var lastWeatherFetchMs: Long = 0L
 
@@ -1416,7 +1417,45 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun updateMapsDestinationQuery(query: String) {
-        _mapsPulse.update { it.copy(destinationQuery = query) }
+        suggestionJob?.cancel()
+        _mapsPulse.update {
+            it.copy(
+                destinationQuery = query,
+                destinationCandidates = emptyList(),
+                destinationSearchState = null,
+                destinationSearchMessage = null
+            )
+        }
+        val clean = query.trim()
+        if (clean.length < 3) return
+        suggestionJob = viewModelScope.launch {
+            kotlinx.coroutines.delay(450L)
+            val origin = _mapsPulse.value.currentLatLon
+            when (val outcome = destinationSearchRepo.searchDestination(clean, origin?.first, origin?.second)) {
+                is DestinationSearchOutcome.Matches -> {
+                    if (_mapsPulse.value.destinationQuery.trim() == clean) {
+                        _mapsPulse.update {
+                            it.copy(
+                                destinationCandidates = outcome.candidates,
+                                destinationSearchState = outcome.serviceState,
+                                destinationSearchMessage = if (outcome.candidates.isEmpty()) "No matching places yet." else "Suggestions · select a destination"
+                            )
+                        }
+                    }
+                }
+                is DestinationSearchOutcome.Unavailable -> {
+                    if (_mapsPulse.value.destinationQuery.trim() == clean) {
+                        _mapsPulse.update {
+                            it.copy(
+                                destinationCandidates = emptyList(),
+                                destinationSearchState = outcome.serviceState,
+                                destinationSearchMessage = outcome.reason
+                            )
+                        }
+                    }
+                }
+            }
+        }
     }
 
     fun searchDestinationFromMaps(query: String) {
