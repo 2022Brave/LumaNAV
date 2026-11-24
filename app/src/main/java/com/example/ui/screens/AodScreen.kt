@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.AodStyle
 import com.example.data.model.VehicleTelemetry
+import com.example.ui.components.formatNavigationDistance
 import com.example.ui.components.LiquidGlassLens
 import com.example.ui.components.NativeMapLibreView
 import com.example.ui.theme.DeepBlue
@@ -186,7 +187,7 @@ fun AodScreen(
                     )
                     Text(
                         text = if (telemetry.remainingMinutes > 0) {
-                            "${if (telemetry.isSimulationRunning) "Demo Route" else "Route"}: ${telemetry.remainingMinutes} min · ${telemetry.remainingDistanceKm} km"
+                            "${if (telemetry.isSimulationRunning) "Demo Route" else "Route"}: ${telemetry.remainingMinutes} min · ${formatNavigationDistance(telemetry.remainingDistanceKm)}"
                         } else {
                             "No active route"
                         },
