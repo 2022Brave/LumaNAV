@@ -304,29 +304,32 @@ private fun LandscapeCockpitSurface(
                         .testTag("active_cockpit_root"),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    // Large Left/Center Map (~64% content area)
-                    CockpitNativeMapPanel(
-                        currentLocation = mapsPulse.currentLatLon,
-                        routePoints = mapsPulse.routePolylineGeo,
-                        headingDegrees = telemetry.headingDegrees,
-                        accent = LocalAuvionyxPalette.current.accentPrimary,
-                        isNavigating = mapsPulse.isNavigating,
-                        nextTurnDistance = telemetry.nextTurnDistanceLabel,
-                        nextTurnRoad = telemetry.nextTurnRoad,
-                        modifier = Modifier
-                            .weight(0.64f)
-                            .fillMaxHeight()
-                            .sharedBounds(
-                                sharedContentState = rememberSharedContentState(key = "cockpit_map"),
-                                animatedVisibilityScope = this@AnimatedContent,
-                                boundsTransform = { _, _ -> LivingFlow.LaminarBoundsSpec }
-                            )
-                    )
+                    // Persisted dashboard split controls the real map/media panel widths.
+                    if (settings.dashboardRatio != DashboardSplitRatio.FULL_MUSIC) {
+                        CockpitNativeMapPanel(
+                            currentLocation = mapsPulse.currentLatLon,
+                            routePoints = mapsPulse.routePolylineGeo,
+                            headingDegrees = telemetry.headingDegrees,
+                            accent = ElectricCyan,
+                            isNavigating = mapsPulse.isNavigating,
+                            nextTurnDistance = telemetry.nextTurnDistanceLabel,
+                            nextTurnRoad = telemetry.nextTurnRoad,
+                            modifier = Modifier
+                                .weight(if (settings.dashboardRatio == DashboardSplitRatio.FULL_MAPS) 1f else settings.dashboardRatio.mapWeight)
+                                .fillMaxHeight()
+                                .sharedBounds(
+                                    sharedContentState = rememberSharedContentState(key = "cockpit_map"),
+                                    animatedVisibilityScope = this@AnimatedContent,
+                                    boundsTransform = { _, _ -> LivingFlow.LaminarBoundsSpec }
+                                )
+                        )
+                    }
 
-                    // Right Stacked Speedometer + Media Player Column (~36% content area)
+                    if (settings.dashboardRatio != DashboardSplitRatio.FULL_MAPS) {
+                    // Right Stacked Speedometer + Media Player Column
                     Column(
                         modifier = Modifier
-                            .weight(0.36f)
+                            .weight(if (settings.dashboardRatio == DashboardSplitRatio.FULL_MUSIC) 1f else settings.dashboardRatio.mediaWeight)
                             .fillMaxHeight(),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
@@ -373,6 +376,7 @@ private fun LandscapeCockpitSurface(
                                     boundsTransform = { _, _ -> LivingFlow.LaminarBoundsSpec }
                                 )
                         )
+                    }
                     }
                 }
             } else {
