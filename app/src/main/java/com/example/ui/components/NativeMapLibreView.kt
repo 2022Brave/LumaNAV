@@ -140,7 +140,7 @@ fun NativeMapLibreView(
                     style.addSource(GeoJsonSource(ROUTE_SOURCE_ID, emptyFeatureCollection()))
                     style.addLayer(
                         LineLayer(ROUTE_LAYER_ID, ROUTE_SOURCE_ID).withProperties(
-                            lineColor(accent.toHexColor()),
+                            lineColor("#00D9F5"),
                             lineWidth(5.5f),
                             lineCap(Property.LINE_CAP_ROUND),
                             lineJoin(Property.LINE_JOIN_ROUND)
@@ -152,7 +152,7 @@ fun NativeMapLibreView(
                     style.addLayer(
                         CircleLayer(POSITION_LAYER_ID, POSITION_SOURCE_ID).withProperties(
                             circleRadius(7.5f),
-                            circleColor(accent.toHexColor()),
+                            circleColor("#00D9F5"),
                             circleStrokeColor("#FFFFFF"),
                             circleStrokeWidth(2.2f)
                         )
