@@ -153,7 +153,7 @@ fun AodScreen(
 
                 AodStyle.MAP -> {
                     Text(
-                        text = if (isNavigating && routePoints.size >= 2) telemetry.destinationLabel.ifBlank { "ACTIVE NAVIGATION" } else "NO ACTIVE ROUTE",
+                        text = if (isNavigating && routePoints.size >= 2) "TO · " + telemetry.destinationLabel.ifBlank { "ACTIVE NAVIGATION" } else "NO ACTIVE ROUTE",
                         style = MaterialTheme.typography.titleLarge,
                         color = GlassWhite,
                         modifier = Modifier.padding(top = 56.dp)
