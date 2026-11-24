@@ -132,7 +132,7 @@ fun ActiveSpeedometerCard(
                     .fillMaxHeight(),
                 contentAlignment = Alignment.Center
             ) {
-                val dialDiameter = minOf(maxWidth, maxHeight).coerceAtMost(210.dp)
+                val dialDiameter = minOf(maxWidth, maxHeight).coerceAtMost(192.dp)
                 Box(
                     modifier = Modifier.size(dialDiameter),
                     contentAlignment = Alignment.Center
