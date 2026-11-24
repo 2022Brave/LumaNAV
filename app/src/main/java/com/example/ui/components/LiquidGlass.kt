@@ -839,7 +839,7 @@ fun GlassNavigationRail(
         Triple(AuvionyxModule.DRIVE, Icons.Outlined.Home, "Home"),
         Triple(AuvionyxModule.MAPS, Icons.Outlined.Navigation, "Maps"),
         Triple(AuvionyxModule.MUSIC, Icons.Outlined.MusicNote, "Music"),
-        Triple(AuvionyxModule.VEHICLE, Icons.Outlined.DirectionsCar, "Vehicle"),
+        Triple(AuvionyxModule.HUD, Icons.Outlined.Speed, "HUD"),
         Triple(AuvionyxModule.APPS, Icons.Outlined.Apps, "Apps"),
         Triple(AuvionyxModule.SETTINGS, Icons.Outlined.Settings, "Settings")
     )
@@ -868,7 +868,7 @@ fun GlassNavigationRail(
                     Icon(
                         imageVector = if (module == AuvionyxModule.DRIVE && selected) Icons.Filled.Home else icon,
                         contentDescription = label,
-                        tint = if (selected) GlassWhite else TextSecondary,
+                        tint = if (selected) GlassWhite else GlassWhite.copy(alpha = 0.82f),
                         modifier = Modifier.size(22.dp)
                     )
                 }
