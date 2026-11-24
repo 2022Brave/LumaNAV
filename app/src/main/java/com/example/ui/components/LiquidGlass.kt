@@ -765,7 +765,7 @@ fun GlassTopStatusBar(
                         tint = IceBlue,
                         modifier = Modifier.size(20.dp)
                     )
-                    Column {
+                    Column(modifier = Modifier.width(116.dp)) {
                         Text(
                             text = tempDisplay,
                             style = MaterialTheme.typography.titleMedium,
