@@ -1,5 +1,10 @@
 package com.example.ui.screens
 
+import android.content.Context
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
 import android.content.Intent
 import android.provider.Settings
 import androidx.compose.animation.AnimatedContent
@@ -42,6 +47,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -143,7 +153,8 @@ private fun resolveCockpitDisplay(
     mapsPulse: MapsAndPulseState
 ): ResolvedCockpitDisplay {
     val hasLiveSession = telemetry.isLiveGpsActive || mapsPulse.isNavigating || telemetry.isSimulationRunning
-    val rawSpeedKmh = telemetry.speedKmh
+    val rawSpeedKmh = (telemetry.speedKmh *
+        (1f + settings.hudConfig.speedometerMatchPercent.coerceIn(0f, 10f) / 100f)).toInt()
     val speedDisplay = if (settings.useMetricUnits) {
         rawSpeedKmh
     } else {
@@ -204,6 +215,34 @@ fun DriveDashboardScreen(
     onSeek: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+    var flatLaunchConsumed by remember { mutableStateOf(false) }
+    DisposableEffect(settings.hudConfig.layFlatToStartHud) {
+        val manager = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
+        val sensor = manager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
+        val listener = object : SensorEventListener {
+            override fun onSensorChanged(event: SensorEvent) {
+                val x = event.values[0]
+                val y = event.values[1]
+                val z = event.values[2]
+                val screenUpAndFlat = kotlin.math.abs(x) < 2.0f &&
+                    kotlin.math.abs(y) < 2.0f && z > 8.5f
+                if (screenUpAndFlat && !flatLaunchConsumed && settings.hudConfig.layFlatToStartHud) {
+                    flatLaunchConsumed = true
+                    onSelectModule(AuvionyxModule.HUD)
+                } else if (!screenUpAndFlat) {
+                    flatLaunchConsumed = false
+                }
+            }
+
+            override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) = Unit
+        }
+        if (settings.hudConfig.layFlatToStartHud && sensor != null) {
+            manager.registerListener(listener, sensor, SensorManager.SENSOR_DELAY_NORMAL)
+        }
+        onDispose { manager.unregisterListener(listener) }
+    }
+
     if (isLandscapeWide) {
         LandscapeCockpitSurface(
             isIdleCockpit = isIdleCockpit &&
