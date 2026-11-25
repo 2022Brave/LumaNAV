@@ -583,6 +583,7 @@ private fun ModuleContentRouter(
                 onSetReducedMotion = { viewModel.setReducedMotion(it) },
                 onSetDashboardRatio = { viewModel.setDashboardRatio(it) },
                 onSetHudLayout = { viewModel.updateHudConfig(settings.hudConfig.copy(layoutMode = it)) },
+                onSetHudConfig = { viewModel.updateHudConfig(it) },
                 onSetMetricUnits = { viewModel.setMetricUnits(it) },
                 onSetTrafficOverlay = { viewModel.setTrafficOverlay(it) },
                 onSetSatelliteGrid = { viewModel.setSatelliteGrid(it) },
