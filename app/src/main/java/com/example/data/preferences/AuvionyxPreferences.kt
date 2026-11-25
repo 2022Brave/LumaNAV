@@ -56,6 +56,8 @@ class AuvionyxPreferencesRepository(private val context: Context) {
         val HUD_SHOW_PROGRESS = booleanPreferencesKey("hud_show_progress")
         val HUD_SHOW_ETA = booleanPreferencesKey("hud_show_eta")
         val HUD_SHOW_MEDIA = booleanPreferencesKey("hud_show_media")
+        val HUD_SPEED_CALIBRATION = floatPreferencesKey("hud_speed_calibration")
+        val HUD_LAY_FLAT_START = booleanPreferencesKey("hud_lay_flat_start")
         val AOD_STYLE = stringPreferencesKey("aod_style")
         val MEDIA_SOURCE = stringPreferencesKey("media_source")
         val METRIC_UNITS = booleanPreferencesKey("metric_units")
@@ -91,7 +93,9 @@ class AuvionyxPreferencesRepository(private val context: Context) {
                 showCompass = prefs[Keys.HUD_SHOW_COMPASS] ?: true,
                 showJourneyProgress = prefs[Keys.HUD_SHOW_PROGRESS] ?: true,
                 showEta = prefs[Keys.HUD_SHOW_ETA] ?: true,
-                showMediaInfo = prefs[Keys.HUD_SHOW_MEDIA] ?: true
+                showMediaInfo = prefs[Keys.HUD_SHOW_MEDIA] ?: true,
+                speedometerMatchPercent = (prefs[Keys.HUD_SPEED_CALIBRATION] ?: 4f).coerceIn(0f, 10f),
+                layFlatToStartHud = prefs[Keys.HUD_LAY_FLAT_START] ?: false
             ),
             aodStyle = prefs[Keys.AOD_STYLE]?.let {
                 runCatching { AodStyle.valueOf(it) }.getOrNull()
@@ -137,6 +141,8 @@ class AuvionyxPreferencesRepository(private val context: Context) {
             prefs[Keys.HUD_SHOW_PROGRESS] = config.showJourneyProgress
             prefs[Keys.HUD_SHOW_ETA] = config.showEta
             prefs[Keys.HUD_SHOW_MEDIA] = config.showMediaInfo
+            prefs[Keys.HUD_SPEED_CALIBRATION] = config.speedometerMatchPercent.coerceIn(0f, 10f)
+            prefs[Keys.HUD_LAY_FLAT_START] = config.layFlatToStartHud
         }
     }
 
