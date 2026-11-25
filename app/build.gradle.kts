@@ -16,9 +16,9 @@ android {
     applicationId = "com.aistudio.auvionyx.kxvrqm"
     minSdk = 24
     targetSdk = 36
-    val ciRunNumber = providers.environmentVariable("GITHUB_RUN_NUMBER").orNull?.toIntOrNull() ?: 1
-    versionCode = ciRunNumber.coerceAtLeast(1)
-    versionName = "1.0.$ciRunNumber"
+    val otaVersionCode = providers.environmentVariable("LUMANAV_VERSION_CODE").orNull?.toIntOrNull() ?: 1
+    versionCode = otaVersionCode.coerceAtLeast(1)
+    versionName = "1.0.$otaVersionCode"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
