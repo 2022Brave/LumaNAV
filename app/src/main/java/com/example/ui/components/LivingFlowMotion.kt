@@ -119,7 +119,7 @@ fun Modifier.photonLuminousTouch(
 
     val scale by animateFloatAsState(
         targetValue = if ((isPressed || isPointerDown) && enabled && !reducedMotion) pressScale else 1f,
-        animationSpec = if (reducedMotion) tween(0) else LivingFlow.ElasticButtonSpring,
+        animationSpec = if (reducedMotion) tween(0) else LumaMotion.ElasticButtonSpring,
         label = "photonElasticScale"
     )
 
@@ -143,7 +143,7 @@ fun Modifier.photonLuminousTouch(
                                 photonProgress.snapTo(0.05f)
                                 photonProgress.animateTo(
                                     targetValue = 1f,
-                                    animationSpec = tween(durationMillis = 360, easing = LivingFlow.LaminarEasing)
+                                    animationSpec = tween(durationMillis = 360, easing = LumaMotion.LaminarEasing)
                                 )
                                 photonProgress.snapTo(0f)
                             }
@@ -268,7 +268,7 @@ fun DraggableLaminarSheet(
                             expandFraction.animateTo(
                                 targetValue = target,
                                 initialVelocity = (-velocity / dragRangePx),
-                                animationSpec = LivingFlow.DraggableSheetSpring
+                                animationSpec = LumaMotion.DraggableSheetSpring
                             )
                         }
                     }
