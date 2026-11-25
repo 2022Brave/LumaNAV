@@ -1,9 +1,6 @@
 package com.example.ui.screens
 
 import android.Manifest
-import android.app.Activity
-import android.content.Intent
-import android.media.projection.MediaProjectionManager
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -18,7 +15,6 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -62,8 +58,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -71,8 +65,6 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.zIndex
 import androidx.compose.ui.unit.dp
-import com.example.core.LiveGoogleMapsSyncBridge
-import com.example.core.NavigationCaptureService
 import com.example.data.model.DestinationCandidate
 import com.example.data.model.MapPlaceMarker
 import com.example.data.model.ServiceAvailabilityState
@@ -128,20 +120,6 @@ fun MapsScreen(
         contract = ActivityResultContracts.RequestPermission()
     ) {
         onPermissionUpdated()
-    }
-
-    val captureActive by NavigationCaptureService.captureActive.collectAsState()
-    val latestCaptureFrame by NavigationCaptureService.latestFrame.collectAsState()
-    val captureError by NavigationCaptureService.captureError.collectAsState()
-    val externalNavigation by LiveGoogleMapsSyncBridge.activeNavigation.collectAsState()
-
-    val captureLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        val captureData = result.data
-        if (result.resultCode == Activity.RESULT_OK && captureData != null) {
-            NavigationCaptureService.start(context, result.resultCode, captureData)
-        }
     }
 
     val routeContent: @Composable (Modifier) -> Unit = { contentMod ->
