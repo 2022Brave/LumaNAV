@@ -42,7 +42,8 @@ data class LiveDrivingRoute(
     val etaTimeLabel: String,
     val nextTurnDistanceLabel: String,
     val nextTurnRoad: String,
-    val nextTurnInstruction: String
+    val nextTurnInstruction: String,
+    val routingProvider: String
 )
 
 data class LiveWeatherReading(
@@ -384,7 +385,8 @@ class DestinationSearchRepository(private val context: Context) {
             ?.takeIf { it.isNotBlank() } ?: destinationFallbackName
         val instruction = next?.optString("instruction")?.takeIf { it.isNotBlank() }
             ?: "Continue to $destinationFallbackName"
-        val turnDistance = (next?.optDouble("length", 0.0) ?: 0.0) * 1000.0
+        // The first maneuver describes the distance from the current position to the next turn.
+        val turnDistance = (maneuvers?.optJSONObject(0)?.optDouble("length", 0.0) ?: 0.0) * 1000.0
         val eta = SimpleDateFormat("HH:mm", Locale.getDefault()).format(
             Date(System.currentTimeMillis() + durationMinutes * 60_000L)
         )
@@ -395,7 +397,8 @@ class DestinationSearchRepository(private val context: Context) {
             etaTimeLabel = eta,
             nextTurnDistanceLabel = formatDistanceMeters(turnDistance),
             nextTurnRoad = road,
-            nextTurnInstruction = instruction
+            nextTurnInstruction = instruction,
+            routingProvider = "Valhalla"
         )
     }
 
@@ -440,7 +443,8 @@ class DestinationSearchRepository(private val context: Context) {
             etaTimeLabel = eta,
             nextTurnDistanceLabel = formatDistanceMeters(turnDistance),
             nextTurnRoad = road,
-            nextTurnInstruction = instruction
+            nextTurnInstruction = instruction,
+            routingProvider = "OSRM"
         )
     }
 
