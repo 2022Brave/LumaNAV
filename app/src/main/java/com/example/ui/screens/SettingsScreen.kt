@@ -31,6 +31,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -47,6 +48,7 @@ import androidx.compose.ui.unit.dp
 import com.example.core.UpdateManager
 import com.example.data.model.DashboardSplitRatio
 import com.example.data.model.HudLayoutMode
+import com.example.data.model.HudConfig
 import com.example.data.model.MediaAppSource
 import com.example.data.model.SyncDeviceProfile
 import com.example.data.preferences.AuvionyxSettingsState
@@ -72,6 +74,7 @@ fun SettingsScreen(
     onSetReducedMotion: (Boolean) -> Unit,
     onSetDashboardRatio: (DashboardSplitRatio) -> Unit,
     onSetHudLayout: (HudLayoutMode) -> Unit,
+    onSetHudConfig: (HudConfig) -> Unit,
     onSetMetricUnits: (Boolean) -> Unit,
     onSetTrafficOverlay: (Boolean) -> Unit,
     onSetSatelliteGrid: (Boolean) -> Unit,
@@ -213,6 +216,40 @@ fun SettingsScreen(
                         }
                     }
                 }
+                Spacer(Modifier.height(14.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Speedometer Match", style = MaterialTheme.typography.labelLarge, color = GlassWhite)
+                        Text(
+                            "Calibrate the displayed speed from 0% to +10%. Default +4%.",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = TextSecondary
+                        )
+                    }
+                    Text(
+                        "+${settings.hudConfig.speedometerMatchPercent.toInt()}%",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = accent
+                    )
+                }
+                Slider(
+                    value = settings.hudConfig.speedometerMatchPercent.coerceIn(0f, 10f),
+                    onValueChange = { onSetHudConfig(settings.hudConfig.copy(speedometerMatchPercent = it)) },
+                    valueRange = 0f..10f,
+                    steps = 9,
+                    modifier = Modifier.fillMaxWidth().testTag("settings_speedometer_calibration")
+                )
+                SettingsToggleRow(
+                    title = "Lay flat to start HUD",
+                    subtitle = "Use the device motion sensor to open HUD when the phone is placed screen-up and flat. Disabled by default.",
+                    checked = settings.hudConfig.layFlatToStartHud,
+                    testTag = "settings_lay_flat_hud_toggle",
+                    onCheckedChange = { onSetHudConfig(settings.hudConfig.copy(layFlatToStartHud = it)) }
+                )
             }
         }
 
