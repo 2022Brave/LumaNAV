@@ -9,6 +9,7 @@ on:
       - "branding/**"
     paths:
       - ".github/workflows/android-ci.yml"
+      - ".github/workflows/release-ota.yml"
       - "app/**"
       - "gradle/**"
       - "*.gradle.kts"
