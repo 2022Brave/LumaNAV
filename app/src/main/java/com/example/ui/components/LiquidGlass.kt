@@ -837,7 +837,9 @@ fun GlassTopStatusBar(
 fun GlassNavigationRail(
     activeModule: AuvionyxModule,
     onSelectModule: (AuvionyxModule) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    expanded: Boolean = false,
+    onToggleExpanded: () -> Unit = {}
 ) {
     val railItems = listOf(
         Triple(AuvionyxModule.DRIVE, Icons.Outlined.Home, "Home"),
@@ -868,17 +870,51 @@ fun GlassNavigationRail(
                 LiquidGlassLens(
                     selected = selected,
                     onClick = { onSelectModule(module) },
-                    cornerRadius = 18.dp,
-                    modifier = Modifier.size(48.dp),
+                    cornerRadius = 16.dp,
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
                     testTag = "rail_${module.route}"
                 ) {
-                    Icon(
-                        imageVector = if (module == AuvionyxModule.DRIVE && selected) Icons.Filled.Home else icon,
-                        contentDescription = label,
-                        tint = if (selected) GlassWhite else GlassWhite.copy(alpha = 0.82f),
-                        modifier = Modifier.size(22.dp)
-                    )
+                    if (expanded) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (module == AuvionyxModule.DRIVE && selected) Icons.Filled.Home else icon,
+                                contentDescription = label,
+                                tint = if (selected) GlassWhite else GlassWhite.copy(alpha = 0.82f),
+                                modifier = Modifier.size(21.dp)
+                            )
+                            Text(
+                                text = label,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = if (selected) GlassWhite else TextSecondary,
+                                maxLines = 1
+                            )
+                        }
+                    } else {
+                        Icon(
+                            imageVector = if (module == AuvionyxModule.DRIVE && selected) Icons.Filled.Home else icon,
+                            contentDescription = label,
+                            tint = if (selected) GlassWhite else GlassWhite.copy(alpha = 0.82f),
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
                 }
+            }
+            LiquidGlassLens(
+                selected = expanded,
+                onClick = onToggleExpanded,
+                cornerRadius = 16.dp,
+                modifier = Modifier.fillMaxWidth().height(42.dp),
+                testTag = "rail_expand_toggle"
+            ) {
+                Text(
+                    text = if (expanded) "LESS" else "MORE",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (expanded) GlassWhite else TextSecondary
+                )
             }
         }
     }
