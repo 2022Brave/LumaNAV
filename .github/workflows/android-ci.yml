@@ -124,6 +124,8 @@ jobs:
           fi
 
       - name: Compile debug APK
+        env:
+          LUMANAV_VERSION_CODE: ${{ github.run_number }}
         run: ./gradlew --no-daemon :app:assembleDebug
 
       - name: Verify APK signature and certificate fingerprint
