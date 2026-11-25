@@ -586,7 +586,7 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
                                 isLiveGpsActive = isFreshLiveFix,
                                 isLocationFallback = !isFreshLiveFix,
                                 isSimulationRunning = false,
-                                currentLocationLabel = if (isFreshLiveFix) current.currentLocationLabel else "Last known location"
+                                currentLocationLabel = if (isFreshLiveFix) current.currentLocationLabel else "GPS pending"
                             )
                         }
                         _mapsPulse.update { state ->
