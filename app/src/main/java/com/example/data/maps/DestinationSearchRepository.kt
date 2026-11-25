@@ -7,6 +7,7 @@ import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.net.Uri
 import android.os.Build
+import android.os.SystemClock
 import com.example.data.model.DestinationCandidate
 import com.example.data.model.DestinationSearchOutcome
 import com.example.data.model.ServiceAvailabilityState
@@ -15,9 +16,14 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
+import java.io.IOException
+import java.util.concurrent.ConcurrentHashMap
 import java.net.URLDecoder
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -79,7 +85,7 @@ class DestinationSearchRepository(private val context: Context) {
             return@withContext DestinationSearchOutcome.Unavailable(
                 query = query,
                 serviceState = ServiceAvailabilityState.API_UNAVAILABLE,
-                reason = "Speak a destination name to search."
+                reason = "Enter a destination name to search."
             )
         }
 
@@ -87,64 +93,179 @@ class DestinationSearchRepository(private val context: Context) {
             return@withContext DestinationSearchOutcome.Unavailable(
                 query = clean,
                 serviceState = ServiceAvailabilityState.OFFLINE,
-                reason = "Device is offline. Network connectivity is required for live destination search."
+                reason = "Device is offline. Live destination search requires an internet connection."
             )
         }
 
+        val cacheKey = buildString {
+            append(clean.lowercase(Locale.ROOT))
+            append('|')
+            append(nearLat?.let { String.format(Locale.US, "%.2f", it) } ?: "global")
+            append('|')
+            append(nearLon?.let { String.format(Locale.US, "%.2f", it) } ?: "global")
+        }
+        searchCache[cacheKey]?.let { cached ->
+            return@withContext DestinationSearchOutcome.Matches(
+                query = clean,
+                serviceState = ServiceAvailabilityState.LIVE,
+                candidates = cached
+            )
+        }
+
+        // Photon is an independent OpenStreetMap geocoder, so destination search does not
+        // depend on Google Play services or the Android system Geocoder being installed.
+        val photonCandidates = withTimeoutOrNull(9_000L) {
+            runCatching { fetchPhotonCandidates(clean, nearLat, nearLon) }.getOrNull()
+        }
+        if (photonCandidates != null) {
+            cacheSearch(cacheKey, photonCandidates)
+            return@withContext DestinationSearchOutcome.Matches(
+                query = clean,
+                serviceState = ServiceAvailabilityState.LIVE,
+                candidates = photonCandidates
+            )
+        }
+
+        // Keep Android Geocoder as a fallback for devices where its provider is available.
         if (!isGeocoderAvailable()) {
             return@withContext DestinationSearchOutcome.Unavailable(
                 query = clean,
                 serviceState = ServiceAvailabilityState.API_UNAVAILABLE,
-                reason = "Android Geocoder backend is unavailable on this device."
+                reason = "OpenStreetMap place search is temporarily unavailable and this device has no Android Geocoder provider."
             )
         }
 
         try {
-            val addresses = withTimeout(10_000L) {
+            val addresses = withTimeout(8_000L) {
                 fetchAddressesFromGeocoder(clean, nearLat, nearLon)
             }
-            if (addresses.isEmpty()) {
-                DestinationSearchOutcome.Matches(
-                    query = clean,
-                    serviceState = ServiceAvailabilityState.LIVE,
-                    candidates = emptyList()
-                )
-            } else {
-                val mapped = addresses.mapIndexed { index, addr ->
-                    val title = addr.featureName?.takeIf { it.isNotBlank() }
-                        ?: addr.locality?.takeIf { it.isNotBlank() }
-                        ?: addr.subAdminArea?.takeIf { it.isNotBlank() }
-                        ?: clean
-                    val line = buildString {
-                        listOfNotNull(addr.thoroughfare, addr.locality, addr.adminArea, addr.countryName)
-                            .distinct()
-                            .joinToString(", ")
-                            .let { append(it) }
-                    }.ifBlank { addr.getAddressLine(0) ?: clean }
+            val mapped = addresses.mapIndexed { index, addr ->
+                val title = addr.featureName?.takeIf { it.isNotBlank() }
+                    ?: addr.locality?.takeIf { it.isNotBlank() }
+                    ?: addr.subAdminArea?.takeIf { it.isNotBlank() }
+                    ?: clean
+                val line = listOfNotNull(
+                    addr.thoroughfare,
+                    addr.locality,
+                    addr.adminArea,
+                    addr.countryName
+                ).distinct().joinToString(", ").ifBlank { addr.getAddressLine(0) ?: clean }
 
-                    DestinationCandidate(
-                        id = "geo_${index}_${addr.latitude}_${addr.longitude}",
-                        name = title,
-                        addressSummary = line,
-                        latitude = addr.latitude,
-                        longitude = addr.longitude,
-                        category = "Geocoded Place",
-                        isDemo = false
-                    )
-                }
-                DestinationSearchOutcome.Matches(
-                    query = clean,
-                    serviceState = ServiceAvailabilityState.LIVE,
-                    candidates = mapped
+                DestinationCandidate(
+                    id = "geo_${index}_${addr.latitude}_${addr.longitude}",
+                    name = title,
+                    addressSummary = line,
+                    latitude = addr.latitude,
+                    longitude = addr.longitude,
+                    category = "Android Geocoder",
+                    isDemo = false
                 )
             }
+            cacheSearch(cacheKey, mapped)
+            DestinationSearchOutcome.Matches(
+                query = clean,
+                serviceState = ServiceAvailabilityState.LIVE,
+                candidates = mapped
+            )
         } catch (_: Exception) {
             DestinationSearchOutcome.Unavailable(
                 query = clean,
                 serviceState = ServiceAvailabilityState.API_UNAVAILABLE,
-                reason = "Geocoder service request failed."
+                reason = "OpenStreetMap place search and the Android Geocoder fallback are unavailable."
             )
         }
+    }
+
+    private suspend fun fetchPhotonCandidates(
+        query: String,
+        nearLat: Double?,
+        nearLon: Double?
+    ): List<DestinationCandidate> = photonRequestMutex.withLock {
+        // The hosted Photon demo is a shared community service. Keep requests serial and
+        // at least one second apart; searches are only issued on explicit user submission.
+        val elapsed = SystemClock.elapsedRealtime() - lastPhotonRequestAt
+        if (lastPhotonRequestAt > 0L && elapsed < PHOTON_MIN_INTERVAL_MS) {
+            delay(PHOTON_MIN_INTERVAL_MS - elapsed)
+        }
+        lastPhotonRequestAt = SystemClock.elapsedRealtime()
+
+        val builder = Uri.parse("https://photon.komoot.io/api/").buildUpon()
+            .appendQueryParameter("q", query)
+            .appendQueryParameter("limit", "5")
+            .appendQueryParameter("lang", "en")
+        if (nearLat != null && nearLon != null &&
+            nearLat.isFinite() && nearLon.isFinite() &&
+            nearLat in -90.0..90.0 && nearLon in -180.0..180.0
+        ) {
+            builder.appendQueryParameter("lat", nearLat.toString())
+            builder.appendQueryParameter("lon", nearLon.toString())
+            builder.appendQueryParameter("zoom", "12")
+        }
+
+        val connection = (URL(builder.build().toString()).openConnection() as HttpURLConnection).apply {
+            requestMethod = "GET"
+            connectTimeout = 5_000
+            readTimeout = 7_000
+            setRequestProperty("Accept", "application/geo+json, application/json")
+            setRequestProperty("User-Agent", "LumaNAV-Android/1.0 (personal navigation app)")
+        }
+        val body = try {
+            val code = connection.responseCode
+            if (code !in 200..299) throw IOException("Photon HTTP $code")
+            connection.inputStream.bufferedReader().use { it.readText() }
+        } finally {
+            connection.disconnect()
+        }
+
+        val features = JSONObject(body).optJSONArray("features") ?: return@withLock emptyList()
+        buildList {
+            for (index in 0 until features.length()) {
+                val feature = features.optJSONObject(index) ?: continue
+                val coordinates = feature.optJSONObject("geometry")?.optJSONArray("coordinates") ?: continue
+                if (coordinates.length() < 2) continue
+                val lon = coordinates.optDouble(0, Double.NaN)
+                val lat = coordinates.optDouble(1, Double.NaN)
+                if (!lat.isFinite() || lat !in -90.0..90.0 ||
+                    !lon.isFinite() || lon !in -180.0..180.0
+                ) continue
+
+                val properties = feature.optJSONObject("properties") ?: JSONObject()
+                val name = properties.optString("name")
+                    .takeIf { it.isNotBlank() }
+                    ?: properties.optString("street").takeIf { it.isNotBlank() }
+                    ?: properties.optString("city").takeIf { it.isNotBlank() }
+                    ?: query
+                val address = listOf(
+                    properties.optString("street"),
+                    properties.optString("district"),
+                    properties.optString("city"),
+                    properties.optString("state"),
+                    properties.optString("postcode"),
+                    properties.optString("country")
+                ).filter { it.isNotBlank() }.distinct().joinToString(", ").ifBlank { name }
+                val osmId = properties.optString("osm_id").ifBlank { "${lat}_${lon}" }
+                val category = properties.optString("osm_value")
+                    .ifBlank { properties.optString("osm_key") }
+                    .ifBlank { "OpenStreetMap place" }
+
+                add(
+                    DestinationCandidate(
+                        id = "photon_${properties.optString("osm_type")}_$osmId",
+                        name = name,
+                        addressSummary = address,
+                        latitude = lat,
+                        longitude = lon,
+                        category = category,
+                        isDemo = false
+                    )
+                )
+            }
+        }
+    }
+
+    private fun cacheSearch(key: String, candidates: List<DestinationCandidate>) {
+        if (searchCache.size >= MAX_SEARCH_CACHE_ENTRIES) searchCache.clear()
+        searchCache[key] = candidates
     }
 
     suspend fun reverseGeocodeLocation(lat: Double, lon: Double): String? = withContext(Dispatchers.IO) {
@@ -433,6 +554,12 @@ class DestinationSearchRepository(private val context: Context) {
     }
 
     companion object {
+        private const val PHOTON_MIN_INTERVAL_MS = 1_000L
+        private const val MAX_SEARCH_CACHE_ENTRIES = 64
+        private val photonRequestMutex = Mutex()
+        @Volatile private var lastPhotonRequestAt = 0L
+        private val searchCache = ConcurrentHashMap<String, List<DestinationCandidate>>()
+
         fun haversineKm(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Float {
             val r = 6371.0
             val dLat = Math.toRadians(lat2 - lat1)
