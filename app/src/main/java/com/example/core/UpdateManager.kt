@@ -33,7 +33,7 @@ data class AppUpdateState(
 
 object UpdateManager {
     private const val RELEASE_API =
-        "https://api.github.com/repos/2022Brave/Auvionyx/releases/latest"
+        "https://api.github.com/repos/2022Brave/LumaNAV/releases/latest"
     private const val APK_MIME = "application/vnd.android.package-archive"
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val mutableState = MutableStateFlow(AppUpdateState())
@@ -47,57 +47,90 @@ object UpdateManager {
                 statusMessage = "Checking GitHub Releases…"
             )
             val result = runCatching {
-                val connection = (URL(RELEASE_API).openConnection() as HttpURLConnection).apply {
-                    requestMethod = "GET"
-                    connectTimeout = 8_000
-                    readTimeout = 8_000
-                    setRequestProperty("Accept", "application/vnd.github+json")
-                    setRequestProperty("X-GitHub-Api-Version", "2022-11-28")
-                    setRequestProperty("User-Agent", "LumaNAV-Android")
-                }
-                try {
-                    if (connection.responseCode !in 200..299) {
-                        error("GitHub returned HTTP ${connection.responseCode}")
-                    }
-                    val json = JSONObject(connection.inputStream.bufferedReader().use { it.readText() })
-                    val tag = json.optString("tag_name").removePrefix("v")
-                    val latestCode = tag.substringAfterLast('.', "").toIntOrNull()
-                    val currentCode = BuildConfig.VERSION_CODE
-                    val apk = json.optJSONArray("assets")
-                    var apkUrl: String? = null
-                    if (apk != null) {
-                        for (i in 0 until apk.length()) {
-                            val asset = apk.optJSONObject(i) ?: continue
-                            if (asset.optString("name").endsWith(".apk", ignoreCase = true)) {
-                                apkUrl = asset.optString("browser_download_url").takeIf { it.isNotBlank() }
-                                break
-                            }
+                val release = fetchLatestRelease()
+                val tag = release.optString("tag_name").removePrefix("v")
+                val latestCode = tag.substringAfterLast('.', "").toIntOrNull()
+                val currentCode = BuildConfig.VERSION_CODE
+                val assets = release.optJSONArray("assets")
+                var apkUrl: String? = null
+                if (assets != null) {
+                    for (i in 0 until assets.length()) {
+                        val asset = assets.optJSONObject(i) ?: continue
+                        if (asset.optString("name").endsWith(".apk", ignoreCase = true)) {
+                            apkUrl = asset.optString("browser_download_url").takeIf { it.isNotBlank() }
+                            break
                         }
                     }
-                    val latestIsNewer = latestCode?.let { it > currentCode }
-                        ?: (tag != BuildConfig.VERSION_NAME && tag.isNotBlank())
-                    AppUpdateState(
-                        currentVersion = BuildConfig.VERSION_NAME,
-                        latestVersion = tag,
-                        releaseNotes = json.optString("body").ifBlank { "No release notes provided." },
-                        apkUrl = apkUrl,
-                        updateAvailable = latestIsNewer && apkUrl != null,
-                        statusMessage = when {
-                            latestIsNewer && apkUrl == null -> "A release exists, but no APK asset was attached."
-                            latestIsNewer -> "Update available"
-                            else -> "You're up to date"
-                        }
-                    )
-                } finally {
-                    connection.disconnect()
                 }
+                val latestIsNewer = latestCode?.let { it > currentCode }
+                    ?: (tag != BuildConfig.VERSION_NAME && tag.isNotBlank())
+                AppUpdateState(
+                    currentVersion = BuildConfig.VERSION_NAME,
+                    latestVersion = tag,
+                    releaseNotes = release.optString("body").ifBlank { "No release notes provided." },
+                    apkUrl = apkUrl,
+                    updateAvailable = latestIsNewer && apkUrl != null,
+                    statusMessage = when {
+                        latestIsNewer && apkUrl == null -> "Release $tag exists, but no APK asset was attached."
+                        latestIsNewer -> "Update available"
+                        else -> "You're up to date"
+                    }
+                )
             }
             mutableState.value = result.getOrElse { error ->
-                mutableState.value.copy(
-                    statusMessage = if (force) "Check failed: ${error.message ?: "offline"}" else "Could not check (offline or GitHub unavailable)"
-                )
+                val detail = error.message ?: error.javaClass.simpleName
+                android.util.Log.e("LumaNAV-Updater", "Release check failed", error)
+                mutableState.value.copy(statusMessage = "Update check failed: $detail")
             }.copy(checking = false)
         }
+    }
+
+    private fun fetchLatestRelease(): JSONObject {
+        val latestUrl = "https://api.github.com/repos/2022Brave/LumaNAV/releases/latest"
+        val latestResponse = requestGitHubJson(latestUrl)
+        if (latestResponse.first == HttpURLConnection.HTTP_OK) {
+            return JSONObject(latestResponse.second)
+        }
+        if (latestResponse.first != HttpURLConnection.HTTP_NOT_FOUND) {
+            throw IllegalStateException("HTTP ${latestResponse.first}: ${githubErrorMessage(latestResponse.second)}")
+        }
+
+        val listResponse = requestGitHubJson(
+            "https://api.github.com/repos/2022Brave/LumaNAV/releases?per_page=1"
+        )
+        if (listResponse.first !in 200..299) {
+            throw IllegalStateException("HTTP ${listResponse.first}: ${githubErrorMessage(listResponse.second)}")
+        }
+        val releases = org.json.JSONArray(listResponse.second)
+        if (releases.length() == 0) {
+            throw IllegalStateException("HTTP 404: No published release found")
+        }
+        return releases.getJSONObject(0)
+    }
+
+    private fun requestGitHubJson(endpoint: String): Pair<Int, String> {
+        val connection = (URL(endpoint).openConnection() as HttpURLConnection).apply {
+            requestMethod = "GET"
+            connectTimeout = 10_000
+            readTimeout = 12_000
+            setRequestProperty("Accept", "application/vnd.github+json")
+            setRequestProperty("X-GitHub-Api-Version", "2022-11-28")
+            setRequestProperty("User-Agent", "LumaNAV-Android")
+        }
+        return try {
+            val code = connection.responseCode
+            val stream = if (code in 200..299) connection.inputStream else connection.errorStream
+            val body = stream?.bufferedReader()?.use { it.readText() }.orEmpty()
+            code to body
+        } finally {
+            connection.disconnect()
+        }
+    }
+
+    private fun githubErrorMessage(body: String): String {
+        if (body.isBlank()) return "GitHub did not provide an error description"
+        return runCatching { JSONObject(body).optString("message").ifBlank { body.take(180) } }
+            .getOrDefault(body.take(180))
     }
 
     fun downloadAndInstall(context: Context) {
