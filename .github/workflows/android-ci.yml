@@ -87,23 +87,40 @@ jobs:
       - name: Verify Gradle wrapper
         run: ./gradlew --version
 
-      # The original AI Studio project expects a conventional Android debug
-      # keystore at the repository root. Generate it only on this ephemeral
-      # GitHub-hosted runner; never commit or upload the keystore.
-      - name: Generate ephemeral debug keystore
+      # Use the same persistent signing identity for every installable CI APK.
+      # Forked pull requests do not receive repository secrets, so retain a
+      # disposable debug-key fallback only for those external PR builds.
+      - name: Configure persistent signing
         shell: bash
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
           set -euo pipefail
-          if [[ ! -f debug.keystore ]]; then
-            keytool -genkeypair -v \
-              -keystore debug.keystore \
-              -storepass android \
-              -alias androiddebugkey \
-              -keypass android \
-              -keyalg RSA \
-              -keysize 2048 \
-              -validity 10000 \
+          if [[ -n "$KEYSTORE_BASE64" && -n "$KEYSTORE_PASSWORD" && -n "$KEY_ALIAS" && -n "$KEY_PASSWORD" ]]; then
+            KEYSTORE_FILE="$RUNNER_TEMP/lumanav-release.jks"
+            printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_FILE"
+            keytool -list -keystore "$KEYSTORE_FILE" -storepass "$KEYSTORE_PASSWORD" -alias "$KEY_ALIAS" >/dev/null
+            {
+              echo "KEYSTORE_PATH=$KEYSTORE_FILE"
+              echo "KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD"
+              echo "KEY_ALIAS=$KEY_ALIAS"
+              echo "KEY_PASSWORD=$KEY_PASSWORD"
+            } >> "$GITHUB_ENV"
+            echo "Persistent LumaNAV signing key configured."
+          else
+            echo "Repository signing secrets unavailable; generating a temporary key for this build."
+            keytool -genkeypair -v -keystore "$RUNNER_TEMP/lumanav-ci-debug.jks" -storepass android \
+              -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 \
               -dname "CN=Android Debug,O=Android,C=US"
+            {
+              echo "KEYSTORE_PATH=$RUNNER_TEMP/lumanav-ci-debug.jks"
+              echo "KEYSTORE_PASSWORD=android"
+              echo "KEY_ALIAS=androiddebugkey"
+              echo "KEY_PASSWORD=android"
+            } >> "$GITHUB_ENV"
           fi
 
       - name: Compile debug APK
