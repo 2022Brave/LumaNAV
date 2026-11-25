@@ -14,6 +14,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withTimeoutOrNull
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
@@ -186,78 +187,171 @@ class DestinationSearchRepository(private val context: Context) {
         destinationFallbackName: String
     ): LiveDrivingRoute? = withContext(Dispatchers.IO) {
         if (!isNetworkOnline()) return@withContext null
-        runCatching {
+
+        // Valhalla is attempted first. Its public OSM endpoint is keyless; OSRM remains
+        // an independent fallback when Valhalla is unavailable or returns an unusable route.
+        val valhalla = withTimeoutOrNull(9_000L) {
+            runCatching {
+                val request = JSONObject().apply {
+                    put("locations", org.json.JSONArray().put(
+                        JSONObject().put("lat", startLat).put("lon", startLon)
+                    ).put(JSONObject().put("lat", endLat).put("lon", endLon)))
+                    put("costing", "auto")
+                    put("units", "kilometers")
+                    put("directions_options", JSONObject().put("units", "kilometers"))
+                }
+                val endpoint = "https://valhalla1.openstreetmap.de/route?json=" +
+                    Uri.encode(request.toString())
+                val connection = (URL(endpoint).openConnection() as HttpURLConnection).apply {
+                    connectTimeout = 5_000
+                    readTimeout = 8_000
+                    requestMethod = "GET"
+                    setRequestProperty("User-Agent", "LumaNAV-Android/1.0")
+                }
+                val body = try {
+                    val code = connection.responseCode
+                    if (code !in 200..299) error("Valhalla HTTP $code")
+                    connection.inputStream.bufferedReader().use { it.readText() }
+                } finally {
+                    connection.disconnect()
+                }
+                parseValhallaRoute(JSONObject(body), destinationFallbackName)
+            }.getOrNull()
+        }
+
+        valhalla ?: runCatching {
             val urlStr = String.format(
                 Locale.US,
                 "https://router.project-osrm.org/route/v1/driving/%.6f,%.6f;%.6f,%.6f?overview=full&geometries=geojson&steps=true",
-                startLon,
-                startLat,
-                endLon,
-                endLat
+                startLon, startLat, endLon, endLat
             )
             val conn = (URL(urlStr).openConnection() as HttpURLConnection).apply {
-                connectTimeout = 6000
-                readTimeout = 6000
-                setRequestProperty("User-Agent", "AuvionyxAndroid/1.0")
+                connectTimeout = 6_000
+                readTimeout = 8_000
+                requestMethod = "GET"
+                setRequestProperty("User-Agent", "LumaNAV-Android/1.0")
             }
-            val code = conn.responseCode
-            if (code !in 200..299) {
+            val body = try {
+                val code = conn.responseCode
+                if (code !in 200..299) error("OSRM HTTP $code")
+                conn.inputStream.bufferedReader().use { it.readText() }
+            } finally {
                 conn.disconnect()
-                return@withContext null
             }
-            val body = conn.inputStream.bufferedReader().use { it.readText() }
-            conn.disconnect()
-
-            val json = JSONObject(body)
-            val routeObj = json.optJSONArray("routes")?.optJSONObject(0) ?: return@withContext null
-            val distanceMeters = routeObj.optDouble("distance", 0.0)
-            val durationSec = routeObj.optDouble("duration", 0.0)
-            val distKm = ((distanceMeters / 100.0).roundToInt() / 10f).coerceAtLeast(0.1f)
-            val durationMin = (durationSec / 60.0).roundToInt().coerceAtLeast(1)
-
-            val coordsArray = routeObj.optJSONObject("geometry")?.optJSONArray("coordinates")
-            val polyline = mutableListOf<Pair<Double, Double>>()
-            if (coordsArray != null) {
-                for (i in 0 until coordsArray.length()) {
-                    val pair = coordsArray.optJSONArray(i) ?: continue
-                    val lon = pair.optDouble(0)
-                    val lat = pair.optDouble(1)
-                    polyline.add(lat to lon)
-                }
-            }
-
-            // Extract first upcoming turn maneuver (prefer step[1] if step[0] is initial depart)
-            val steps = routeObj.optJSONArray("legs")?.optJSONObject(0)?.optJSONArray("steps")
-            val nextStep = when {
-                steps != null && steps.length() > 1 -> steps.optJSONObject(1)
-                steps != null && steps.length() > 0 -> steps.optJSONObject(0)
-                else -> null
-            }
-            val firstStep = steps?.optJSONObject(0)
-            val stepDistanceMeters = firstStep?.optDouble("distance", distanceMeters) ?: distanceMeters
-            val stepRoad = nextStep?.optString("name")?.takeIf { it.isNotBlank() }
-                ?: destinationFallbackName
-            val maneuverType = nextStep?.optJSONObject("maneuver")?.optString("type").orEmpty()
-            val maneuverMod = nextStep?.optJSONObject("maneuver")?.optString("modifier").orEmpty()
-            val instruction = listOf(maneuverType, maneuverMod, if (stepRoad.isNotBlank()) "onto $stepRoad" else "")
-                .filter { it.isNotBlank() }
-                .joinToString(" ")
-                .replaceFirstChar { it.uppercase() }
-                .ifBlank { "Continue to $destinationFallbackName" }
-
-            val etaMs = System.currentTimeMillis() + durationMin * 60_000L
-            val etaStr = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(etaMs))
-
-            LiveDrivingRoute(
-                polylinePoints = polyline,
-                distanceKm = distKm,
-                durationMinutes = durationMin,
-                etaTimeLabel = etaStr,
-                nextTurnDistanceLabel = formatDistanceMeters(stepDistanceMeters),
-                nextTurnRoad = stepRoad,
-                nextTurnInstruction = instruction
-            )
+            parseOsrmRoute(JSONObject(body), destinationFallbackName)
         }.getOrNull()
+    }
+
+    private fun parseValhallaRoute(json: JSONObject, destinationFallbackName: String): LiveDrivingRoute? {
+        val trip = json.optJSONObject("trip") ?: return null
+        val summary = trip.optJSONObject("summary") ?: return null
+        val legs = trip.optJSONArray("legs") ?: return null
+        val leg = legs.optJSONObject(0) ?: return null
+        val shape = leg.optString("shape").takeIf { it.isNotBlank() } ?: return null
+        val points = decodePolyline6(shape)
+        if (points.size < 2) return null
+
+        val distanceKm = summary.optDouble("length", 0.0).toFloat()
+        val durationMinutes = (summary.optDouble("time", 0.0) / 60.0).roundToInt().coerceAtLeast(1)
+        val maneuvers = leg.optJSONArray("maneuvers")
+        val next = when {
+            maneuvers != null && maneuvers.length() > 1 -> maneuvers.optJSONObject(1)
+            maneuvers != null && maneuvers.length() > 0 -> maneuvers.optJSONObject(0)
+            else -> null
+        }
+        val road = next?.optJSONArray("street_names")?.optString(0)
+            ?.takeIf { it.isNotBlank() } ?: destinationFallbackName
+        val instruction = next?.optString("instruction")?.takeIf { it.isNotBlank() }
+            ?: "Continue to $destinationFallbackName"
+        val turnDistance = (next?.optDouble("length", 0.0) ?: 0.0) * 1000.0
+        val eta = SimpleDateFormat("HH:mm", Locale.getDefault()).format(
+            Date(System.currentTimeMillis() + durationMinutes * 60_000L)
+        )
+        return LiveDrivingRoute(
+            polylinePoints = points,
+            distanceKm = distanceKm,
+            durationMinutes = durationMinutes,
+            etaTimeLabel = eta,
+            nextTurnDistanceLabel = formatDistanceMeters(turnDistance),
+            nextTurnRoad = road,
+            nextTurnInstruction = instruction
+        )
+    }
+
+    private fun parseOsrmRoute(json: JSONObject, destinationFallbackName: String): LiveDrivingRoute? {
+        val route = json.optJSONArray("routes")?.optJSONObject(0) ?: return null
+        val distanceMeters = route.optDouble("distance", 0.0)
+        val durationSeconds = route.optDouble("duration", 0.0)
+        val distanceKm = (distanceMeters / 1000.0).toFloat()
+        val durationMinutes = (durationSeconds / 60.0).roundToInt().coerceAtLeast(1)
+        val coordinates = route.optJSONObject("geometry")?.optJSONArray("coordinates")
+        val points = mutableListOf<Pair<Double, Double>>()
+        if (coordinates != null) {
+            for (i in 0 until coordinates.length()) {
+                val pair = coordinates.optJSONArray(i) ?: continue
+                points.add(pair.optDouble(1) to pair.optDouble(0))
+            }
+        }
+        if (points.size < 2) return null
+        val steps = route.optJSONArray("legs")?.optJSONObject(0)?.optJSONArray("steps")
+        val next = when {
+            steps != null && steps.length() > 1 -> steps.optJSONObject(1)
+            steps != null && steps.length() > 0 -> steps.optJSONObject(0)
+            else -> null
+        }
+        val first = steps?.optJSONObject(0)
+        val turnDistance = first?.optDouble("distance", distanceMeters) ?: distanceMeters
+        val road = next?.optString("name")?.takeIf { it.isNotBlank() } ?: destinationFallbackName
+        val maneuver = next?.optJSONObject("maneuver")
+        val instruction = listOf(
+            maneuver?.optString("type").orEmpty(),
+            maneuver?.optString("modifier").orEmpty(),
+            if (road.isNotBlank()) "onto $road" else ""
+        ).filter { it.isNotBlank() }.joinToString(" ")
+            .replaceFirstChar { it.uppercase() }.ifBlank { "Continue to $destinationFallbackName" }
+        val eta = SimpleDateFormat("HH:mm", Locale.getDefault()).format(
+            Date(System.currentTimeMillis() + durationMinutes * 60_000L)
+        )
+        return LiveDrivingRoute(
+            polylinePoints = points,
+            distanceKm = distanceKm,
+            durationMinutes = durationMinutes,
+            etaTimeLabel = eta,
+            nextTurnDistanceLabel = formatDistanceMeters(turnDistance),
+            nextTurnRoad = road,
+            nextTurnInstruction = instruction
+        )
+    }
+
+    private fun decodePolyline6(encoded: String): List<Pair<Double, Double>> {
+        val result = ArrayList<Pair<Double, Double>>()
+        var index = 0
+        var latitude = 0
+        var longitude = 0
+        while (index < encoded.length) {
+            var shift = 0
+            var value = 0
+            var byte: Int
+            do {
+                if (index >= encoded.length) return result
+                byte = encoded[index++].code - 63
+                value = value or ((byte and 0x1f) shl shift)
+                shift += 5
+            } while (byte >= 0x20)
+            latitude += if ((value and 1) != 0) (value shr 1).inv() else value shr 1
+
+            shift = 0
+            value = 0
+            do {
+                if (index >= encoded.length) return result
+                byte = encoded[index++].code - 63
+                value = value or ((byte and 0x1f) shl shift)
+                shift += 5
+            } while (byte >= 0x20)
+            longitude += if ((value and 1) != 0) (value shr 1).inv() else value shr 1
+            result.add(latitude / 1_000_000.0 to longitude / 1_000_000.0)
+        }
+        return result
     }
 
     suspend fun fetchCurrentWeather(lat: Double, lon: Double): LiveWeatherReading? = withContext(Dispatchers.IO) {
