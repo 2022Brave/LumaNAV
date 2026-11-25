@@ -93,6 +93,7 @@ jobs:
           # The first release must be newer than the already-installed CI APK
           # (whose fallback versionCode is 1).
           VERSION_CODE="$((GITHUB_RUN_NUMBER + 1000))"
+          export LUMANAV_VERSION_CODE="$VERSION_CODE"
           echo "LUMANAV_VERSION_CODE=$VERSION_CODE" >> "$GITHUB_ENV"
           ./gradlew --no-daemon :app:assembleRelease
 
