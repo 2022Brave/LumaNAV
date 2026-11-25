@@ -55,8 +55,10 @@ import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
 import com.example.ui.components.NativeMapLibreView
+import com.example.ui.components.formatNavigationDistance
 import com.example.data.model.AuvionyxModule
 import com.example.data.model.HudConfig
+import com.example.data.model.HudLayoutMode
 import com.example.data.model.MediaTrack
 import com.example.data.model.VehicleTelemetry
 import com.example.data.preferences.AuvionyxSettingsState
@@ -135,18 +137,27 @@ fun HudScreen(
                         )
                     }
                 }
-                AuvionyxNativeMapPanel(
-                    currentLocation = currentLocation,
-                    routePoints = routePoints,
-                    headingDegrees = headingDegrees,
-                    accent = hudAccent,
-                    isNavigating = routePoints.size >= 2,
-                    nextTurnDistance = telemetry.nextTurnDistanceLabel,
-                    nextTurnRoad = telemetry.nextTurnRoad,
-                    nextTurnInstruction = telemetry.nextTurnInstruction,
-                    telemetryDestinationLabel = telemetry.destinationLabel,
-                    modifier = Modifier.weight(0.73f).fillMaxHeight()
-                )
+                if (hudConfig.layoutMode == HudLayoutMode.MINIMAL) {
+                    HudMinimalTurnCard(
+                        distance = telemetry.nextTurnDistanceLabel,
+                        instruction = telemetry.nextTurnInstruction,
+                        accent = hudAccent,
+                        modifier = Modifier.weight(0.73f).fillMaxHeight()
+                    )
+                } else {
+                    AuvionyxNativeMapPanel(
+                        currentLocation = currentLocation,
+                        routePoints = routePoints,
+                        headingDegrees = headingDegrees,
+                        accent = hudAccent,
+                        isNavigating = routePoints.size >= 2,
+                        nextTurnDistance = telemetry.nextTurnDistanceLabel,
+                        nextTurnRoad = telemetry.nextTurnRoad,
+                        nextTurnInstruction = telemetry.nextTurnInstruction,
+                        telemetryDestinationLabel = telemetry.destinationLabel,
+                        modifier = Modifier.weight(0.73f).fillMaxHeight()
+                    )
+                }
             }
         } else {
             GlassCard(
@@ -164,29 +175,54 @@ fun HudScreen(
                     )
                 }
             }
-            AuvionyxNativeMapPanel(
-                currentLocation = currentLocation,
-                routePoints = routePoints,
-                headingDegrees = headingDegrees,
-                accent = hudAccent,
-                isNavigating = routePoints.size >= 2,
-                nextTurnDistance = telemetry.nextTurnDistanceLabel,
-                nextTurnRoad = telemetry.nextTurnRoad,
-                nextTurnInstruction = telemetry.nextTurnInstruction,
-                telemetryDestinationLabel = telemetry.destinationLabel,
-                modifier = Modifier.fillMaxWidth().weight(1f)
-            )
+            if (hudConfig.layoutMode == HudLayoutMode.MINIMAL) {
+                HudMinimalTurnCard(
+                    distance = telemetry.nextTurnDistanceLabel,
+                    instruction = telemetry.nextTurnInstruction,
+                    accent = hudAccent,
+                    modifier = Modifier.fillMaxWidth().weight(1f)
+                )
+            } else {
+                AuvionyxNativeMapPanel(
+                    currentLocation = currentLocation,
+                    routePoints = routePoints,
+                    headingDegrees = headingDegrees,
+                    accent = hudAccent,
+                    isNavigating = routePoints.size >= 2,
+                    nextTurnDistance = telemetry.nextTurnDistanceLabel,
+                    nextTurnRoad = telemetry.nextTurnRoad,
+                    nextTurnInstruction = telemetry.nextTurnInstruction,
+                    telemetryDestinationLabel = telemetry.destinationLabel,
+                    modifier = Modifier.fillMaxWidth().weight(1f)
+                )
+            }
         }
 
-        HudBottomMusicBar(
-            track = mediaState.currentTrack,
-            isPlaying = mediaState.isPlaying,
-            accent = hudAccent,
-            onOpenMusic = { onSelectModule(AuvionyxModule.MUSIC) },
-            onPrevious = onPrevTrack,
-            onPlayPause = onPlayPause,
-            onNext = onNextTrack
-        )
+        if (hudConfig.layoutMode == HudLayoutMode.ADVANCED) {
+            Surface(
+                color = Color(0xFF0A0D12),
+                shape = RoundedCornerShape(14.dp),
+                border = BorderStroke(1.dp, hudAccent.copy(alpha = 0.32f)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("ETA ${telemetry.etaTimeLabel}", color = GlassWhite, style = MaterialTheme.typography.labelMedium)
+                    Text(formatNavigationDistance(telemetry.remainingDistanceKm), color = hudAccent, style = MaterialTheme.typography.labelMedium)
+                }
+            }
+            HudBottomMusicBar(
+                track = mediaState.currentTrack,
+                isPlaying = mediaState.isPlaying,
+                accent = hudAccent,
+                onOpenMusic = { onSelectModule(AuvionyxModule.MUSIC) },
+                onPrevious = onPrevTrack,
+                onPlayPause = onPlayPause,
+                onNext = onNextTrack
+            )
+        }
     }
 }
 
@@ -445,6 +481,47 @@ private fun HudBottomMusicBar(
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun HudMinimalTurnCard(
+    distance: String,
+    instruction: String,
+    accent: Color,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        color = Color(0xFF0A0D12),
+        shape = RoundedCornerShape(24.dp),
+        border = BorderStroke(1.dp, accent.copy(alpha = 0.48f))
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize().padding(20.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.Navigation,
+                contentDescription = "Next turn",
+                tint = accent,
+                modifier = Modifier.size(64.dp)
+            )
+            Text(
+                text = distance,
+                color = GlassWhite,
+                fontSize = 42.sp,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = instruction.ifBlank { "No active route" },
+                color = TextSecondary,
+                style = MaterialTheme.typography.titleMedium,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
         }
     }
 }
