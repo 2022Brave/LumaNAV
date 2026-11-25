@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import android.graphics.Bitmap
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
@@ -12,6 +13,7 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -60,10 +62,12 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -501,6 +505,7 @@ fun CockpitMediaPlayerCard(
     isFavorite: Boolean,
     positionSec: Int,
     compactMode: Boolean,
+    externalArtwork: Bitmap? = null,
     onOpenMusic: () -> Unit,
     onPlayPause: () -> Unit,
     onNextTrack: () -> Unit,
@@ -531,12 +536,23 @@ fun CockpitMediaPlayerCard(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                AlbumArtworkArt(
-                    artVariant = track.artVariant,
-                    accentColor = track.adaptiveColor,
-                    cornerRadius = 14.dp,
-                    modifier = Modifier.size(if (compactMode) 58.dp else 66.dp)
-                )
+                if (externalArtwork != null) {
+                    Image(
+                        bitmap = externalArtwork.asImageBitmap(),
+                        contentDescription = "Current track album artwork",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(if (compactMode) 58.dp else 66.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                    )
+                } else {
+                    AlbumArtworkArt(
+                        artVariant = track.artVariant,
+                        accentColor = track.adaptiveColor,
+                        cornerRadius = 14.dp,
+                        modifier = Modifier.size(if (compactMode) 58.dp else 66.dp)
+                    )
+                }
                 Spacer(Modifier.width(14.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
