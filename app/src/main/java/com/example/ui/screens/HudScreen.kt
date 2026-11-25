@@ -95,8 +95,10 @@ fun HudScreen(
 ) {
     var mirrorForWindshield by remember { mutableStateOf(hudConfig.mirrorFlipForWindshield) }
     val hudAccent = ElectricCyan
-    val speedDisplay = if (settings.useMetricUnits) telemetry.speedKmh
-        else (telemetry.speedKmh * 0.621371f).toInt()
+    val calibratedSpeedKmh = (telemetry.speedKmh *
+        (1f + hudConfig.speedometerMatchPercent.coerceIn(0f, 10f) / 100f)).toInt()
+    val speedDisplay = if (settings.useMetricUnits) calibratedSpeedKmh
+        else (calibratedSpeedKmh * 0.621371f).toInt()
     val unitLabel = if (settings.useMetricUnits) "KM/H" else "MPH"
 
     Column(
