@@ -360,6 +360,7 @@ fun AuvionyxRootApp(viewModel: AuvionyxViewModel) {
                 Column(modifier = Modifier.fillMaxSize()) {
                     if (isLandscapeWide) {
                         val cockpitIdleActive = isIdleCockpit && activeModule == AuvionyxModule.DRIVE
+                        var railExpanded by remember(activeModule) { mutableStateOf(false) }
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -381,8 +382,13 @@ fun AuvionyxRootApp(viewModel: AuvionyxViewModel) {
                             ) {
                                 GlassNavigationRail(
                                     activeModule = activeModule,
-                                    onSelectModule = { viewModel.navigateTo(it) },
-                                    modifier = Modifier.width(64.dp)
+                                    onSelectModule = {
+                                        railExpanded = false
+                                        viewModel.navigateTo(it)
+                                    },
+                                    modifier = Modifier.width(if (railExpanded) 148.dp else 64.dp),
+                                    expanded = railExpanded,
+                                    onToggleExpanded = { railExpanded = !railExpanded }
                                 )
                             }
 
