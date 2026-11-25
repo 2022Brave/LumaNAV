@@ -240,7 +240,7 @@ fun NativeMapLibreView(
                             style.addSource(GeoJsonSource(ROUTE_SOURCE_ID, emptyFeatureCollection()))
                             style.addLayer(
                                 LineLayer(ROUTE_LAYER_ID, ROUTE_SOURCE_ID).withProperties(
-                                    lineColor(accent.toHexColor()),
+                                    lineColor("#00D9F5"),
                                     lineWidth(5.5f),
                                     lineCap(Property.LINE_CAP_ROUND),
                                     lineJoin(Property.LINE_JOIN_ROUND)
