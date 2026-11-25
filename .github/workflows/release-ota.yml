@@ -92,7 +92,7 @@ jobs:
           set -euo pipefail
           # The first release must be newer than the already-installed CI APK
           # (whose fallback versionCode is 1).
-          VERSION_CODE="$((GITHUB_RUN_NUMBER + 1000))"
+          VERSION_CODE="$((GITHUB_RUN_NUMBER + 1000000))"
           export LUMANAV_VERSION_CODE="$VERSION_CODE"
           echo "LUMANAV_VERSION_CODE=$VERSION_CODE" >> "$GITHUB_ENV"
           ./gradlew --no-daemon :app:assembleRelease
@@ -119,7 +119,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          VERSION_CODE="$((GITHUB_RUN_NUMBER + 1000))"
+          VERSION_CODE="$((GITHUB_RUN_NUMBER + 1000000))"
           VERSION="1.0.$VERSION_CODE"
           APK="LumaNAV-${VERSION}.apk"
           cp app/build/outputs/apk/release/app-release.apk "$APK"
