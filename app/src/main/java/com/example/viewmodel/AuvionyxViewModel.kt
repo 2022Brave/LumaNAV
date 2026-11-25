@@ -1495,7 +1495,7 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
                 it.copy(
                     destinationQuery = query,
                     destinationSearchState = null,
-                    destinationSearchMessage = "Looking up \"$query\" via Android Geocoder…",
+                    destinationSearchMessage = "Searching OpenStreetMap places for \"$query\"…",
                     destinationCandidates = emptyList()
                 )
             }
