@@ -538,6 +538,7 @@ private fun ModuleContentRouter(
                 routePoints = mapsPulse.routePolylineGeo,
                 headingDegrees = telemetry.headingDegrees,
                 onSelectModule = { viewModel.navigateTo(it) },
+                onUpdateHudConfig = { viewModel.updateHudConfig(it) },
                 onPlayPause = { viewModel.togglePlayPause() },
                 onNextTrack = { viewModel.nextTrack() },
                 onPrevTrack = { viewModel.previousTrack() }
