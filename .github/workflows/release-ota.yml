@@ -61,28 +61,20 @@ jobs:
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
           set -euo pipefail
-          if [[ -n "$KEYSTORE_BASE64" && -n "$KEYSTORE_PASSWORD" && -n "$KEY_ALIAS" && -n "$KEY_PASSWORD" ]]; then
-            echo "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/lumanav-release.jks"
-            {
-              echo "KEYSTORE_PATH=$RUNNER_TEMP/lumanav-release.jks"
-              echo "KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD"
-              echo "KEY_ALIAS=$KEY_ALIAS"
-              echo "KEY_PASSWORD=$KEY_PASSWORD"
-              echo "USE_RELEASE_SIGNING=true"
-            } >> "$GITHUB_ENV"
-          else
-            echo "Release keystore secrets not configured; using a runner-generated debug key for this bootstrap APK."
-            keytool -genkeypair -v -keystore "$RUNNER_TEMP/lumanav-debug.jks" -storepass android \
-              -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 \
-              -dname "CN=Android Debug,O=Android,C=US"
-            {
-              echo "KEYSTORE_PATH=$RUNNER_TEMP/lumanav-debug.jks"
-              echo "KEYSTORE_PASSWORD=android"
-              echo "KEY_ALIAS=androiddebugkey"
-              echo "KEY_PASSWORD=android"
-              echo "USE_RELEASE_SIGNING=false"
-            } >> "$GITHUB_ENV"
+          if [[ -z "$KEYSTORE_BASE64" || -z "$KEYSTORE_PASSWORD" || -z "$KEY_ALIAS" || -z "$KEY_PASSWORD" ]]; then
+            echo "::error::All four LumaNAV signing secrets must be configured. Refusing to publish an APK with a temporary signing key."
+            exit 1
           fi
+          KEYSTORE_FILE="$RUNNER_TEMP/lumanav-release.jks"
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_FILE"
+          keytool -list -keystore "$KEYSTORE_FILE" -storepass "$KEYSTORE_PASSWORD" -alias "$KEY_ALIAS" >/dev/null
+          {
+            echo "KEYSTORE_PATH=$KEYSTORE_FILE"
+            echo "KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD"
+            echo "KEY_ALIAS=$KEY_ALIAS"
+            echo "KEY_PASSWORD=$KEY_PASSWORD"
+          } >> "$GITHUB_ENV"
+          echo "Persistent LumaNAV release signing key verified."
 
       - name: Build release APK
         run: |
