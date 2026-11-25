@@ -3,6 +3,7 @@ package com.example.ui.screens
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,6 +24,10 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -32,6 +37,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
@@ -81,6 +87,14 @@ fun AodScreen(
 ) {
     val reducedMotion = LocalAuvionyxMotion.current.reducedMotion
     var shiftStep by remember { mutableIntStateOf(0) }
+    var controlsVisible by remember { mutableStateOf(true) }
+
+    LaunchedEffect(controlsVisible, aodStyle) {
+        if (controlsVisible) {
+            delay(4_000L)
+            controlsVisible = false
+        }
+    }
 
     LaunchedEffect(reducedMotion) {
         if (!reducedMotion) {
@@ -113,6 +127,7 @@ fun AodScreen(
         modifier = modifier
             .fillMaxSize()
             .background(ObsidianBlack)
+            .pointerInput(Unit) { detectTapGestures { controlsVisible = true } }
             .systemBarsPadding()
             .padding(if (aodStyle == AodStyle.MAP) 0.dp else 24.dp)
     ) {
@@ -236,53 +251,61 @@ fun AodScreen(
             )
         }
 
-        // Bottom Style Switcher & Wake Control
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.BottomCenter),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+        // Controls fade away after four seconds to keep the AOD canvas quiet.
+        AnimatedVisibility(
+            visible = controlsVisible,
+            enter = fadeIn(tween(if (reducedMotion) 120 else 220)),
+            exit = fadeOut(tween(if (reducedMotion) 120 else 320)),
+            modifier = Modifier.align(Alignment.BottomCenter)
         ) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                AodStyle.entries.forEach { style ->
-                    LiquidGlassLens(
-                        selected = aodStyle == style,
-                        onClick = { onSelectAodStyle(style) },
-                        cornerRadius = 14.dp,
-                        testTag = "aod_style_${style.name}",
-                        modifier = Modifier.height(42.dp)
-                    ) {
-                        Text(
-                            text = style.label,
-                            style = MaterialTheme.typography.labelMedium,
-                            color = if (aodStyle == style) GlassWhite else TextSecondary,
-                            modifier = Modifier.padding(horizontal = 12.dp)
-                        )
+            // Bottom Style Switcher & Wake Control
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.BottomCenter),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    AodStyle.entries.forEach { style ->
+                        LiquidGlassLens(
+                            selected = aodStyle == style,
+                            onClick = { onSelectAodStyle(style) },
+                            cornerRadius = 14.dp,
+                            testTag = "aod_style_${style.name}",
+                            modifier = Modifier.height(42.dp)
+                        ) {
+                            Text(
+                                text = style.label,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = if (aodStyle == style) GlassWhite else TextSecondary,
+                                modifier = Modifier.padding(horizontal = 12.dp)
+                            )
+                        }
                     }
                 }
-            }
-
-            Surface(
-                color = DeepBlue.copy(alpha = 0.45f),
-                shape = RoundedCornerShape(50),
-                border = BorderStroke(1.dp, ElectricCyan),
-                modifier = Modifier
-                    .testTag("aod_wake_button")
-                    .clickable(onClick = onExitAod)
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+    
+                Surface(
+                    color = DeepBlue.copy(alpha = 0.45f),
+                    shape = RoundedCornerShape(50),
+                    border = BorderStroke(1.dp, ElectricCyan),
+                    modifier = Modifier
+                        .testTag("aod_wake_button")
+                        .clickable(onClick = onExitAod)
                 ) {
-                    Icon(
-                        imageVector = Icons.Outlined.PowerSettingsNew,
-                        contentDescription = "Wake LumaNav Drive",
-                        tint = ElectricCyan,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Text("Wake LumaNav", style = MaterialTheme.typography.labelLarge, color = GlassWhite)
+                    Row(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.PowerSettingsNew,
+                            contentDescription = "Wake LumaNav Drive",
+                            tint = ElectricCyan,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Text("Wake LumaNav", style = MaterialTheme.typography.labelLarge, color = GlassWhite)
+                    }
                 }
             }
         }
