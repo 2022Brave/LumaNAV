@@ -145,7 +145,8 @@ fun HudScreen(
                         distance = telemetry.nextTurnDistanceLabel,
                         instruction = telemetry.nextTurnInstruction,
                         accent = hudAccent,
-                        modifier = Modifier.weight(0.73f).fillMaxHeight()
+                        modifier = Modifier.weight(0.73f).fillMaxHeight(),
+                        show3DBuildings = hudConfig.cockpitStyle != com.example.data.model.HudCockpitStyle.WIREFRAME_MAP
                     )
                 } else {
                     AuvionyxNativeMapPanel(
@@ -183,7 +184,8 @@ fun HudScreen(
                     distance = telemetry.nextTurnDistanceLabel,
                     instruction = telemetry.nextTurnInstruction,
                     accent = hudAccent,
-                    modifier = Modifier.fillMaxWidth().weight(1f)
+                    modifier = Modifier.fillMaxWidth().weight(1f),
+                    show3DBuildings = hudConfig.cockpitStyle != com.example.data.model.HudCockpitStyle.WIREFRAME_MAP
                 )
             } else {
                 AuvionyxNativeMapPanel(
