@@ -66,6 +66,7 @@ import com.example.ui.components.AlbumArtworkArt
 import com.example.ui.components.GlassCard
 import com.example.ui.components.photonLuminousTouch
 import com.example.ui.theme.DeepBlue
+import com.example.ui.theme.ElectricCyan
 import com.example.ui.theme.GlassWhite
 import com.example.ui.theme.IceBlue
 import com.example.ui.theme.ObsidianBlack
