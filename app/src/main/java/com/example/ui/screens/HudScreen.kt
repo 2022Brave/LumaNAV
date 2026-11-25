@@ -32,6 +32,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -47,6 +48,8 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -54,6 +57,7 @@ import androidx.compose.ui.unit.sp
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
+import kotlinx.coroutines.delay
 import com.example.ui.components.NativeMapLibreView
 import com.example.ui.components.formatNavigationDistance
 import com.example.data.model.AuvionyxModule
@@ -94,6 +98,12 @@ fun HudScreen(
     modifier: Modifier = Modifier
 ) {
     var mirrorForWindshield by remember { mutableStateOf(hudConfig.mirrorFlipForWindshield) }
+    var toolbarVisible by remember { mutableStateOf(true) }
+    var toolbarInteraction by remember { mutableStateOf(0) }
+    LaunchedEffect(toolbarInteraction) {
+        delay(4_000L)
+        toolbarVisible = false
+    }
     val hudAccent = ElectricCyan
     val calibratedSpeedKmh = (telemetry.speedKmh *
         (1f + hudConfig.speedometerMatchPercent.coerceIn(0f, 10f) / 100f)).toInt()
@@ -102,23 +112,54 @@ fun HudScreen(
     val unitLabel = if (settings.useMetricUnits) "KM/H" else "MPH"
 
     Column(
-        modifier = modifier.fillMaxSize().background(ObsidianBlack).graphicsLayer {
-            if (mirrorForWindshield) scaleX = -1f
-        },
+        modifier = modifier
+            .fillMaxSize()
+            .background(ObsidianBlack)
+            .graphicsLayer { if (mirrorForWindshield) scaleX = -1f }
+            .pointerInput(Unit) {
+                awaitPointerEventScope {
+                    while (true) {
+                        val event = awaitPointerEvent(PointerEventPass.Initial)
+                        if (event.changes.any { it.pressed }) {
+                            toolbarVisible = true
+                            toolbarInteraction += 1
+                        }
+                    }
+                }
+            },
         verticalArrangement = Arrangement.spacedBy(if (isLandscapeWide) 8.dp else 10.dp)
     ) {
-        Surface(
-            onClick = { mirrorForWindshield = !mirrorForWindshield },
-            color = if (mirrorForWindshield) hudAccent.copy(alpha = 0.22f) else Color(0xFF101722),
-            shape = RoundedCornerShape(12.dp),
-            border = BorderStroke(1.dp, hudAccent.copy(alpha = 0.42f))
-        ) {
-            Text(
-                text = if (mirrorForWindshield) "WINDSHIELD MIRROR · ON" else "WINDSHIELD MIRROR · OFF",
-                color = GlassWhite,
-                style = MaterialTheme.typography.labelSmall,
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp)
-            )
+        if (toolbarVisible) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Surface(
+                    onClick = { mirrorForWindshield = !mirrorForWindshield },
+                    color = if (mirrorForWindshield) hudAccent.copy(alpha = 0.22f) else Color(0xFF101722),
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, hudAccent.copy(alpha = 0.42f))
+                ) {
+                    Text(
+                        text = if (mirrorForWindshield) "MIRROR · ON" else "MIRROR · OFF",
+                        color = GlassWhite,
+                        style = MaterialTheme.typography.labelSmall,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp)
+                    )
+                }
+                Surface(
+                    color = Color(0x66101722),
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, GlassWhite.copy(alpha = 0.16f))
+                ) {
+                    Text(
+                        text = hudConfig.cockpitStyle.label.uppercase(),
+                        color = hudAccent,
+                        style = MaterialTheme.typography.labelSmall,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp)
+                    )
+                }
+            }
         }
         if (isLandscapeWide) {
             Row(
