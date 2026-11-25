@@ -86,7 +86,8 @@ jobs:
 
       - name: Build release APK
         run: |
-          echo "LUMANAV_VERSION_CODE=$GITHUB_RUN_NUMBER" >> "$GITHUB_ENV"
+          export LUMANAV_VERSION_CODE="$GITHUB_RUN_NUMBER"
+          echo "LUMANAV_VERSION_CODE=$LUMANAV_VERSION_CODE" >> "$GITHUB_ENV"
           ./gradlew --no-daemon :app:assembleRelease
 
       - name: Name APK and prepare release notes
