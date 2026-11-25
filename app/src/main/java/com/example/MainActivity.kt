@@ -60,7 +60,10 @@ import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.MusicNote
 import androidx.compose.material.icons.outlined.Navigation
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -176,6 +179,7 @@ fun AuvionyxRootApp(viewModel: AuvionyxViewModel) {
     val syncDevices by viewModel.syncDevices.collectAsStateWithLifecycle()
     val permissions by viewModel.permissions.collectAsStateWithLifecycle()
     val voiceState by viewModel.voiceState.collectAsStateWithLifecycle()
+    val updateState by UpdateManager.state.collectAsStateWithLifecycle()
 
     val context = LocalContext.current
     val activity = context as? ComponentActivity
@@ -196,6 +200,7 @@ fun AuvionyxRootApp(viewModel: AuvionyxViewModel) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    var dismissedUpdateVersion by remember { mutableStateOf<String?>(null) }
     var askedInitialLocation by remember { mutableStateOf(false) }
 
     val startupLocationLauncher = rememberLauncherForActivityResult(
@@ -246,6 +251,41 @@ fun AuvionyxRootApp(viewModel: AuvionyxViewModel) {
         if (showBootSplash) {
             BootSplashScreen(onBootComplete = { viewModel.finishBootSplash() })
             return@AuvionyxTheme
+        }
+
+        if (updateState.updateAvailable && dismissedUpdateVersion != updateState.latestVersion) {
+            AlertDialog(
+                onDismissRequest = { dismissedUpdateVersion = updateState.latestVersion },
+                containerColor = Color(0xFF0A0D12),
+                titleContentColor = GlassWhite,
+                textContentColor = TextSecondary,
+                title = { Text("LumaNAV update available · ${updateState.latestVersion}") },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(updateState.releaseNotes, style = MaterialTheme.typography.bodySmall)
+                        if (updateState.downloading) {
+                            LinearProgressIndicator(
+                                progress = { updateState.downloadProgress / 100f },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            Text("${updateState.downloadProgress}% downloaded")
+                        }
+                    }
+                },
+                confirmButton = {
+                    Button(
+                        onClick = { UpdateManager.downloadAndInstall(context.applicationContext) },
+                        enabled = !updateState.downloading
+                    ) {
+                        Text(if (updateState.downloading) "Downloading…" else "Download & Install")
+                    }
+                },
+                dismissButton = {
+                    Button(onClick = { dismissedUpdateVersion = updateState.latestVersion }) {
+                        Text("Later")
+                    }
+                }
+            )
         }
 
         if (activeModule == AuvionyxModule.AOD) {
