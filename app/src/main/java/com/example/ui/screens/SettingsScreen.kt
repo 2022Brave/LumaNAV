@@ -521,47 +521,49 @@ private fun SoftwareUpdatesCard() {
             UpdateManager.check(context.applicationContext)
         }
     }
-    ExpandableGlassPanel(
-        title = "Software Updates",
-        subtitle = update.statusMessage,
-        expanded = true,
-        onToggle = {}
+    GlassCard(
+        modifier = Modifier.fillMaxWidth(),
+        contentPadding = PaddingValues(16.dp)
     ) {
-        Text("Installed version · ${update.currentVersion}", color = GlassWhite, style = MaterialTheme.typography.bodyMedium)
-        update.latestVersion?.let {
-            Text("Latest release · $it", color = TextSecondary, style = MaterialTheme.typography.labelSmall)
-        }
-        if (update.releaseNotes.isNotBlank()) {
-            Text(
-                text = update.releaseNotes,
-                color = TextSecondary,
-                style = MaterialTheme.typography.bodySmall,
-                maxLines = 5
-            )
-        }
-        if (update.downloading) {
-            LinearProgressIndicator(
-                progress = { update.downloadProgress / 100f },
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Software Updates", color = GlassWhite, style = MaterialTheme.typography.titleLarge)
+            Text(update.statusMessage, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
+            Text("Installed version · ${update.currentVersion}", color = GlassWhite, style = MaterialTheme.typography.bodyMedium)
+            update.latestVersion?.let {
+                Text("Latest release · $it", color = TextSecondary, style = MaterialTheme.typography.labelSmall)
+            }
+            if (update.releaseNotes.isNotBlank()) {
+                Text(
+                    text = update.releaseNotes,
+                    color = TextSecondary,
+                    style = MaterialTheme.typography.bodySmall,
+                    maxLines = 5
+                )
+            }
+            if (update.downloading) {
+                LinearProgressIndicator(
+                    progress = { update.downloadProgress / 100f },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Text("${update.downloadProgress}% downloaded", color = TextSecondary, style = MaterialTheme.typography.labelSmall)
+            }
+            Button(
+                onClick = {
+                    if (update.updateAvailable) UpdateManager.downloadAndInstall(context.applicationContext)
+                    else UpdateManager.check(context.applicationContext, force = true)
+                },
+                enabled = !update.checking && !update.downloading,
                 modifier = Modifier.fillMaxWidth()
-            )
-            Text("${update.downloadProgress}% downloaded", color = TextSecondary, style = MaterialTheme.typography.labelSmall)
-        }
-        Button(
-            onClick = {
-                if (update.updateAvailable) UpdateManager.downloadAndInstall(context.applicationContext)
-                else UpdateManager.check(context.applicationContext, force = true)
-            },
-            enabled = !update.checking && !update.downloading,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(
-                when {
-                    update.downloading -> "Downloading…"
-                    update.updateAvailable -> "Download & Install"
-                    update.checking -> "Checking…"
-                    else -> "Check for Updates"
-                }
-            )
+            ) {
+                Text(
+                    when {
+                        update.downloading -> "Downloading…"
+                        update.updateAvailable -> "Download & Install"
+                        update.checking -> "Checking…"
+                        else -> "Check for Updates"
+                    }
+                )
+            }
         }
     }
 }
