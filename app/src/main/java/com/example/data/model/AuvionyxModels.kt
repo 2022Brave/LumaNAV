@@ -58,7 +58,9 @@ data class HudConfig(
     val showCompass: Boolean = true,
     val showJourneyProgress: Boolean = true,
     val showEta: Boolean = true,
-    val showMediaInfo: Boolean = true
+    val showMediaInfo: Boolean = true,
+    val speedometerMatchPercent: Float = 4f,
+    val layFlatToStartHud: Boolean = false
 )
 
 enum class AodStyle(val label: String, val description: String) {
