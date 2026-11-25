@@ -499,7 +499,7 @@ private fun SmartphonePortraitDriveDashboard(
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(12.dp),
-            contentPadding = PaddingValues(bottom = 132.dp)
+            contentPadding = PaddingValues(bottom = 252.dp)
         ) {
             item {
                 CockpitNativeMapPanel(
@@ -624,6 +624,8 @@ private fun SmartphonePortraitDriveDashboard(
             initialFraction = 0f,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
+                .clip(RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp))
+                .background(Color(0xFF0A0D12))
                 .testTag("portrait_media_laminar_sheet")
         ) {
             Row(
