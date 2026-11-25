@@ -101,7 +101,7 @@ import com.example.ui.components.GlassBottomDock
 import com.example.ui.components.GlassNavigationRail
 import com.example.ui.components.GlassTopStatusBar
 import com.example.ui.components.LiquidGlassLens
-import com.example.ui.components.LivingFlow
+import com.example.ui.components.LumaMotion
 import com.example.ui.screens.AodScreen
 import com.example.ui.screens.AppsDrawerScreen
 import com.example.ui.screens.BootSplashScreen
@@ -311,7 +311,7 @@ fun AuvionyxRootApp(viewModel: AuvionyxViewModel) {
             viewModel.navigateTo(AuvionyxModule.DRIVE)
         }
 
-        // Visual Reconstruction: 7-second inactivity timer for Immersive Idle Cockpit
+        // Visual Reconstruction: 6-second inactivity timer for Immersive Idle Cockpit
         var lastInteractionTimeMs by remember { mutableLongStateOf(System.currentTimeMillis()) }
         var isIdleCockpit by remember { mutableStateOf(false) }
 
@@ -345,13 +345,13 @@ fun AuvionyxRootApp(viewModel: AuvionyxViewModel) {
                 // Covers 1280x800 Blaupunkt across all DPI tiers (560dp+ landscape) as well as wide tablets
                 val isLandscapeWide = (maxWidth > maxHeight) && (maxWidth >= 560.dp)
 
-                // Automatically enter Immersive Idle Cockpit after 7s untouched on landscape Drive Cockpit
+                // Automatically enter Immersive Idle Cockpit after 6s untouched on landscape Drive Cockpit
                 LaunchedEffect(lastInteractionTimeMs, activeModule, isLandscapeWide, voiceState.visualState) {
                     if (activeModule == AuvionyxModule.DRIVE &&
                         isLandscapeWide &&
                         voiceState.visualState == VoiceVisualState.IDLE
                     ) {
-                        delay(7_000L)
+                        delay(6_000L)
                         isIdleCockpit = true
                     } else {
                         isIdleCockpit = false
@@ -385,12 +385,12 @@ fun AuvionyxRootApp(viewModel: AuvionyxViewModel) {
                         ) {
                             AnimatedVisibility(
                                 visible = !cockpitIdleActive && !isHudMode,
-                                enter = fadeIn(tween(LivingFlow.StandardDurationMs, easing = LivingFlow.LaminarEasing)) +
-                                    expandHorizontally(tween(LivingFlow.StandardDurationMs, easing = LivingFlow.LaminarEasing)) +
-                                    slideInHorizontally(LivingFlow.LaminarIntOffsetSpec) { -it / 3 },
-                                exit = fadeOut(tween(LivingFlow.CompactDurationMs, easing = LivingFlow.LaminarEasing)) +
-                                    shrinkHorizontally(tween(LivingFlow.StandardDurationMs, easing = LivingFlow.LaminarEasing)) +
-                                    slideOutHorizontally(LivingFlow.LaminarIntOffsetSpec) { -it / 3 }
+                                enter = fadeIn(tween(LumaMotion.StandardDurationMs, easing = LumaMotion.LaminarEasing)) +
+                                    expandHorizontally(tween(LumaMotion.StandardDurationMs, easing = LumaMotion.LaminarEasing)) +
+                                    slideInHorizontally(LumaMotion.LaminarIntOffsetSpec) { -it / 3 },
+                                exit = fadeOut(tween(LumaMotion.CompactDurationMs, easing = LumaMotion.LaminarEasing)) +
+                                    shrinkHorizontally(tween(LumaMotion.StandardDurationMs, easing = LumaMotion.LaminarEasing)) +
+                                    slideOutHorizontally(LumaMotion.LaminarIntOffsetSpec) { -it / 3 }
                             ) {
                                 GlassNavigationRail(
                                     activeModule = activeModule,
@@ -471,10 +471,10 @@ private fun ModuleContentRouter(
             if (reducedMotion) {
                 EnterTransition.None togetherWith ExitTransition.None
             } else {
-                (fadeIn(tween(LivingFlow.StandardDurationMs, easing = LivingFlow.LaminarEasing)) +
-                    slideInHorizontally(animationSpec = LivingFlow.LaminarIntOffsetSpec) { it / 16 }) togetherWith
-                    (fadeOut(tween(LivingFlow.CompactDurationMs, easing = LivingFlow.LaminarEasing)) +
-                        slideOutHorizontally(animationSpec = LivingFlow.LaminarIntOffsetSpec) { -it / 16 })
+                (fadeIn(tween(LumaMotion.StandardDurationMs, easing = LumaMotion.LaminarEasing)) +
+                    slideInHorizontally(animationSpec = LumaMotion.LaminarIntOffsetSpec) { it / 16 }) togetherWith
+                    (fadeOut(tween(LumaMotion.CompactDurationMs, easing = LumaMotion.LaminarEasing)) +
+                        slideOutHorizontally(animationSpec = LumaMotion.LaminarIntOffsetSpec) { -it / 16 })
             }
         },
         label = "moduleRouter"
