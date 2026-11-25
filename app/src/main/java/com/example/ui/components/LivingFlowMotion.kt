@@ -99,7 +99,6 @@ object LumaMotion {
 /**
  * Backward-compatible name for existing UI call sites. New code should use [LumaMotion].
  */
-@Deprecated("Use LumaMotion")
 object LivingFlow {
     val LaminarEasing get() = LumaMotion.LaminarEasing
     const val StandardDurationMs = LumaMotion.StandardDurationMs
