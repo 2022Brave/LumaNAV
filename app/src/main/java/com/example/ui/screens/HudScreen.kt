@@ -92,6 +92,7 @@ fun HudScreen(
     routePoints: List<Pair<Double, Double>>,
     headingDegrees: Int,
     onSelectModule: (AuvionyxModule) -> Unit,
+    onUpdateHudConfig: (com.example.data.model.HudConfig) -> Unit,
     onPlayPause: () -> Unit,
     onNextTrack: () -> Unit,
     onPrevTrack: () -> Unit,
@@ -148,12 +149,25 @@ fun HudScreen(
                     )
                 }
                 Surface(
+                    onClick = {
+                        val nextStyle = when (hudConfig.cockpitStyle) {
+                            com.example.data.model.HudCockpitStyle.DIGITAL_MINIMAL -> com.example.data.model.HudCockpitStyle.ARC_GAUGE
+                            com.example.data.model.HudCockpitStyle.ARC_GAUGE -> com.example.data.model.HudCockpitStyle.WIREFRAME_MAP
+                            com.example.data.model.HudCockpitStyle.WIREFRAME_MAP -> com.example.data.model.HudCockpitStyle.DIGITAL_MINIMAL
+                        }
+                        val nextLayout = when (nextStyle) {
+                            com.example.data.model.HudCockpitStyle.DIGITAL_MINIMAL -> HudLayoutMode.MINIMAL
+                            com.example.data.model.HudCockpitStyle.ARC_GAUGE -> HudLayoutMode.ADVANCED
+                            com.example.data.model.HudCockpitStyle.WIREFRAME_MAP -> HudLayoutMode.NAVIGATION
+                        }
+                        onUpdateHudConfig(hudConfig.copy(cockpitStyle = nextStyle, layoutMode = nextLayout))
+                    },
                     color = Color(0x66101722),
                     shape = RoundedCornerShape(12.dp),
-                    border = BorderStroke(1.dp, GlassWhite.copy(alpha = 0.16f))
+                    border = BorderStroke(1.dp, hudAccent.copy(alpha = 0.42f))
                 ) {
                     Text(
-                        text = hudConfig.cockpitStyle.label.uppercase(),
+                        text = "${hudConfig.cockpitStyle.label.uppercase()} · TAP TO CYCLE",
                         color = hudAccent,
                         style = MaterialTheme.typography.labelSmall,
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp)
