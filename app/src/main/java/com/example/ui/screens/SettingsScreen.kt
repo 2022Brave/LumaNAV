@@ -49,6 +49,7 @@ import com.example.core.UpdateManager
 import com.example.data.model.DashboardSplitRatio
 import com.example.data.model.HudLayoutMode
 import com.example.data.model.HudConfig
+import com.example.data.model.HudCockpitStyle
 import com.example.data.model.MediaAppSource
 import com.example.data.model.SyncDeviceProfile
 import com.example.data.preferences.AuvionyxSettingsState
@@ -212,6 +213,32 @@ fun SettingsScreen(
                                 text = mode.label.removeSuffix(" HUD"),
                                 style = MaterialTheme.typography.labelMedium,
                                 color = if (settings.hudConfig.layoutMode == mode) GlassWhite else TextSecondary
+                            )
+                        }
+                    }
+                }
+                Spacer(Modifier.height(14.dp))
+                Text("HUD Cockpit Style", style = MaterialTheme.typography.labelLarge, color = GlassWhite)
+                Spacer(Modifier.height(8.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    HudCockpitStyle.entries.forEach { style ->
+                        LiquidGlassLens(
+                            selected = settings.hudConfig.cockpitStyle == style,
+                            onClick = {
+                                val layout = when (style) {
+                                    HudCockpitStyle.DIGITAL_MINIMAL -> HudLayoutMode.MINIMAL
+                                    HudCockpitStyle.ARC_GAUGE -> HudLayoutMode.ADVANCED
+                                    HudCockpitStyle.WIREFRAME_MAP -> HudLayoutMode.NAVIGATION
+                                }
+                                onSetHudConfig(settings.hudConfig.copy(cockpitStyle = style, layoutMode = layout))
+                            },
+                            cornerRadius = 12.dp,
+                            modifier = Modifier.weight(1f).height(48.dp)
+                        ) {
+                            Text(
+                                style.label,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = if (settings.hudConfig.cockpitStyle == style) GlassWhite else TextSecondary
                             )
                         }
                     }
