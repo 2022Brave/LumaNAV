@@ -206,7 +206,9 @@ fun DriveDashboardScreen(
 ) {
     if (isLandscapeWide) {
         LandscapeCockpitSurface(
-            isIdleCockpit = isIdleCockpit,
+            isIdleCockpit = isIdleCockpit &&
+                settings.dashboardRatio != DashboardSplitRatio.FULL_MAPS &&
+                settings.dashboardRatio != DashboardSplitRatio.FULL_MUSIC,
             settings = settings,
             telemetry = telemetry,
             mediaState = mediaState,
@@ -333,24 +335,26 @@ private fun LandscapeCockpitSurface(
                             .fillMaxHeight(),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        ActiveSpeedometerCard(
-                            speedValue = resolved.speedDisplay,
-                            maxSpeed = resolved.maxSpeed,
-                            unitLabel = resolved.unitLabel,
-                            speedLimitValue = resolved.speedLimitDisplay,
-                            headingCardinal = resolved.headingCardinal,
-                            isLiveGps = telemetry.isLiveGpsActive,
-                            isDemoPreview = resolved.isDemoPreview,
-                            onClick = { onSelectModule(AuvionyxModule.HUD) },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .weight(0.45f)
-                                .sharedBounds(
-                                    sharedContentState = rememberSharedContentState(key = "cockpit_speedometer"),
-                                    animatedVisibilityScope = this@AnimatedContent,
-                                    boundsTransform = { _, _ -> LivingFlow.LaminarBoundsSpec }
-                                )
-                        )
+                        if (settings.dashboardRatio != DashboardSplitRatio.FULL_MUSIC) {
+                            ActiveSpeedometerCard(
+                                speedValue = resolved.speedDisplay,
+                                maxSpeed = resolved.maxSpeed,
+                                unitLabel = resolved.unitLabel,
+                                speedLimitValue = resolved.speedLimitDisplay,
+                                headingCardinal = resolved.headingCardinal,
+                                isLiveGps = telemetry.isLiveGpsActive,
+                                isDemoPreview = resolved.isDemoPreview,
+                                onClick = { onSelectModule(AuvionyxModule.HUD) },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .weight(0.45f)
+                                    .sharedBounds(
+                                        sharedContentState = rememberSharedContentState(key = "cockpit_speedometer"),
+                                        animatedVisibilityScope = this@AnimatedContent,
+                                        boundsTransform = { _, _ -> LivingFlow.LaminarBoundsSpec }
+                                    )
+                            )
+                        }
 
                         CockpitMediaPlayerCard(
                             track = track,
@@ -369,7 +373,7 @@ private fun LandscapeCockpitSurface(
                             onSeek = onSeek,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .weight(0.55f)
+                                .weight(if (settings.dashboardRatio == DashboardSplitRatio.FULL_MUSIC) 1f else 0.55f)
                                 .sharedBounds(
                                     sharedContentState = rememberSharedContentState(key = "cockpit_media"),
                                     animatedVisibilityScope = this@AnimatedContent,
