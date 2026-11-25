@@ -99,7 +99,6 @@ import com.example.data.model.AuvionyxModule
 import com.example.data.voice.VoiceVisualState
 import com.example.ui.components.GlassBottomDock
 import com.example.ui.components.GlassNavigationRail
-import com.example.ui.components.GlassTopStatusBar
 import com.example.ui.components.LiquidGlassLens
 import com.example.ui.components.LumaMotion
 import com.example.ui.screens.AodScreen
@@ -145,8 +144,8 @@ class MainActivity : ComponentActivity() {
         configureAppCheck(this, intent)
 
         enableEdgeToEdge(
-            statusBarStyle = SystemBarStyle.dark(android.graphics.Color.BLACK),
-            navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.BLACK)
+            statusBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
+            navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
         )
 
         requestHighestSupportedRefreshRate()
@@ -321,7 +320,7 @@ fun AuvionyxRootApp(viewModel: AuvionyxViewModel) {
                 .background(ObsidianBlack),
             containerColor = ObsidianBlack,
             snackbarHost = { if (!isHudMode) SnackbarHost(hostState = snackbarHostState) },
-            contentWindowInsets = if (isHudMode) WindowInsets(0, 0, 0, 0) else WindowInsets.safeDrawing
+            contentWindowInsets = WindowInsets(0, 0, 0, 0)
         ) { innerPadding ->
             BoxWithConstraints(
                 modifier = Modifier
@@ -359,18 +358,6 @@ fun AuvionyxRootApp(viewModel: AuvionyxViewModel) {
                 }
 
                 Column(modifier = Modifier.fillMaxSize()) {
-                    if (!isHudMode) {
-                    GlassTopStatusBar(
-                        currentLocation = telemetry.currentLocationLabel,
-                        weatherTempC = telemetry.weatherTempC,
-                        isLiveGps = telemetry.isLiveGpsActive,
-                        gpsAccuracyMeters = telemetry.gpsAccuracyMeters,
-                        onOpenAod = { viewModel.navigateTo(AuvionyxModule.AOD) },
-                        onOpenSettings = { viewModel.navigateTo(AuvionyxModule.SETTINGS) },
-                        isIdleCockpit = isIdleCockpit && activeModule == AuvionyxModule.DRIVE && isLandscapeWide
-                    )
-                    }
-
                     if (isLandscapeWide) {
                         val cockpitIdleActive = isIdleCockpit && activeModule == AuvionyxModule.DRIVE
                         Row(
