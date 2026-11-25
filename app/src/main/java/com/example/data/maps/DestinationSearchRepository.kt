@@ -58,7 +58,7 @@ data class ExternalMapsTarget(
 )
 
 /**
- * Genuine Android Geocoder + Reverse Geocoder + OSRM road routing + Open-Meteo weather repository.
+ * OpenStreetMap Photon search + Android Geocoder fallback + Valhalla/OSRM routing + Open-Meteo weather repository.
  * Honestly distinguishes LIVE lookups from OFFLINE and API_UNAVAILABLE.
  * Never fabricates search results when geocoding fails or returns empty.
  */
