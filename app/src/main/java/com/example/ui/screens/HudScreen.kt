@@ -145,8 +145,7 @@ fun HudScreen(
                         distance = telemetry.nextTurnDistanceLabel,
                         instruction = telemetry.nextTurnInstruction,
                         accent = hudAccent,
-                        modifier = Modifier.weight(0.73f).fillMaxHeight(),
-                        show3DBuildings = hudConfig.cockpitStyle != com.example.data.model.HudCockpitStyle.WIREFRAME_MAP
+                        modifier = Modifier.weight(0.73f).fillMaxHeight()
                     )
                 } else {
                     AuvionyxNativeMapPanel(
@@ -159,7 +158,8 @@ fun HudScreen(
                         nextTurnRoad = telemetry.nextTurnRoad,
                         nextTurnInstruction = telemetry.nextTurnInstruction,
                         telemetryDestinationLabel = telemetry.destinationLabel,
-                        modifier = Modifier.weight(0.73f).fillMaxHeight()
+                        modifier = Modifier.weight(0.73f).fillMaxHeight(),
+                        show3DBuildings = hudConfig.cockpitStyle != com.example.data.model.HudCockpitStyle.WIREFRAME_MAP
                     )
                 }
             }
@@ -184,8 +184,7 @@ fun HudScreen(
                     distance = telemetry.nextTurnDistanceLabel,
                     instruction = telemetry.nextTurnInstruction,
                     accent = hudAccent,
-                    modifier = Modifier.fillMaxWidth().weight(1f),
-                    show3DBuildings = hudConfig.cockpitStyle != com.example.data.model.HudCockpitStyle.WIREFRAME_MAP
+                    modifier = Modifier.fillMaxWidth().weight(1f)
                 )
             } else {
                 AuvionyxNativeMapPanel(
@@ -198,7 +197,8 @@ fun HudScreen(
                     nextTurnRoad = telemetry.nextTurnRoad,
                     nextTurnInstruction = telemetry.nextTurnInstruction,
                     telemetryDestinationLabel = telemetry.destinationLabel,
-                    modifier = Modifier.fillMaxWidth().weight(1f)
+                    modifier = Modifier.fillMaxWidth().weight(1f),
+                    show3DBuildings = hudConfig.cockpitStyle != com.example.data.model.HudCockpitStyle.WIREFRAME_MAP
                 )
             }
         }
