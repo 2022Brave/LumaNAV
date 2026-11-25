@@ -23,7 +23,15 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.asImageBitmap
+import kotlin.math.min
+import kotlin.math.roundToInt
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.BitmapShader
+import android.graphics.Canvas
+import android.graphics.Paint
+import android.graphics.RectF
+import android.graphics.Shader
 import android.util.Base64
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -125,7 +133,28 @@ fun LumaNavLogo(
             .bufferedReader()
             .use { it.readText() }
         val bytes = Base64.decode(encoded, Base64.DEFAULT)
-        BitmapFactory.decodeByteArray(bytes, 0, bytes.size).asImageBitmap()
+        val source = requireNotNull(BitmapFactory.decodeByteArray(bytes, 0, bytes.size))
+        // The supplied JPEG includes a studio-floor canvas around the dark rounded-square mark.
+        // Crop to the mark, then alpha-mask the rounded corners so the AMOLED background and
+        // splash light-wave remain visible around the logo.
+        val left = (source.width * 0.314f).roundToInt().coerceIn(0, source.width - 1)
+        val top = (source.height * 0.121f).roundToInt().coerceIn(0, source.height - 1)
+        val side = min(
+            (source.width * 0.441f).roundToInt(),
+            (source.height * 0.758f).roundToInt()
+        ).coerceAtMost(min(source.width - left, source.height - top))
+        val cropped = Bitmap.createBitmap(source, left, top, side, side)
+        val isolated = Bitmap.createBitmap(side, side, Bitmap.Config.ARGB_8888)
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            shader = BitmapShader(cropped, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP)
+        }
+        val canvas = Canvas(isolated)
+        val bounds = RectF(0f, 0f, side.toFloat(), side.toFloat())
+        val radius = side * 0.17f
+        canvas.drawRoundRect(bounds, radius, radius, paint)
+        cropped.recycle()
+        source.recycle()
+        isolated.asImageBitmap()
     }
     Image(
         bitmap = logoBitmap,
