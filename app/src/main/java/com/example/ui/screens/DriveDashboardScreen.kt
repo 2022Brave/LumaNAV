@@ -65,7 +65,7 @@ import com.example.ui.components.GlassCard
 import com.example.ui.components.IdleNextTurnPill
 import com.example.ui.components.IdleProminentSpeedometer
 import com.example.ui.components.NativeMapLibreView
-import com.example.ui.components.LivingFlow
+import com.example.ui.components.LumaMotion
 import com.example.ui.components.MediaControlCluster
 import com.example.ui.components.photonLuminousTouch
 import com.example.ui.theme.ElectricCyan
@@ -289,13 +289,13 @@ private fun LandscapeCockpitSurface(
                     EnterTransition.None togetherWith ExitTransition.None
                 } else {
                     fadeIn(
-                        tween(durationMillis = LivingFlow.PanelDurationMs, easing = LivingFlow.LaminarEasing)
+                        tween(durationMillis = LumaMotion.PanelDurationMs, easing = LumaMotion.LaminarEasing)
                     ) togetherWith fadeOut(
-                        tween(durationMillis = LivingFlow.StandardDurationMs, easing = LivingFlow.LaminarEasing)
+                        tween(durationMillis = LumaMotion.StandardDurationMs, easing = LumaMotion.LaminarEasing)
                     )
                 }
             },
-            label = "cockpitLivingFlowMorph",
+            label = "cockpitLumaMotionMorph",
             modifier = Modifier.fillMaxSize()
         ) { idle ->
             if (!idle) {
@@ -322,7 +322,7 @@ private fun LandscapeCockpitSurface(
                                 .sharedBounds(
                                     sharedContentState = rememberSharedContentState(key = "cockpit_map"),
                                     animatedVisibilityScope = this@AnimatedContent,
-                                    boundsTransform = { _, _ -> LivingFlow.LaminarBoundsSpec }
+                                    boundsTransform = { _, _ -> LumaMotion.LaminarBoundsSpec }
                                 )
                         )
                     }
@@ -351,7 +351,7 @@ private fun LandscapeCockpitSurface(
                                     .sharedBounds(
                                         sharedContentState = rememberSharedContentState(key = "cockpit_speedometer"),
                                         animatedVisibilityScope = this@AnimatedContent,
-                                        boundsTransform = { _, _ -> LivingFlow.LaminarBoundsSpec }
+                                        boundsTransform = { _, _ -> LumaMotion.LaminarBoundsSpec }
                                     )
                             )
                         }
@@ -377,7 +377,7 @@ private fun LandscapeCockpitSurface(
                                 .sharedBounds(
                                     sharedContentState = rememberSharedContentState(key = "cockpit_media"),
                                     animatedVisibilityScope = this@AnimatedContent,
-                                    boundsTransform = { _, _ -> LivingFlow.LaminarBoundsSpec }
+                                    boundsTransform = { _, _ -> LumaMotion.LaminarBoundsSpec }
                                 )
                         )
                     }
@@ -404,7 +404,7 @@ private fun LandscapeCockpitSurface(
                             .sharedBounds(
                                 sharedContentState = rememberSharedContentState(key = "cockpit_map"),
                                 animatedVisibilityScope = this@AnimatedContent,
-                                boundsTransform = { _, _ -> LivingFlow.LaminarBoundsSpec }
+                                boundsTransform = { _, _ -> LumaMotion.LaminarBoundsSpec }
                             )
                     )
 
@@ -420,7 +420,7 @@ private fun LandscapeCockpitSurface(
                             .sharedBounds(
                                 sharedContentState = rememberSharedContentState(key = "cockpit_speedometer"),
                                 animatedVisibilityScope = this@AnimatedContent,
-                                boundsTransform = { _, _ -> LivingFlow.LaminarBoundsSpec }
+                                boundsTransform = { _, _ -> LumaMotion.LaminarBoundsSpec }
                             )
                     )
 
@@ -448,7 +448,7 @@ private fun LandscapeCockpitSurface(
                             .sharedBounds(
                                 sharedContentState = rememberSharedContentState(key = "cockpit_media"),
                                 animatedVisibilityScope = this@AnimatedContent,
-                                boundsTransform = { _, _ -> LivingFlow.LaminarBoundsSpec }
+                                boundsTransform = { _, _ -> LumaMotion.LaminarBoundsSpec }
                             )
                     )
 
@@ -463,10 +463,10 @@ private fun LandscapeCockpitSurface(
                             .align(Alignment.BottomCenter)
                             .padding(bottom = 18.dp)
                             .animateEnterExit(
-                                enter = slideInVertically(LivingFlow.LaminarIntOffsetSpec) { it / 2 } +
-                                    fadeIn(tween(LivingFlow.StandardDurationMs, easing = LivingFlow.LaminarEasing)),
-                                exit = slideOutVertically(LivingFlow.LaminarIntOffsetSpec) { it / 2 } +
-                                    fadeOut(tween(LivingFlow.CompactDurationMs, easing = LivingFlow.LaminarEasing))
+                                enter = slideInVertically(LumaMotion.LaminarIntOffsetSpec) { it / 2 } +
+                                    fadeIn(tween(LumaMotion.StandardDurationMs, easing = LumaMotion.LaminarEasing)),
+                                exit = slideOutVertically(LumaMotion.LaminarIntOffsetSpec) { it / 2 } +
+                                    fadeOut(tween(LumaMotion.CompactDurationMs, easing = LumaMotion.LaminarEasing))
                             )
                     )
                 }
