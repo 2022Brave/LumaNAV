@@ -80,6 +80,7 @@ fun BootSplashScreen(
             wakeProgress.animateTo(1f, tween(650, easing = FastOutSlowInEasing))
             lockupAlpha.animateTo(1f, tween(500, easing = FastOutSlowInEasing))
             delay(350L)
+            lockupAlpha.animateTo(0f, tween(300, easing = FastOutSlowInEasing))
             onBootComplete()
         }
     }
