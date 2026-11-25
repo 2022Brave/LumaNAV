@@ -95,6 +95,24 @@ object LumaMotion {
     )
 }
 
+
+/**
+ * Backward-compatible name for existing UI call sites. New code should use [LumaMotion].
+ */
+@Deprecated("Use LumaMotion")
+object LivingFlow {
+    val LaminarEasing get() = LumaMotion.LaminarEasing
+    const val StandardDurationMs = LumaMotion.StandardDurationMs
+    const val CompactDurationMs = LumaMotion.CompactDurationMs
+    const val PanelDurationMs = LumaMotion.PanelDurationMs
+    val LaminarIntOffsetSpec get() = LumaMotion.LaminarIntOffsetSpec
+    val LaminarSizeSpec get() = LumaMotion.LaminarSizeSpec
+    val LaminarBoundsSpec get() = LumaMotion.LaminarBoundsSpec
+    val NavSafetyFloatSpec get() = LumaMotion.NavSafetyFloatSpec
+    val ElasticButtonSpring get() = LumaMotion.ElasticButtonSpring
+    val DraggableSheetSpring get() = LumaMotion.DraggableSheetSpring
+}
+
 /**
  * Photon Engine Luminous Touch Modifier:
  * - Captures exact press coordinates (x, y) non-destructively
