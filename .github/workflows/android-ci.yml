@@ -126,6 +126,24 @@ jobs:
       - name: Compile debug APK
         run: ./gradlew --no-daemon :app:assembleDebug
 
+      - name: Verify APK signature and certificate fingerprint
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="app/build/outputs/apk/debug/app-debug.apk"
+          APKSIGNER="$ANDROID_HOME/build-tools/36.0.0/apksigner"
+          "$APKSIGNER" verify --verbose --print-certs "$APK"
+          ACTUAL="$("$APKSIGNER" verify --print-certs "$APK" | awk -F': ' '/certificate SHA-256 digest:/ {print toupper($2); exit}' | tr -d ':')"
+          EXPECTED="CB E B AF 3E 99 C5 7E 56 3F 0F 28 5E 6D 58 40 30 61 A7 D5 D1 C0 28 EE 18 78 92 3B CE BE FD 21 57"
+          EXPECTED="$(printf '%s' "$EXPECTED" | tr -d ' :')"
+          if [[ "$ACTUAL" != "$EXPECTED" ]]; then
+            echo "APK signing certificate does not match the permanent LumaNAV key."
+            echo "Expected: $EXPECTED"
+            echo "Actual:   $ACTUAL"
+            exit 1
+          fi
+          echo "APK certificate fingerprint matches the permanent LumaNAV key."
+
       # Publish the APK immediately after a successful package build, so a
       # later test failure does not hide an installable debug build.
       - name: Upload debug APK
