@@ -15,6 +15,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -560,7 +561,7 @@ fun CockpitMediaPlayerCard(
                         style = MaterialTheme.typography.titleLarge,
                         color = GlassWhite,
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        modifier = Modifier.fillMaxWidth().basicMarquee()
                     )
                     Spacer(Modifier.height(2.dp))
                     Text(
