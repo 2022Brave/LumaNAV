@@ -62,11 +62,20 @@ import kotlinx.coroutines.launch
  * ColorOS "Living Flow" (Laminar Flow & Photon Engine) Motion & Material Specs.
  * Safety-calibrated for automotive head units (250ms–400ms, zero overshoot on critical nav text/arrows).
  */
-object LivingFlow {
+object LumaMotion {
     val LaminarEasing = CubicBezierEasing(0.22f, 1f, 0.36f, 1f)
     const val StandardDurationMs = 320
     const val CompactDurationMs = 260
     const val PanelDurationMs = 360
+    const val ReducedDurationMs = 120
+
+    fun duration(reducedMotion: Boolean, normalDurationMs: Int): Int =
+        if (reducedMotion) ReducedDurationMs else normalDurationMs
+
+    val LaminarSpring = spring<Float>(
+        dampingRatio = Spring.DampingRatioNoBouncy,
+        stiffness = Spring.StiffnessLow
+    )
 
     val LaminarIntOffsetSpec = tween<IntOffset>(durationMillis = StandardDurationMs, easing = LaminarEasing)
     val LaminarSizeSpec = tween<IntSize>(durationMillis = StandardDurationMs, easing = LaminarEasing)
