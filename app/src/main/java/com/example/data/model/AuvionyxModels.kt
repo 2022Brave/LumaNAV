@@ -33,6 +33,12 @@ enum class HudLayoutMode(val label: String) {
     ADVANCED("Advanced HUD")
 }
 
+enum class HudCockpitStyle(val label: String) {
+    DIGITAL_MINIMAL("Digital Minimal"),
+    ARC_GAUGE("Arc Gauge"),
+    WIREFRAME_MAP("Wireframe Map")
+}
+
 enum class HudAccentChoice(val label: String, val color: Color) {
     ELECTRIC_CYAN("Electric Cyan", ElectricCyan),
     ICE_BLUE("Ice Blue", IceBlue),
@@ -60,7 +66,8 @@ data class HudConfig(
     val showEta: Boolean = true,
     val showMediaInfo: Boolean = true,
     val speedometerMatchPercent: Float = 4f,
-    val layFlatToStartHud: Boolean = false
+    val layFlatToStartHud: Boolean = false,
+    val cockpitStyle: HudCockpitStyle = HudCockpitStyle.DIGITAL_MINIMAL
 )
 
 enum class AodStyle(val label: String, val description: String) {
