@@ -242,7 +242,8 @@ private fun AuvionyxNativeMapPanel(
     nextTurnRoad: String,
     nextTurnInstruction: String,
     telemetryDestinationLabel: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    show3DBuildings: Boolean = true
 ) {
     Box(
         modifier = modifier
@@ -256,7 +257,8 @@ private fun AuvionyxNativeMapPanel(
             routePoints = routePoints,
             headingDegrees = headingDegrees,
             accent = accent,
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier.fillMaxSize(),
+            show3DBuildings = show3DBuildings
         )
 
         Surface(
