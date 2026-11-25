@@ -391,7 +391,7 @@ private fun LandscapeCockpitSurface(
                         currentLocation = mapsPulse.currentLatLon,
                         routePoints = mapsPulse.routePolylineGeo,
                         headingDegrees = telemetry.headingDegrees,
-                        accent = LocalAuvionyxPalette.current.accentPrimary,
+                        accent = ElectricCyan,
                         isNavigating = mapsPulse.isNavigating,
                         nextTurnDistance = telemetry.nextTurnDistanceLabel,
                         nextTurnRoad = telemetry.nextTurnRoad,
