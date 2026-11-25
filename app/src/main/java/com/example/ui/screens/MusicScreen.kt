@@ -173,56 +173,178 @@ fun MusicScreen(
             }
         } else {
             Column(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black)
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                // Full-bleed square artwork, allowed to extend behind the transparent status bar.
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(0.56f)
                 ) {
-                    Column(modifier = Modifier.weight(1f)) {
+                    val artwork = mediaState.externalArtwork
+                    if (artwork != null) {
+                        Image(
+                            bitmap = artwork.asImageBitmap(),
+                            contentDescription = "Album artwork",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    } else {
+                        AlbumArtworkArt(
+                            artVariant = track.artVariant,
+                            accentColor = track.adaptiveColor,
+                            cornerRadius = 0.dp,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                Brush.verticalGradient(
+                                    0f to Color.Transparent,
+                                    0.52f to Color.Black.copy(alpha = 0.10f),
+                                    1f to Color.Black
+                                )
+                            )
+                    )
+                    Text(
+                        text = if (mediaState.isExternalSessionActive) mediaState.externalAppLabel ?: "NOW PLAYING" else "LUMANAV PLAYER",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = GlassWhite.copy(alpha = 0.9f),
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(start = 24.dp, top = 12.dp)
+                    )
+                }
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(0.44f)
+                        .padding(horizontal = 24.dp)
+                        .padding(bottom = 18.dp),
+                    verticalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
                         Text(
-                            text = if (mediaState.isExternalSessionActive) mediaState.externalAppLabel ?: "Now Playing" else "LUMANAV PLAYER",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = accent,
+                            text = track.title,
+                            style = MaterialTheme.typography.headlineSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 25.sp
+                            ),
+                            color = GlassWhite,
+                            maxLines = 1,
+                            modifier = Modifier.fillMaxWidth().basicMarquee()
+                        )
+                        Text(
+                            text = track.artist,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = TextSecondary,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
-                        Text(
-                            text = if (mediaState.isExternalSessionActive) "Connected media session" else "Play music in any supported app",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = TextSecondary
-                        )
                     }
-                    ServiceStateBadge(state = mediaState.bridgeStatus.serviceState, labelPrefix = "MEDIA")
-                }
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    MusicArtwork(track, mediaState, Modifier.size(220.dp))
-                    Spacer(Modifier.width(16.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(track.title, style = MaterialTheme.typography.titleLarge, color = GlassWhite, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                        Spacer(Modifier.height(4.dp))
-                        Text(track.artist, style = MaterialTheme.typography.bodyMedium, color = TextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        if (track.album.isNotBlank()) Text(track.album, style = MaterialTheme.typography.labelSmall, color = TextMuted, maxLines = 1)
+
+                    MusicProgress(mediaState, duration, ElectricCyan, onSeek)
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Surface(
+                            onClick = onPrevTrack,
+                            shape = CircleShape,
+                            color = Color(0x553B4652),
+                            border = BorderStroke(1.dp, GlassWhite.copy(alpha = 0.16f))
+                        ) {
+                            Box(Modifier.size(56.dp), contentAlignment = Alignment.Center) {
+                                Icon(Icons.Rounded.SkipPrevious, "Previous", tint = GlassWhite, modifier = Modifier.size(28.dp))
+                            }
+                        }
+                        Spacer(Modifier.width(22.dp))
+                        Surface(
+                            onClick = onPlayPause,
+                            shape = RoundedCornerShape(28.dp),
+                            color = ElectricCyan,
+                            contentColor = Color.Black
+                        ) {
+                            Row(
+                                modifier = Modifier.width(148.dp).height(58.dp),
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    if (mediaState.isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                                    contentDescription = if (mediaState.isPlaying) "Pause" else "Play",
+                                    modifier = Modifier.size(30.dp)
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Text(if (mediaState.isPlaying) "PAUSE" else "PLAY", fontWeight = FontWeight.Bold)
+                            }
+                        }
+                        Spacer(Modifier.width(22.dp))
+                        Surface(
+                            onClick = onNextTrack,
+                            shape = CircleShape,
+                            color = Color(0x553B4652),
+                            border = BorderStroke(1.dp, GlassWhite.copy(alpha = 0.16f))
+                        ) {
+                            Box(Modifier.size(56.dp), contentAlignment = Alignment.Center) {
+                                Icon(Icons.Rounded.SkipNext, "Next", tint = GlassWhite, modifier = Modifier.size(28.dp))
+                            }
+                        }
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Surface(
+                            onClick = onToggleShuffle,
+                            shape = RoundedCornerShape(18.dp),
+                            color = if (mediaState.isShuffle) ElectricCyan.copy(alpha = 0.20f) else Color(0x553B4652),
+                            border = BorderStroke(1.dp, GlassWhite.copy(alpha = 0.14f)),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Row(Modifier.padding(vertical = 12.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Outlined.Shuffle, null, tint = if (mediaState.isShuffle) ElectricCyan else TextSecondary, modifier = Modifier.size(17.dp))
+                                Spacer(Modifier.width(5.dp))
+                                Text("Shuffle", color = GlassWhite, style = MaterialTheme.typography.labelSmall)
+                            }
+                        }
+                        Surface(
+                            shape = RoundedCornerShape(18.dp),
+                            color = Color(0x553B4652),
+                            border = BorderStroke(1.dp, GlassWhite.copy(alpha = 0.14f)),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Row(Modifier.padding(vertical = 12.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Outlined.Bluetooth, null, tint = ElectricCyan, modifier = Modifier.size(17.dp))
+                                Spacer(Modifier.width(5.dp))
+                                Text("Audio · System", color = GlassWhite, style = MaterialTheme.typography.labelSmall)
+                            }
+                        }
+                        Surface(
+                            onClick = onToggleRepeat,
+                            shape = RoundedCornerShape(18.dp),
+                            color = if (mediaState.isRepeat) ElectricCyan.copy(alpha = 0.20f) else Color(0x553B4652),
+                            border = BorderStroke(1.dp, GlassWhite.copy(alpha = 0.14f)),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Row(Modifier.padding(vertical = 12.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Outlined.Repeat, null, tint = if (mediaState.isRepeat) ElectricCyan else TextSecondary, modifier = Modifier.size(17.dp))
+                                Spacer(Modifier.width(5.dp))
+                                Text("Repeat", color = GlassWhite, style = MaterialTheme.typography.labelSmall)
+                            }
+                        }
                     }
                 }
-                MusicProgress(mediaState, duration, accent, onSeek)
-                MusicTransport(
-                    mediaState = mediaState,
-                    accent = accent,
-                    onToggleShuffle = onToggleShuffle,
-                    onPrevTrack = onPrevTrack,
-                    onPlayPause = onPlayPause,
-                    onNextTrack = onNextTrack,
-                    onToggleRepeat = onToggleRepeat,
-                    large = false
-                )
             }
-        }
     }
 }
 
