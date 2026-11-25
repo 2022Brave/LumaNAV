@@ -609,6 +609,7 @@ private fun SmartphoneBottomNavBar(
     activeModule: AuvionyxModule,
     onSelectModule: (AuvionyxModule) -> Unit
 ) {
+    var expanded by remember { mutableStateOf(false) }
     val navItems = listOf(
         Triple(AuvionyxModule.DRIVE, Icons.Outlined.Home, "Drive"),
         Triple(AuvionyxModule.MAPS, Icons.Outlined.Navigation, "Maps"),
@@ -616,50 +617,106 @@ private fun SmartphoneBottomNavBar(
         Triple(AuvionyxModule.SETTINGS, Icons.Outlined.Settings, "Settings"),
         Triple(AuvionyxModule.APPS, Icons.Outlined.Apps, "Apps")
     )
+    val secondaryItems = listOf(
+        AuvionyxModule.PULSE to "Pulse",
+        AuvionyxModule.VEHICLE to "Vehicle",
+        AuvionyxModule.VOICE to "Voice",
+        AuvionyxModule.HUD to "HUD"
+    )
 
     Surface(
         modifier = Modifier
             .fillMaxWidth()
             .windowInsetsPadding(WindowInsets.navigationBars)
             .padding(horizontal = 12.dp, vertical = 6.dp),
-        color = Color(0xFF0B0F15),
-        shape = RoundedCornerShape(22.dp),
-        border = BorderStroke(0.8.dp, GlassWhite.copy(alpha = 0.14f))
+        color = Color(0xE60B0F15),
+        shape = RoundedCornerShape(24.dp),
+        border = BorderStroke(0.8.dp, GlassWhite.copy(alpha = 0.16f))
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 6.dp, vertical = 5.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically
+        Column(
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 6.dp),
+            verticalArrangement = Arrangement.spacedBy(5.dp)
         ) {
-            navItems.forEach { (module, icon, label) ->
-                val selected = activeModule == module
-                LiquidGlassLens(
-                    selected = selected,
-                    onClick = { onSelectModule(module) },
-                    cornerRadius = 18.dp,
-                    testTag = "phone_nav_${module.route}",
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(54.dp)
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(3.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                navItems.forEach { (module, icon, label) ->
+                    val selected = activeModule == module
+                    LiquidGlassLens(
+                        selected = selected,
+                        onClick = {
+                            expanded = false
+                            onSelectModule(module)
+                        },
+                        cornerRadius = 18.dp,
+                        testTag = "phone_nav_${module.route}",
+                        modifier = Modifier.weight(1f).height(52.dp)
                     ) {
-                        Icon(
-                            imageVector = icon,
-                            contentDescription = label,
-                            tint = if (selected) GlassWhite else TextSecondary,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(Modifier.height(2.dp))
-                        Text(
-                            text = label,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = if (selected) GlassWhite else TextSecondary
-                        )
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                imageVector = icon,
+                                contentDescription = label,
+                                tint = if (selected) GlassWhite else TextSecondary,
+                                modifier = Modifier.size(19.dp)
+                            )
+                            Spacer(Modifier.height(2.dp))
+                            Text(
+                                text = label,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = if (selected) GlassWhite else TextSecondary
+                            )
+                        }
+                    }
+                }
+                LiquidGlassLens(
+                    selected = expanded,
+                    onClick = { expanded = !expanded },
+                    cornerRadius = 16.dp,
+                    testTag = "phone_nav_more",
+                    modifier = Modifier.width(48.dp).height(52.dp)
+                ) {
+                    Text(
+                        text = if (expanded) "LESS" else "MORE",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (expanded) GlassWhite else TextSecondary
+                    )
+                }
+            }
+
+            AnimatedVisibility(
+                visible = expanded,
+                enter = fadeIn(tween(LumaMotion.CompactDurationMs, easing = LumaMotion.LaminarEasing)) +
+                    expandVertically(tween(LumaMotion.StandardDurationMs, easing = LumaMotion.LaminarEasing)),
+                exit = fadeOut(tween(LumaMotion.CompactDurationMs, easing = LumaMotion.LaminarEasing)) +
+                    shrinkVertically(tween(LumaMotion.StandardDurationMs, easing = LumaMotion.LaminarEasing))
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    secondaryItems.forEach { (module, label) ->
+                        val selected = activeModule == module
+                        LiquidGlassLens(
+                            selected = selected,
+                            onClick = {
+                                expanded = false
+                                onSelectModule(module)
+                            },
+                            cornerRadius = 14.dp,
+                            testTag = "phone_nav_${module.route}",
+                            modifier = Modifier.weight(1f).height(40.dp)
+                        ) {
+                            Text(
+                                text = label,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = if (selected) GlassWhite else TextSecondary
+                            )
+                        }
                     }
                 }
             }
