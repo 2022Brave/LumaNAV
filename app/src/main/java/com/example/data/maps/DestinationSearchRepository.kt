@@ -7,6 +7,7 @@ import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.net.Uri
 import android.os.Build
+import android.os.SystemClock
 import com.example.data.model.DestinationCandidate
 import com.example.data.model.DestinationSearchOutcome
 import com.example.data.model.ServiceAvailabilityState
@@ -14,9 +15,15 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
+import java.io.IOException
+import java.util.concurrent.ConcurrentHashMap
 import java.net.URLDecoder
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -35,7 +42,8 @@ data class LiveDrivingRoute(
     val etaTimeLabel: String,
     val nextTurnDistanceLabel: String,
     val nextTurnRoad: String,
-    val nextTurnInstruction: String
+    val nextTurnInstruction: String,
+    val routingProvider: String
 )
 
 data class LiveWeatherReading(
@@ -50,7 +58,7 @@ data class ExternalMapsTarget(
 )
 
 /**
- * Genuine Android Geocoder + Reverse Geocoder + OSRM road routing + Open-Meteo weather repository.
+ * OpenStreetMap Photon search + Android Geocoder fallback + Valhalla/OSRM routing + Open-Meteo weather repository.
  * Honestly distinguishes LIVE lookups from OFFLINE and API_UNAVAILABLE.
  * Never fabricates search results when geocoding fails or returns empty.
  */
@@ -78,7 +86,7 @@ class DestinationSearchRepository(private val context: Context) {
             return@withContext DestinationSearchOutcome.Unavailable(
                 query = query,
                 serviceState = ServiceAvailabilityState.API_UNAVAILABLE,
-                reason = "Speak a destination name to search."
+                reason = "Enter a destination name to search."
             )
         }
 
@@ -86,64 +94,179 @@ class DestinationSearchRepository(private val context: Context) {
             return@withContext DestinationSearchOutcome.Unavailable(
                 query = clean,
                 serviceState = ServiceAvailabilityState.OFFLINE,
-                reason = "Device is offline. Network connectivity is required for live destination search."
+                reason = "Device is offline. Live destination search requires an internet connection."
             )
         }
 
+        val cacheKey = buildString {
+            append(clean.lowercase(Locale.ROOT))
+            append('|')
+            append(nearLat?.let { String.format(Locale.US, "%.2f", it) } ?: "global")
+            append('|')
+            append(nearLon?.let { String.format(Locale.US, "%.2f", it) } ?: "global")
+        }
+        searchCache[cacheKey]?.let { cached ->
+            return@withContext DestinationSearchOutcome.Matches(
+                query = clean,
+                serviceState = ServiceAvailabilityState.LIVE,
+                candidates = cached
+            )
+        }
+
+        // Photon is an independent OpenStreetMap geocoder, so destination search does not
+        // depend on Google Play services or the Android system Geocoder being installed.
+        val photonCandidates = withTimeoutOrNull(9_000L) {
+            runCatching { fetchPhotonCandidates(clean, nearLat, nearLon) }.getOrNull()
+        }
+        if (photonCandidates != null) {
+            cacheSearch(cacheKey, photonCandidates)
+            return@withContext DestinationSearchOutcome.Matches(
+                query = clean,
+                serviceState = ServiceAvailabilityState.LIVE,
+                candidates = photonCandidates
+            )
+        }
+
+        // Keep Android Geocoder as a fallback for devices where its provider is available.
         if (!isGeocoderAvailable()) {
             return@withContext DestinationSearchOutcome.Unavailable(
                 query = clean,
                 serviceState = ServiceAvailabilityState.API_UNAVAILABLE,
-                reason = "Android Geocoder backend is unavailable on this device."
+                reason = "OpenStreetMap place search is temporarily unavailable and this device has no Android Geocoder provider."
             )
         }
 
         try {
-            val addresses = withTimeout(10_000L) {
+            val addresses = withTimeout(8_000L) {
                 fetchAddressesFromGeocoder(clean, nearLat, nearLon)
             }
-            if (addresses.isEmpty()) {
-                DestinationSearchOutcome.Matches(
-                    query = clean,
-                    serviceState = ServiceAvailabilityState.LIVE,
-                    candidates = emptyList()
-                )
-            } else {
-                val mapped = addresses.mapIndexed { index, addr ->
-                    val title = addr.featureName?.takeIf { it.isNotBlank() }
-                        ?: addr.locality?.takeIf { it.isNotBlank() }
-                        ?: addr.subAdminArea?.takeIf { it.isNotBlank() }
-                        ?: clean
-                    val line = buildString {
-                        listOfNotNull(addr.thoroughfare, addr.locality, addr.adminArea, addr.countryName)
-                            .distinct()
-                            .joinToString(", ")
-                            .let { append(it) }
-                    }.ifBlank { addr.getAddressLine(0) ?: clean }
+            val mapped = addresses.mapIndexed { index, addr ->
+                val title = addr.featureName?.takeIf { it.isNotBlank() }
+                    ?: addr.locality?.takeIf { it.isNotBlank() }
+                    ?: addr.subAdminArea?.takeIf { it.isNotBlank() }
+                    ?: clean
+                val line = listOfNotNull(
+                    addr.thoroughfare,
+                    addr.locality,
+                    addr.adminArea,
+                    addr.countryName
+                ).distinct().joinToString(", ").ifBlank { addr.getAddressLine(0) ?: clean }
 
-                    DestinationCandidate(
-                        id = "geo_${index}_${addr.latitude}_${addr.longitude}",
-                        name = title,
-                        addressSummary = line,
-                        latitude = addr.latitude,
-                        longitude = addr.longitude,
-                        category = "Geocoded Place",
-                        isDemo = false
-                    )
-                }
-                DestinationSearchOutcome.Matches(
-                    query = clean,
-                    serviceState = ServiceAvailabilityState.LIVE,
-                    candidates = mapped
+                DestinationCandidate(
+                    id = "geo_${index}_${addr.latitude}_${addr.longitude}",
+                    name = title,
+                    addressSummary = line,
+                    latitude = addr.latitude,
+                    longitude = addr.longitude,
+                    category = "Android Geocoder",
+                    isDemo = false
                 )
             }
+            cacheSearch(cacheKey, mapped)
+            DestinationSearchOutcome.Matches(
+                query = clean,
+                serviceState = ServiceAvailabilityState.LIVE,
+                candidates = mapped
+            )
         } catch (_: Exception) {
             DestinationSearchOutcome.Unavailable(
                 query = clean,
                 serviceState = ServiceAvailabilityState.API_UNAVAILABLE,
-                reason = "Geocoder service request failed."
+                reason = "OpenStreetMap place search and the Android Geocoder fallback are unavailable."
             )
         }
+    }
+
+    private suspend fun fetchPhotonCandidates(
+        query: String,
+        nearLat: Double?,
+        nearLon: Double?
+    ): List<DestinationCandidate> = photonRequestMutex.withLock {
+        // The hosted Photon demo is a shared community service. Keep requests serial and
+        // at least one second apart; searches are only issued on explicit user submission.
+        val elapsed = SystemClock.elapsedRealtime() - lastPhotonRequestAt
+        if (lastPhotonRequestAt > 0L && elapsed < PHOTON_MIN_INTERVAL_MS) {
+            delay(PHOTON_MIN_INTERVAL_MS - elapsed)
+        }
+        lastPhotonRequestAt = SystemClock.elapsedRealtime()
+
+        val builder = Uri.parse("https://photon.komoot.io/api/").buildUpon()
+            .appendQueryParameter("q", query)
+            .appendQueryParameter("limit", "5")
+            .appendQueryParameter("lang", "en")
+        if (nearLat != null && nearLon != null &&
+            nearLat.isFinite() && nearLon.isFinite() &&
+            nearLat in -90.0..90.0 && nearLon in -180.0..180.0
+        ) {
+            builder.appendQueryParameter("lat", nearLat.toString())
+            builder.appendQueryParameter("lon", nearLon.toString())
+            builder.appendQueryParameter("zoom", "12")
+        }
+
+        val connection = (URL(builder.build().toString()).openConnection() as HttpURLConnection).apply {
+            requestMethod = "GET"
+            connectTimeout = 5_000
+            readTimeout = 7_000
+            setRequestProperty("Accept", "application/geo+json, application/json")
+            setRequestProperty("User-Agent", "LumaNAV-Android/1.0 (personal navigation app)")
+        }
+        val body = try {
+            val code = connection.responseCode
+            if (code !in 200..299) throw IOException("Photon HTTP $code")
+            connection.inputStream.bufferedReader().use { it.readText() }
+        } finally {
+            connection.disconnect()
+        }
+
+        val features = JSONObject(body).optJSONArray("features") ?: return@withLock emptyList()
+        buildList {
+            for (index in 0 until features.length()) {
+                val feature = features.optJSONObject(index) ?: continue
+                val coordinates = feature.optJSONObject("geometry")?.optJSONArray("coordinates") ?: continue
+                if (coordinates.length() < 2) continue
+                val lon = coordinates.optDouble(0, Double.NaN)
+                val lat = coordinates.optDouble(1, Double.NaN)
+                if (!lat.isFinite() || lat !in -90.0..90.0 ||
+                    !lon.isFinite() || lon !in -180.0..180.0
+                ) continue
+
+                val properties = feature.optJSONObject("properties") ?: JSONObject()
+                val name = properties.optString("name")
+                    .takeIf { it.isNotBlank() }
+                    ?: properties.optString("street").takeIf { it.isNotBlank() }
+                    ?: properties.optString("city").takeIf { it.isNotBlank() }
+                    ?: query
+                val address = listOf(
+                    properties.optString("street"),
+                    properties.optString("district"),
+                    properties.optString("city"),
+                    properties.optString("state"),
+                    properties.optString("postcode"),
+                    properties.optString("country")
+                ).filter { it.isNotBlank() }.distinct().joinToString(", ").ifBlank { name }
+                val osmId = properties.optString("osm_id").ifBlank { "${lat}_${lon}" }
+                val category = properties.optString("osm_value")
+                    .ifBlank { properties.optString("osm_key") }
+                    .ifBlank { "OpenStreetMap place" }
+
+                add(
+                    DestinationCandidate(
+                        id = "photon_${properties.optString("osm_type")}_$osmId",
+                        name = name,
+                        addressSummary = address,
+                        latitude = lat,
+                        longitude = lon,
+                        category = category,
+                        isDemo = false
+                    )
+                )
+            }
+        }
+    }
+
+    private fun cacheSearch(key: String, candidates: List<DestinationCandidate>) {
+        if (searchCache.size >= MAX_SEARCH_CACHE_ENTRIES) searchCache.clear()
+        searchCache[key] = candidates
     }
 
     suspend fun reverseGeocodeLocation(lat: Double, lon: Double): String? = withContext(Dispatchers.IO) {
@@ -186,78 +309,174 @@ class DestinationSearchRepository(private val context: Context) {
         destinationFallbackName: String
     ): LiveDrivingRoute? = withContext(Dispatchers.IO) {
         if (!isNetworkOnline()) return@withContext null
-        runCatching {
+
+        // Valhalla is attempted first. Its public OSM endpoint is keyless; OSRM remains
+        // an independent fallback when Valhalla is unavailable or returns an unusable route.
+        val valhalla = withTimeoutOrNull(9_000L) {
+            runCatching {
+                val request = JSONObject().apply {
+                    put("locations", org.json.JSONArray().put(
+                        JSONObject().put("lat", startLat).put("lon", startLon)
+                    ).put(JSONObject().put("lat", endLat).put("lon", endLon)))
+                    put("costing", "auto")
+                    put("units", "kilometers")
+                    put("directions_options", JSONObject().put("units", "kilometers"))
+                }
+                val endpoint = "https://valhalla1.openstreetmap.de/route?json=" +
+                    Uri.encode(request.toString())
+                val connection = (URL(endpoint).openConnection() as HttpURLConnection).apply {
+                    connectTimeout = 5_000
+                    readTimeout = 8_000
+                    requestMethod = "GET"
+                    setRequestProperty("User-Agent", "LumaNAV-Android/1.0")
+                }
+                val body = try {
+                    val code = connection.responseCode
+                    if (code !in 200..299) error("Valhalla HTTP $code")
+                    connection.inputStream.bufferedReader().use { it.readText() }
+                } finally {
+                    connection.disconnect()
+                }
+                parseValhallaRoute(JSONObject(body), destinationFallbackName)
+            }.getOrNull()
+        }
+
+        valhalla ?: runCatching {
             val urlStr = String.format(
                 Locale.US,
                 "https://router.project-osrm.org/route/v1/driving/%.6f,%.6f;%.6f,%.6f?overview=full&geometries=geojson&steps=true",
-                startLon,
-                startLat,
-                endLon,
-                endLat
+                startLon, startLat, endLon, endLat
             )
             val conn = (URL(urlStr).openConnection() as HttpURLConnection).apply {
-                connectTimeout = 6000
-                readTimeout = 6000
-                setRequestProperty("User-Agent", "AuvionyxAndroid/1.0")
+                connectTimeout = 6_000
+                readTimeout = 8_000
+                requestMethod = "GET"
+                setRequestProperty("User-Agent", "LumaNAV-Android/1.0")
             }
-            val code = conn.responseCode
-            if (code !in 200..299) {
+            val body = try {
+                val code = conn.responseCode
+                if (code !in 200..299) error("OSRM HTTP $code")
+                conn.inputStream.bufferedReader().use { it.readText() }
+            } finally {
                 conn.disconnect()
-                return@withContext null
             }
-            val body = conn.inputStream.bufferedReader().use { it.readText() }
-            conn.disconnect()
-
-            val json = JSONObject(body)
-            val routeObj = json.optJSONArray("routes")?.optJSONObject(0) ?: return@withContext null
-            val distanceMeters = routeObj.optDouble("distance", 0.0)
-            val durationSec = routeObj.optDouble("duration", 0.0)
-            val distKm = ((distanceMeters / 100.0).roundToInt() / 10f).coerceAtLeast(0.1f)
-            val durationMin = (durationSec / 60.0).roundToInt().coerceAtLeast(1)
-
-            val coordsArray = routeObj.optJSONObject("geometry")?.optJSONArray("coordinates")
-            val polyline = mutableListOf<Pair<Double, Double>>()
-            if (coordsArray != null) {
-                for (i in 0 until coordsArray.length()) {
-                    val pair = coordsArray.optJSONArray(i) ?: continue
-                    val lon = pair.optDouble(0)
-                    val lat = pair.optDouble(1)
-                    polyline.add(lat to lon)
-                }
-            }
-
-            // Extract first upcoming turn maneuver (prefer step[1] if step[0] is initial depart)
-            val steps = routeObj.optJSONArray("legs")?.optJSONObject(0)?.optJSONArray("steps")
-            val nextStep = when {
-                steps != null && steps.length() > 1 -> steps.optJSONObject(1)
-                steps != null && steps.length() > 0 -> steps.optJSONObject(0)
-                else -> null
-            }
-            val firstStep = steps?.optJSONObject(0)
-            val stepDistanceMeters = firstStep?.optDouble("distance", distanceMeters) ?: distanceMeters
-            val stepRoad = nextStep?.optString("name")?.takeIf { it.isNotBlank() }
-                ?: destinationFallbackName
-            val maneuverType = nextStep?.optJSONObject("maneuver")?.optString("type").orEmpty()
-            val maneuverMod = nextStep?.optJSONObject("maneuver")?.optString("modifier").orEmpty()
-            val instruction = listOf(maneuverType, maneuverMod, if (stepRoad.isNotBlank()) "onto $stepRoad" else "")
-                .filter { it.isNotBlank() }
-                .joinToString(" ")
-                .replaceFirstChar { it.uppercase() }
-                .ifBlank { "Continue to $destinationFallbackName" }
-
-            val etaMs = System.currentTimeMillis() + durationMin * 60_000L
-            val etaStr = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(etaMs))
-
-            LiveDrivingRoute(
-                polylinePoints = polyline,
-                distanceKm = distKm,
-                durationMinutes = durationMin,
-                etaTimeLabel = etaStr,
-                nextTurnDistanceLabel = formatDistanceMeters(stepDistanceMeters),
-                nextTurnRoad = stepRoad,
-                nextTurnInstruction = instruction
-            )
+            parseOsrmRoute(JSONObject(body), destinationFallbackName)
         }.getOrNull()
+    }
+
+    private fun parseValhallaRoute(json: JSONObject, destinationFallbackName: String): LiveDrivingRoute? {
+        val trip = json.optJSONObject("trip") ?: return null
+        val summary = trip.optJSONObject("summary") ?: return null
+        val legs = trip.optJSONArray("legs") ?: return null
+        val leg = legs.optJSONObject(0) ?: return null
+        val shape = leg.optString("shape").takeIf { it.isNotBlank() } ?: return null
+        val points = decodePolyline6(shape)
+        if (points.size < 2) return null
+
+        val distanceKm = summary.optDouble("length", 0.0).toFloat()
+        val durationMinutes = (summary.optDouble("time", 0.0) / 60.0).roundToInt().coerceAtLeast(1)
+        val maneuvers = leg.optJSONArray("maneuvers")
+        val next = when {
+            maneuvers != null && maneuvers.length() > 1 -> maneuvers.optJSONObject(1)
+            maneuvers != null && maneuvers.length() > 0 -> maneuvers.optJSONObject(0)
+            else -> null
+        }
+        val road = next?.optJSONArray("street_names")?.optString(0)
+            ?.takeIf { it.isNotBlank() } ?: destinationFallbackName
+        val instruction = next?.optString("instruction")?.takeIf { it.isNotBlank() }
+            ?: "Continue to $destinationFallbackName"
+        // The first maneuver describes the distance from the current position to the next turn.
+        val turnDistance = (maneuvers?.optJSONObject(0)?.optDouble("length", 0.0) ?: 0.0) * 1000.0
+        val eta = SimpleDateFormat("HH:mm", Locale.getDefault()).format(
+            Date(System.currentTimeMillis() + durationMinutes * 60_000L)
+        )
+        return LiveDrivingRoute(
+            polylinePoints = points,
+            distanceKm = distanceKm,
+            durationMinutes = durationMinutes,
+            etaTimeLabel = eta,
+            nextTurnDistanceLabel = formatDistanceMeters(turnDistance),
+            nextTurnRoad = road,
+            nextTurnInstruction = instruction,
+            routingProvider = "Valhalla"
+        )
+    }
+
+    private fun parseOsrmRoute(json: JSONObject, destinationFallbackName: String): LiveDrivingRoute? {
+        val route = json.optJSONArray("routes")?.optJSONObject(0) ?: return null
+        val distanceMeters = route.optDouble("distance", 0.0)
+        val durationSeconds = route.optDouble("duration", 0.0)
+        val distanceKm = (distanceMeters / 1000.0).toFloat()
+        val durationMinutes = (durationSeconds / 60.0).roundToInt().coerceAtLeast(1)
+        val coordinates = route.optJSONObject("geometry")?.optJSONArray("coordinates")
+        val points = mutableListOf<Pair<Double, Double>>()
+        if (coordinates != null) {
+            for (i in 0 until coordinates.length()) {
+                val pair = coordinates.optJSONArray(i) ?: continue
+                points.add(pair.optDouble(1) to pair.optDouble(0))
+            }
+        }
+        if (points.size < 2) return null
+        val steps = route.optJSONArray("legs")?.optJSONObject(0)?.optJSONArray("steps")
+        val next = when {
+            steps != null && steps.length() > 1 -> steps.optJSONObject(1)
+            steps != null && steps.length() > 0 -> steps.optJSONObject(0)
+            else -> null
+        }
+        val first = steps?.optJSONObject(0)
+        val turnDistance = first?.optDouble("distance", distanceMeters) ?: distanceMeters
+        val road = next?.optString("name")?.takeIf { it.isNotBlank() } ?: destinationFallbackName
+        val maneuver = next?.optJSONObject("maneuver")
+        val instruction = listOf(
+            maneuver?.optString("type").orEmpty(),
+            maneuver?.optString("modifier").orEmpty(),
+            if (road.isNotBlank()) "onto $road" else ""
+        ).filter { it.isNotBlank() }.joinToString(" ")
+            .replaceFirstChar { it.uppercase() }.ifBlank { "Continue to $destinationFallbackName" }
+        val eta = SimpleDateFormat("HH:mm", Locale.getDefault()).format(
+            Date(System.currentTimeMillis() + durationMinutes * 60_000L)
+        )
+        return LiveDrivingRoute(
+            polylinePoints = points,
+            distanceKm = distanceKm,
+            durationMinutes = durationMinutes,
+            etaTimeLabel = eta,
+            nextTurnDistanceLabel = formatDistanceMeters(turnDistance),
+            nextTurnRoad = road,
+            nextTurnInstruction = instruction,
+            routingProvider = "OSRM"
+        )
+    }
+
+    private fun decodePolyline6(encoded: String): List<Pair<Double, Double>> {
+        val result = ArrayList<Pair<Double, Double>>()
+        var index = 0
+        var latitude = 0
+        var longitude = 0
+        while (index < encoded.length) {
+            var shift = 0
+            var value = 0
+            var byte: Int
+            do {
+                if (index >= encoded.length) return result
+                byte = encoded[index++].code - 63
+                value = value or ((byte and 0x1f) shl shift)
+                shift += 5
+            } while (byte >= 0x20)
+            latitude += if ((value and 1) != 0) (value shr 1).inv() else value shr 1
+
+            shift = 0
+            value = 0
+            do {
+                if (index >= encoded.length) return result
+                byte = encoded[index++].code - 63
+                value = value or ((byte and 0x1f) shl shift)
+                shift += 5
+            } while (byte >= 0x20)
+            longitude += if ((value and 1) != 0) (value shr 1).inv() else value shr 1
+            result.add(latitude / 1_000_000.0 to longitude / 1_000_000.0)
+        }
+        return result
     }
 
     suspend fun fetchCurrentWeather(lat: Double, lon: Double): LiveWeatherReading? = withContext(Dispatchers.IO) {
@@ -339,6 +558,12 @@ class DestinationSearchRepository(private val context: Context) {
     }
 
     companion object {
+        private const val PHOTON_MIN_INTERVAL_MS = 1_000L
+        private const val MAX_SEARCH_CACHE_ENTRIES = 64
+        private val photonRequestMutex = Mutex()
+        @Volatile private var lastPhotonRequestAt = 0L
+        private val searchCache = ConcurrentHashMap<String, List<DestinationCandidate>>()
+
         fun haversineKm(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Float {
             val r = 6371.0
             val dLat = Math.toRadians(lat2 - lat1)

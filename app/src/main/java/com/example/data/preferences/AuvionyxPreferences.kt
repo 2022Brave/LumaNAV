@@ -24,6 +24,7 @@ private val Context.auvionyxDataStore: DataStore<Preferences> by preferencesData
 
 data class AuvionyxSettingsState(
     val useAdaptiveAlbumColors: Boolean = false,
+    val daylightHighContrast: Boolean = false,
     val reducedMotion: Boolean = false,
     val dashboardRatio: DashboardSplitRatio = DashboardSplitRatio.RATIO_70_30,
     val hudConfig: HudConfig = HudConfig(),
@@ -40,6 +41,7 @@ class AuvionyxPreferencesRepository(private val context: Context) {
 
     private object Keys {
         val ADAPTIVE_ALBUM_COLORS = booleanPreferencesKey("adaptive_album_colors")
+        val DAYLIGHT_HIGH_CONTRAST = booleanPreferencesKey("daylight_high_contrast")
         val REDUCED_MOTION = booleanPreferencesKey("reduced_motion")
         val DASHBOARD_RATIO = stringPreferencesKey("dashboard_ratio")
         val HUD_LAYOUT = stringPreferencesKey("hud_layout")
@@ -66,6 +68,7 @@ class AuvionyxPreferencesRepository(private val context: Context) {
     val settingsFlow: Flow<AuvionyxSettingsState> = context.auvionyxDataStore.data.map { prefs ->
         AuvionyxSettingsState(
             useAdaptiveAlbumColors = prefs[Keys.ADAPTIVE_ALBUM_COLORS] ?: false,
+            daylightHighContrast = prefs[Keys.DAYLIGHT_HIGH_CONTRAST] ?: false,
             reducedMotion = prefs[Keys.REDUCED_MOTION] ?: false,
             dashboardRatio = prefs[Keys.DASHBOARD_RATIO]?.let {
                 runCatching { DashboardSplitRatio.valueOf(it) }.getOrNull()
@@ -106,6 +109,10 @@ class AuvionyxPreferencesRepository(private val context: Context) {
 
     suspend fun setAdaptiveAlbumColors(enabled: Boolean) {
         context.auvionyxDataStore.edit { it[Keys.ADAPTIVE_ALBUM_COLORS] = enabled }
+    }
+
+    suspend fun setDaylightHighContrast(enabled: Boolean) {
+        context.auvionyxDataStore.edit { it[Keys.DAYLIGHT_HIGH_CONTRAST] = enabled }
     }
 
     suspend fun setReducedMotion(enabled: Boolean) {

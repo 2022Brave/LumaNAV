@@ -12,7 +12,7 @@ enum class AuvionyxModule(val route: String, val label: String) {
     MUSIC("music", "Music"),
     HUD("hud", "HUD"),
     PULSE("pulse", "Traffic Pulse"),
-    VOICE("voice", "Auvionyx Voice"),
+    VOICE("voice", "LumaNav Voice"),
     AOD("aod", "AOD"),
     VEHICLE("vehicle", "Vehicle"),
     SETTINGS("settings", "Settings"),
@@ -155,6 +155,7 @@ data class VehicleTelemetry(
     val remainingDistanceKm: Float = 0f,
     val journeyProgress: Float = 0f,
     val currentLocationLabel: String = "Acquiring GPS…",
+    val destinationLabel: String = "",
     val weatherTempC: Int? = null,
     val weatherCondition: String = "",
     val cabinDriverTempC: Float = 24.0f,
@@ -164,6 +165,7 @@ data class VehicleTelemetry(
     val driveMode: DriveMode = DriveMode.TOUR,
     val tirePsi: List<Int> = emptyList(),
     val isLiveGpsActive: Boolean = false,
+    val isLocationFallback: Boolean = false,
     val isSimulationRunning: Boolean = false,
     val isLiveWeather: Boolean = false
 )

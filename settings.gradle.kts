@@ -7,21 +7,23 @@ pluginManagement {
         includeGroupByRegex("androidx.*")
       }
     }
+    // Google-hosted Maven Central mirror reduces CI failures from Central HTTP 429 limits.
+    maven { url = uri("https://maven-central-eu.storage-download.googleapis.com/maven2/") }
     mavenCentral()
     gradlePluginPortal()
   }
 }
 
-plugins { id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0" }
-
 dependencyResolutionManagement {
   repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
   repositories {
     google()
+    // Prefer Google's Maven Central mirror; retain Central as a fallback.
+    maven { url = uri("https://maven-central-eu.storage-download.googleapis.com/maven2/") }
     mavenCentral()
   }
 }
 
-rootProject.name = "AUVIONYX"
+rootProject.name = "LumaNav"
 
 include(":app")

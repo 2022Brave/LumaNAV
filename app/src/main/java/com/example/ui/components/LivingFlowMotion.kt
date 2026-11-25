@@ -62,11 +62,20 @@ import kotlinx.coroutines.launch
  * ColorOS "Living Flow" (Laminar Flow & Photon Engine) Motion & Material Specs.
  * Safety-calibrated for automotive head units (250ms–400ms, zero overshoot on critical nav text/arrows).
  */
-object LivingFlow {
+object LumaMotion {
     val LaminarEasing = CubicBezierEasing(0.22f, 1f, 0.36f, 1f)
     const val StandardDurationMs = 320
     const val CompactDurationMs = 260
     const val PanelDurationMs = 360
+    const val ReducedDurationMs = 120
+
+    fun duration(reducedMotion: Boolean, normalDurationMs: Int): Int =
+        if (reducedMotion) ReducedDurationMs else normalDurationMs
+
+    val LaminarSpring = spring<Float>(
+        dampingRatio = Spring.DampingRatioNoBouncy,
+        stiffness = Spring.StiffnessLow
+    )
 
     val LaminarIntOffsetSpec = tween<IntOffset>(durationMillis = StandardDurationMs, easing = LaminarEasing)
     val LaminarSizeSpec = tween<IntSize>(durationMillis = StandardDurationMs, easing = LaminarEasing)
@@ -84,6 +93,23 @@ object LivingFlow {
         dampingRatio = Spring.DampingRatioNoBouncy,
         stiffness = 380f
     )
+}
+
+
+/**
+ * Backward-compatible name for existing UI call sites. New code should use [LumaMotion].
+ */
+object LivingFlow {
+    val LaminarEasing get() = LumaMotion.LaminarEasing
+    const val StandardDurationMs = LumaMotion.StandardDurationMs
+    const val CompactDurationMs = LumaMotion.CompactDurationMs
+    const val PanelDurationMs = LumaMotion.PanelDurationMs
+    val LaminarIntOffsetSpec get() = LumaMotion.LaminarIntOffsetSpec
+    val LaminarSizeSpec get() = LumaMotion.LaminarSizeSpec
+    val LaminarBoundsSpec get() = LumaMotion.LaminarBoundsSpec
+    val NavSafetyFloatSpec get() = LumaMotion.NavSafetyFloatSpec
+    val ElasticButtonSpring get() = LumaMotion.ElasticButtonSpring
+    val DraggableSheetSpring get() = LumaMotion.DraggableSheetSpring
 }
 
 /**
@@ -110,7 +136,7 @@ fun Modifier.photonLuminousTouch(
 
     val scale by animateFloatAsState(
         targetValue = if ((isPressed || isPointerDown) && enabled && !reducedMotion) pressScale else 1f,
-        animationSpec = if (reducedMotion) tween(0) else LivingFlow.ElasticButtonSpring,
+        animationSpec = if (reducedMotion) tween(0) else LumaMotion.ElasticButtonSpring,
         label = "photonElasticScale"
     )
 
@@ -134,7 +160,7 @@ fun Modifier.photonLuminousTouch(
                                 photonProgress.snapTo(0.05f)
                                 photonProgress.animateTo(
                                     targetValue = 1f,
-                                    animationSpec = tween(durationMillis = 360, easing = LivingFlow.LaminarEasing)
+                                    animationSpec = tween(durationMillis = 360, easing = LumaMotion.LaminarEasing)
                                 )
                                 photonProgress.snapTo(0f)
                             }
@@ -259,7 +285,7 @@ fun DraggableLaminarSheet(
                             expandFraction.animateTo(
                                 targetValue = target,
                                 initialVelocity = (-velocity / dragRangePx),
-                                animationSpec = LivingFlow.DraggableSheetSpring
+                                animationSpec = LumaMotion.DraggableSheetSpring
                             )
                         }
                     }

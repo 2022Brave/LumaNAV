@@ -2,27 +2,29 @@ package com.example.ui.screens
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.rememberInfiniteTransition
+import com.example.ui.components.LumaNavLogo
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -32,9 +34,6 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.R
@@ -44,7 +43,6 @@ import com.example.ui.theme.IceBlue
 import com.example.ui.theme.LocalAuvionyxMotion
 import com.example.ui.theme.ObsidianBlack
 import com.example.ui.theme.TextMuted
-import com.example.ui.theme.TextSecondary
 import kotlinx.coroutines.delay
 import kotlin.math.PI
 import kotlin.math.sin
@@ -57,17 +55,33 @@ fun BootSplashScreen(
     val reducedMotion = LocalAuvionyxMotion.current.reducedMotion
     val wakeProgress = remember { Animatable(0f) }
     val lockupAlpha = remember { Animatable(0f) }
+    val ambient = rememberInfiniteTransition(label = "lumanav_splash_ambient")
+    val animatedLogoPulse by ambient.animateFloat(
+        initialValue = 0.985f,
+        targetValue = 1.018f,
+        animationSpec = infiniteRepeatable(tween(1500, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+        label = "logoPulse"
+    )
+    val animatedGlowPulse by ambient.animateFloat(
+        initialValue = 0.24f,
+        targetValue = 0.62f,
+        animationSpec = infiniteRepeatable(tween(1800, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+        label = "glowPulse"
+    )
+    val logoPulse = if (reducedMotion) 1f else animatedLogoPulse
+    val glowPulse = if (reducedMotion) 0.28f else animatedGlowPulse
 
     LaunchedEffect(reducedMotion) {
         if (reducedMotion) {
             wakeProgress.snapTo(1f)
-            lockupAlpha.animateTo(1f, tween(350))
-            delay(500L)
+            lockupAlpha.animateTo(1f, tween(300))
+            delay(250L)
             onBootComplete()
         } else {
-            wakeProgress.animateTo(1f, tween(1100, easing = FastOutSlowInEasing))
-            lockupAlpha.animateTo(1f, tween(900, easing = FastOutSlowInEasing))
-            delay(750L)
+            wakeProgress.animateTo(1f, tween(650, easing = FastOutSlowInEasing))
+            lockupAlpha.animateTo(1f, tween(500, easing = FastOutSlowInEasing))
+            delay(350L)
+            lockupAlpha.animateTo(0f, tween(300, easing = FastOutSlowInEasing))
             onBootComplete()
         }
     }
@@ -76,7 +90,6 @@ fun BootSplashScreen(
         modifier = modifier
             .fillMaxSize()
             .background(ObsidianBlack)
-            .systemBarsPadding()
             .padding(24.dp)
     ) {
         // Wake / Arc-build cyan light streak behind lockup
@@ -118,49 +131,60 @@ fun BootSplashScreen(
             }
         }
 
-        // Official Velocity A Hero Lockup
+        // Cyan halo breathing behind the logo.
+        Canvas(
+            modifier = Modifier
+                .size(340.dp)
+                .align(Alignment.Center)
+        ) {
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(ElectricCyan.copy(alpha = glowPulse), DeepBlue.copy(alpha = glowPulse * 0.28f), Color.Transparent),
+                    radius = size.minDimension * 0.48f
+                ),
+                radius = size.minDimension * 0.48f
+            )
+        }
+
+        // Animated logo reveal: scale-up, slight tilt correction, then a gentle breathing pulse.
         Column(
             modifier = Modifier
                 .align(Alignment.Center)
                 .graphicsLayer {
                     alpha = lockupAlpha.value
-                    scaleX = 0.92f + 0.08f * lockupAlpha.value
-                    scaleY = 0.92f + 0.08f * lockupAlpha.value
+                    val entrance = 0.72f + 0.28f * lockupAlpha.value
+                    scaleX = entrance * logoPulse
+                    scaleY = entrance * logoPulse
+                    rotationZ = (1f - lockupAlpha.value) * -5.5f
                 },
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Image(
-                painter = painterResource(id = R.drawable.auvionyx_velocity_a),
-                contentDescription = stringResource(id = R.string.cd_velocity_a_logo),
-                contentScale = ContentScale.Fit,
-                modifier = Modifier.size(280.dp)
+            // Animate the official uploaded LumaNav logo itself, rather than a substitute mark.
+            LumaNavLogo(
+                contentDescription = "LumaNAV",
+                modifier = Modifier
+                    .size(224.dp)
+                    .graphicsLayer {
+                        alpha = wakeProgress.value.coerceIn(0f, 1f)
+                        scaleX = 0.78f + 0.22f * wakeProgress.value * logoPulse
+                        scaleY = 0.78f + 0.22f * wakeProgress.value * logoPulse
+                        rotationZ = (1f - wakeProgress.value) * -7f
+                    }
+            )
+            Spacer(Modifier.height(18.dp))
+            Text(
+                text = buildString { append("Luma"); append("NAV") },
+                style = MaterialTheme.typography.headlineLarge,
+                color = ElectricCyan
+            )
+            Spacer(Modifier.height(7.dp))
+            Text(
+                text = stringResource(id = R.string.brand_tagline).uppercase(),
+                style = MaterialTheme.typography.labelSmall,
+                color = TextMuted
             )
         }
 
-        // Bottom status & skip
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.BottomCenter),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = stringResource(id = R.string.boot_powering_up),
-                style = MaterialTheme.typography.labelLarge,
-                color = TextSecondary
-            )
-            TextButton(
-                onClick = onBootComplete,
-                modifier = Modifier.testTag("skip_boot_button")
-            ) {
-                Text(
-                    text = stringResource(id = R.string.skip_boot),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = ElectricCyan
-                )
-            }
-        }
     }
 }

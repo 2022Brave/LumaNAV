@@ -3,6 +3,7 @@ package com.example.viewmodel
 import android.app.Application
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
 import android.os.BatteryManager
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -11,6 +12,8 @@ import com.example.core.LiveGoogleMapsSyncBridge
 import com.example.data.ai.AuvionyxAiRepository
 import com.example.data.ai.ParsedNaturalVoiceIntent
 import com.example.data.maps.DestinationSearchRepository
+import com.example.data.maps.OffRouteGuard
+import com.example.data.maps.RouteMatcher
 import com.example.data.media.MediaSessionBridge
 import com.example.data.media.MediaSessionBridgeStatus
 import com.example.data.model.AodStyle
@@ -33,6 +36,7 @@ import com.example.data.model.TrafficSeverity
 import com.example.data.model.VehicleTelemetry
 import com.example.data.preferences.AuvionyxPreferencesRepository
 import com.example.data.preferences.AuvionyxSettingsState
+import com.example.data.sensor.GpsReadingPolicy
 import com.example.data.sensor.TelemetryProvider
 import com.example.data.voice.AuvionyxVoiceEngine
 import com.example.data.voice.NativeVoiceBridgeStatus
@@ -62,6 +66,8 @@ import java.util.Locale
 import java.util.UUID
 import kotlin.math.roundToInt
 
+private const val DEFAULT_ACCENT_ARGB = -16721419 // 0xFF00D9F5 (Electric Cyan)
+
 enum class PulseFeedTab(val label: String) {
     LIVE("Corridors"),
     FORECAST("Forecast"),
@@ -86,6 +92,9 @@ data class MediaPlayerState(
     val externalAlbum: String? = null,
     val externalDurationSec: Int? = null,
     val externalPositionSec: Int? = null,
+    val externalAppLabel: String? = null,
+    val externalArtwork: Bitmap? = null,
+    val externalAccentArgb: Int = DEFAULT_ACCENT_ARGB,
     val userStartedLocalPlayback: Boolean = false
 ) {
     val currentTrack: MediaTrack
@@ -97,7 +106,7 @@ data class MediaPlayerState(
                 album = externalAlbum.orEmpty(),
                 durationSec = (externalDurationSec ?: 1).coerceAtLeast(1),
                 source = activeSessionSource,
-                adaptiveColor = ElectricCyan,
+                adaptiveColor = androidx.compose.ui.graphics.Color(externalAccentArgb),
                 artVariant = 0
             )
         } else if (userStartedLocalPlayback) {
@@ -217,6 +226,7 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
     private val aiRepo = AuvionyxAiRepository()
     private val telemetryProvider = TelemetryProvider(application)
     private val destinationSearchRepo = DestinationSearchRepository(application)
+    private val offRouteGuard = OffRouteGuard()
     private val mediaSessionBridge = MediaSessionBridge(application)
 
     val settings: StateFlow<AuvionyxSettingsState> = prefsRepo.settingsFlow
@@ -311,6 +321,7 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
     private var gpsJob: Job? = null
     private var voiceJob: Job? = null
     private var routeJob: Job? = null
+    private var suggestionJob: Job? = null
     private var lastReverseGeocodeLatLon: Pair<Double, Double>? = null
     private var lastWeatherFetchMs: Long = 0L
 
@@ -366,7 +377,7 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
             _mapsPulse.update { state ->
                 val updatedRoutes = listOf(
                     RouteAlternative(
-                        id = "gmaps_live_route",
+                        id = "external_live_route",
                         name = liveNav.headline,
                         viaRoad = liveNav.turnInstruction,
                         durationMin = liveNav.remainingMinutes ?: 0,
@@ -380,14 +391,14 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
                     destinationQuery = liveNav.headline,
                     isNavigating = true,
                     isExternalGoogleMapsSyncActive = true,
-                    navigationSourceLabel = "Google Maps Sync",
+                    navigationSourceLabel = "${liveNav.providerLabel} Sync",
                     mapsServiceState = ServiceAvailabilityState.LIVE,
                     routes = updatedRoutes,
                     destinationSearchMessage = liveNav.remainingSummary.ifBlank { liveNav.turnInstruction }
                 )
             }
         } else if (_mapsPulse.value.isExternalGoogleMapsSyncActive) {
-            // Google Maps navigation ended
+            // External navigation provider stopped publishing an active navigation notification
             val hasCustomRoute = _mapsPulse.value.confirmedDestination != null
             _mapsPulse.update { state ->
                 state.copy(
@@ -403,7 +414,7 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
                     it.copy(
                         nextTurnDistanceLabel = "--",
                         nextTurnRoad = "No Active Route",
-                        nextTurnInstruction = "Set a destination in Google Maps or via Voice",
+                        nextTurnInstruction = "Start navigation in Google Maps, Waze or Mappls",
                         etaTimeLabel = "--:--",
                         remainingMinutes = 0,
                         remainingDistanceKm = 0f,
@@ -429,7 +440,10 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
                     externalArtist = snap.artist,
                     externalAlbum = snap.album,
                     externalDurationSec = snap.durationSec,
-                    externalPositionSec = snap.positionSec
+                    externalPositionSec = snap.positionSec,
+                    externalAppLabel = snap.appLabel,
+                    externalArtwork = snap.artwork,
+                    externalAccentArgb = snap.artworkAccentArgb
                 )
             }
         } else {
@@ -441,7 +455,10 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
                     externalArtist = null,
                     externalAlbum = null,
                     externalDurationSec = null,
-                    externalPositionSec = null
+                    externalPositionSec = null,
+                    externalAppLabel = null,
+                    externalArtwork = null,
+                    externalAccentArgb = DEFAULT_ACCENT_ARGB
                 )
             }
         }
@@ -546,31 +563,62 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
             gpsJob = viewModelScope.launch {
                 telemetryProvider.observeGpsLocation().collect { reading ->
                     if (reading != null) {
-                        val cardinal = bearingToCardinal(reading.bearingDeg)
+                        val isFreshLiveFix = GpsReadingPolicy.isFreshLiveFix(
+                            isLastKnown = reading.isLastKnown,
+                            ageMillis = reading.ageMillis
+                        )
                         val latLon = reading.latitude to reading.longitude
                         _telemetry.update { current ->
+                            val stableHeading = if (reading.hasBearing) {
+                                GpsReadingPolicy.stabilizedHeading(
+                                    previousDegrees = current.headingDegrees,
+                                    targetDegrees = reading.bearingDeg,
+                                    speedKmh = reading.speedKmh
+                                )
+                            } else {
+                                current.headingDegrees
+                            }
                             current.copy(
-                                speedKmh = reading.speedKmh,
-                                headingDegrees = reading.bearingDeg,
-                                headingCardinal = cardinal,
+                                speedKmh = if (isFreshLiveFix) reading.speedKmh else 0,
+                                headingDegrees = stableHeading,
+                                headingCardinal = bearingToCardinal(stableHeading),
                                 gpsAccuracyMeters = reading.accuracyMeters,
-                                isLiveGpsActive = true,
-                                isSimulationRunning = false
+                                isLiveGpsActive = isFreshLiveFix,
+                                isLocationFallback = !isFreshLiveFix,
+                                isSimulationRunning = false,
+                                currentLocationLabel = if (isFreshLiveFix) current.currentLocationLabel else "GPS pending"
                             )
                         }
                         _mapsPulse.update { state ->
                             val confirmed = state.confirmedDestination
                             val cLat = confirmed?.latitude
                             val cLon = confirmed?.longitude
-                            val updatedDist = if (cLat != null && cLon != null && !state.isExternalGoogleMapsSyncActive) {
-                                DestinationSearchRepository.haversineKm(
-                                    reading.latitude,
-                                    reading.longitude,
-                                    cLat,
-                                    cLon
+                            val routeMatch = if (state.routePolylineGeo.size >= 2) {
+                                RouteMatcher.matchLocationToRoute(
+                                    latitude = reading.latitude,
+                                    longitude = reading.longitude,
+                                    route = state.routePolylineGeo
                                 )
                             } else {
                                 null
+                            }
+                            val acceptableRouteMatch = routeMatch?.takeIf {
+                                val accuracyAllowance = (reading.accuracyMeters ?: 0f) * 2.0
+                                it.distanceToRouteMeters <= maxOf(75.0, accuracyAllowance)
+                            }
+                            val updatedDist = when {
+                                acceptableRouteMatch != null -> {
+                                    (acceptableRouteMatch.remainingDistanceMeters / 1000.0).toFloat()
+                                }
+                                cLat != null && cLon != null && !state.isExternalGoogleMapsSyncActive -> {
+                                    DestinationSearchRepository.haversineKm(
+                                        reading.latitude,
+                                        reading.longitude,
+                                        cLat,
+                                        cLon
+                                    )
+                                }
+                                else -> null
                             }
                             if (updatedDist != null) {
                                 _telemetry.update { t ->
@@ -579,7 +627,11 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
                             }
                             state.copy(
                                 currentLatLon = latLon,
-                                gpsServiceState = ServiceAvailabilityState.LIVE,
+                                gpsServiceState = if (isFreshLiveFix) {
+                                    ServiceAvailabilityState.LIVE
+                                } else {
+                                    ServiceAvailabilityState.API_UNAVAILABLE
+                                },
                                 mapsServiceState = if (state.routePolylineGeo.isNotEmpty() || state.isExternalGoogleMapsSyncActive || destinationSearchRepo.isNetworkOnline()) {
                                     ServiceAvailabilityState.LIVE
                                 } else {
@@ -587,9 +639,45 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
                                 }
                             )
                         }
-                        maybeReverseGeocodeAndWeather(reading.latitude, reading.longitude)
+                        val routeState = _mapsPulse.value
+                        val routeMatchForGuard = if (
+                            isFreshLiveFix &&
+                            routeState.isNavigating &&
+                            !routeState.isExternalGoogleMapsSyncActive &&
+                            routeState.routePolylineGeo.size >= 2
+                        ) {
+                            RouteMatcher.matchLocationToRoute(
+                                latitude = reading.latitude,
+                                longitude = reading.longitude,
+                                route = routeState.routePolylineGeo
+                            )
+                        } else {
+                            null
+                        }
+                        val shouldAutoReroute = if (routeMatchForGuard != null) {
+                            offRouteGuard.shouldReroute(
+                                distanceToRouteMeters = routeMatchForGuard.distanceToRouteMeters,
+                                accuracyMeters = reading.accuracyMeters,
+                                nowMillis = System.currentTimeMillis()
+                            )
+                        } else {
+                            offRouteGuard.reset()
+                            false
+                        }
+                        if (shouldAutoReroute) {
+                            routeState.confirmedDestination?.let { computeOsrmRouteToDestination(it) }
+                        }
+                        if (isFreshLiveFix) {
+                            val pendingDestination = _mapsPulse.value.confirmedDestination
+                            if (pendingDestination != null && _mapsPulse.value.routePolylineGeo.size < 2 && routeJob?.isActive != true) {
+                                computeOsrmRouteToDestination(pendingDestination)
+                            }
+                            maybeReverseGeocodeAndWeather(reading.latitude, reading.longitude)
+                        }
                     } else {
-                        _telemetry.update { it.copy(isLiveGpsActive = false) }
+                        _telemetry.update {
+                            it.copy(isLiveGpsActive = false, isLocationFallback = false, speedKmh = 0)
+                        }
                         _mapsPulse.update {
                             it.copy(
                                 gpsServiceState = if (settings.value.demoSimulationEnabled) {
@@ -625,7 +713,7 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
                         currentLocationLabel = placeName ?: String.format(Locale.US, "%.4f, %.4f", lat, lon)
                     )
                 }
-                // Recompute OSRM route if destination set without polyline yet
+                // Recompute the live Valhalla/OSRM route if destination is set without a polyline yet
                 val dest = _mapsPulse.value.confirmedDestination
                 if (dest != null && _mapsPulse.value.routePolylineGeo.isEmpty() && !_mapsPulse.value.isExternalGoogleMapsSyncActive) {
                     computeOsrmRouteToDestination(dest)
@@ -683,6 +771,9 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
                                 externalAlbum = null,
                                 externalDurationSec = null,
                                 externalPositionSec = null,
+                                externalAppLabel = null,
+                                externalArtwork = null,
+                                externalAccentArgb = DEFAULT_ACCENT_ARGB,
                                 isPlaying = false
                             )
                         } else if (!state.isPlaying || !state.userStartedLocalPlayback) {
@@ -724,16 +815,6 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
                             tirePsi = if (current.tirePsi.isEmpty()) listOf(34, 34, 33, 33) else current.tirePsi,
                             isSimulationRunning = true
                         )
-                    }
-                    _mapsPulse.update { state ->
-                        if (state.routes.isEmpty() && state.confirmedDestination == null && !state.isExternalGoogleMapsSyncActive) {
-                            state.copy(
-                                routes = AuvionyxSampleData.routes,
-                                markers = AuvionyxSampleData.placeMarkers,
-                                incidents = AuvionyxSampleData.incidents,
-                                navigationSourceLabel = "Demo Preview"
-                            )
-                        } else state
                     }
                 } else {
                     _telemetry.update { current ->
@@ -914,9 +995,11 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
                 destinationCandidates = emptyList(),
                 destinationSearchState = ServiceAvailabilityState.LIVE,
                 destinationSearchMessage = candidate.addressSummary,
-                isNavigating = true,
+                isNavigating = false,
                 isExternalGoogleMapsSyncActive = false,
-                navigationSourceLabel = "Live Geocoder Route",
+                navigationSourceLabel = "Waiting for GPS fix",
+                routePolylineGeo = emptyList(),
+                routes = emptyList(),
                 mapsServiceState = ServiceAvailabilityState.LIVE
             )
         }
@@ -925,6 +1008,7 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
                 nextTurnDistanceLabel = if (approxKm > 0f) String.format(Locale.US, "%.1f km", approxKm) else "--",
                 nextTurnRoad = candidate.name,
                 nextTurnInstruction = candidate.addressSummary,
+                destinationLabel = candidate.name,
                 remainingDistanceKm = approxKm,
                 remainingMinutes = approxMin,
                 etaTimeLabel = etaStr
@@ -958,48 +1042,38 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
     }
 
     private fun computeOsrmRouteToDestination(candidate: DestinationCandidate) {
-        val currentGeo = _mapsPulse.value.currentLatLon ?: return
-        val endLat = candidate.latitude ?: return
-        val endLon = candidate.longitude ?: return
-        routeJob?.cancel()
+        val endLat = candidate.latitude
+        val endLon = candidate.longitude
+        if (endLat == null || endLon == null) {
+            _mapsPulse.update { it.copy(isNavigating = false, navigationSourceLabel = "Route unavailable", destinationSearchMessage = "This search result has no usable coordinates. Choose another result.") }
+            return
+        }
+        val currentGeo = _mapsPulse.value.currentLatLon
+        if (currentGeo == null || !_telemetry.value.isLiveGpsActive || _telemetry.value.isLocationFallback) {
+            _mapsPulse.update { it.copy(isNavigating = false, navigationSourceLabel = "Waiting for GPS fix", destinationSearchMessage = "Destination selected. Waiting for a fresh GPS fix before calculating your route.") }
+            return
+        }
+        if (routeJob?.isActive == true) return
         routeJob = viewModelScope.launch {
-            val liveRoute = destinationSearchRepo.fetchDrivingRoute(
-                startLat = currentGeo.first,
-                startLon = currentGeo.second,
-                endLat = endLat,
-                endLon = endLon,
-                destinationFallbackName = candidate.name
-            )
-            if (liveRoute != null) {
-                val routeItem = RouteAlternative(
-                    id = "osrm_primary",
-                    name = candidate.name,
-                    viaRoad = liveRoute.nextTurnRoad,
-                    durationMin = liveRoute.durationMinutes,
-                    distanceKm = liveRoute.distanceKm,
-                    etaLabel = liveRoute.etaTimeLabel,
-                    trafficState = TrafficSeverity.CLEAR,
-                    isSelected = true
+            _mapsPulse.update { it.copy(isNavigating = false, navigationSourceLabel = "Calculating route", destinationSearchMessage = "Calculating a driving route…") }
+            try {
+                val liveRoute = destinationSearchRepo.fetchDrivingRoute(
+                    startLat = currentGeo.first, startLon = currentGeo.second,
+                    endLat = endLat, endLon = endLon, destinationFallbackName = candidate.name
                 )
-                _mapsPulse.update {
-                    it.copy(
-                        routePolylineGeo = liveRoute.polylinePoints,
-                        routes = listOf(routeItem),
-                        mapsServiceState = ServiceAvailabilityState.LIVE,
-                        navigationSourceLabel = "OSRM Live Route"
-                    )
+                if (liveRoute == null || liveRoute.polylinePoints.size < 2) {
+                    _mapsPulse.update { it.copy(isNavigating = false, navigationSourceLabel = "Route unavailable", mapsServiceState = ServiceAvailabilityState.API_UNAVAILABLE, destinationSearchMessage = "The routing service did not return a drivable route. Check your internet connection and try again.") }
+                    return@launch
                 }
-                _telemetry.update {
-                    it.copy(
-                        nextTurnDistanceLabel = liveRoute.nextTurnDistanceLabel,
-                        nextTurnRoad = liveRoute.nextTurnRoad,
-                        nextTurnInstruction = liveRoute.nextTurnInstruction,
-                        remainingDistanceKm = liveRoute.distanceKm,
-                        remainingMinutes = liveRoute.durationMinutes,
-                        etaTimeLabel = liveRoute.etaTimeLabel,
-                        journeyProgress = 0.05f
-                    )
-                }
+                val routeItem = RouteAlternative(
+                    id = "osrm_primary", name = candidate.name, viaRoad = liveRoute.nextTurnRoad,
+                    durationMin = liveRoute.durationMinutes, distanceKm = liveRoute.distanceKm,
+                    etaLabel = liveRoute.etaTimeLabel, trafficState = TrafficSeverity.CLEAR, isSelected = true
+                )
+                _mapsPulse.update { it.copy(routePolylineGeo = liveRoute.polylinePoints, routes = listOf(routeItem), isNavigating = true, mapsServiceState = ServiceAvailabilityState.LIVE, navigationSourceLabel = "LumaNav · ${liveRoute.routingProvider}", destinationSearchMessage = "Route ready · " + liveRoute.distanceKm + " km · " + liveRoute.durationMinutes + " min") }
+                _telemetry.update { it.copy(nextTurnDistanceLabel = liveRoute.nextTurnDistanceLabel, nextTurnRoad = liveRoute.nextTurnRoad, nextTurnInstruction = liveRoute.nextTurnInstruction, remainingDistanceKm = liveRoute.distanceKm, remainingMinutes = liveRoute.durationMinutes, etaTimeLabel = liveRoute.etaTimeLabel, journeyProgress = 0f) }
+            } finally {
+                routeJob = null
             }
         }
     }
@@ -1098,6 +1172,10 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
     // Settings Persistence
     fun setAdaptiveAlbumColors(enabled: Boolean) {
         viewModelScope.launch { prefsRepo.setAdaptiveAlbumColors(enabled) }
+    }
+
+    fun setDaylightHighContrast(enabled: Boolean) {
+        viewModelScope.launch { prefsRepo.setDaylightHighContrast(enabled) }
     }
 
     fun setReducedMotion(enabled: Boolean) {
@@ -1343,6 +1421,68 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
         publishVoiceCommandRecognised(outcome)
     }
 
+    fun updateMapsDestinationQuery(query: String) {
+        suggestionJob?.cancel()
+        _mapsPulse.update {
+            it.copy(
+                destinationQuery = query,
+                destinationCandidates = emptyList(),
+                destinationSearchState = null,
+                destinationSearchMessage = null
+            )
+        }
+        val clean = query.trim()
+        if (clean.length < 3) return
+        suggestionJob = viewModelScope.launch {
+            kotlinx.coroutines.delay(450L)
+            val origin = _mapsPulse.value.currentLatLon
+            when (val outcome = destinationSearchRepo.searchDestination(clean, origin?.first, origin?.second)) {
+                is DestinationSearchOutcome.Matches -> {
+                    if (_mapsPulse.value.destinationQuery.trim() == clean) {
+                        _mapsPulse.update {
+                            it.copy(
+                                destinationCandidates = outcome.candidates,
+                                destinationSearchState = outcome.serviceState,
+                                destinationSearchMessage = if (outcome.candidates.isEmpty()) "No matching places yet." else "Suggestions · select a destination"
+                            )
+                        }
+                    }
+                }
+                is DestinationSearchOutcome.Unavailable -> {
+                    if (_mapsPulse.value.destinationQuery.trim() == clean) {
+                        _mapsPulse.update {
+                            it.copy(
+                                destinationCandidates = emptyList(),
+                                destinationSearchState = outcome.serviceState,
+                                destinationSearchMessage = outcome.reason
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    fun searchDestinationFromMaps(query: String) {
+        val clean = query.trim()
+        if (clean.isEmpty()) {
+            _mapsPulse.update {
+                it.copy(
+                    destinationSearchState = ServiceAvailabilityState.API_UNAVAILABLE,
+                    destinationSearchMessage = "Enter a destination to search.",
+                    destinationCandidates = emptyList()
+                )
+            }
+            return
+        }
+        performRealDestinationSearch(
+            query = clean,
+            action = VoiceCommandAction.NAVIGATE_TO,
+            recognizedPhrase = clean,
+            usedGemini = false
+        )
+    }
+
     private fun performRealDestinationSearch(
         query: String,
         action: VoiceCommandAction,
@@ -1355,7 +1495,7 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
                 it.copy(
                     destinationQuery = query,
                     destinationSearchState = null,
-                    destinationSearchMessage = "Looking up \"$query\" via Android Geocoder…",
+                    destinationSearchMessage = "Searching OpenStreetMap places for \"$query\"…",
                     destinationCandidates = emptyList()
                 )
             }
@@ -1644,7 +1784,7 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
                     category = VoiceCommandCategory.VEHICLE,
                     action = command.action,
                     recognizedPhrase = recognizedPhrase,
-                    confirmationTitle = customConfirmation ?: "Opening Auvionyx HUD",
+                    confirmationTitle = customConfirmation ?: "Opening LumaNav HUD",
                     confirmationDetail = "Minimalist HUD active.",
                     serviceState = _mapsPulse.value.gpsServiceState,
                     usedGeminiInterpreter = usedGemini
@@ -1686,7 +1826,7 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
                     category = VoiceCommandCategory.INTERFACE,
                     action = command.action,
                     recognizedPhrase = recognizedPhrase,
-                    confirmationTitle = customConfirmation ?: "Opening Auvionyx Maps",
+                    confirmationTitle = customConfirmation ?: "Opening LumaNav Maps",
                     confirmationDetail = "Navigation ready.",
                     serviceState = _mapsPulse.value.mapsServiceState,
                     usedGeminiInterpreter = usedGemini
@@ -1699,7 +1839,7 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
                     category = VoiceCommandCategory.INTERFACE,
                     action = command.action,
                     recognizedPhrase = recognizedPhrase,
-                    confirmationTitle = customConfirmation ?: "Opening Auvionyx Music",
+                    confirmationTitle = customConfirmation ?: "Opening LumaNav Music",
                     confirmationDetail = "Unified Media Hub displayed.",
                     serviceState = _mediaState.value.bridgeStatus.serviceState,
                     usedGeminiInterpreter = usedGemini

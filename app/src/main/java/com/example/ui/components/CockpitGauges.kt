@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -131,7 +132,7 @@ fun ActiveSpeedometerCard(
                     .fillMaxHeight(),
                 contentAlignment = Alignment.Center
             ) {
-                val dialDiameter = minOf(maxWidth, maxHeight).coerceAtMost(210.dp)
+                val dialDiameter = minOf(maxWidth, maxHeight).coerceAtMost(192.dp)
                 Box(
                     modifier = Modifier.size(dialDiameter),
                     contentAlignment = Alignment.Center
@@ -590,7 +591,7 @@ fun CockpitMediaPlayerCard(
                     ),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(24.dp)
+                        .height(48.dp)
                 )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -894,7 +895,7 @@ fun IdleNextTurnPill(
 
                 Text(
                     text = if (remainingMinutes > 0) {
-                        "$remainingMinutes min  ·  $remainingDistanceKm km"
+                        "$remainingMinutes min  ·  ${formatNavigationDistance(remainingDistanceKm)}"
                     } else {
                         "Route Ready"
                     },

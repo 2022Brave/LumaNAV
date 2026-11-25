@@ -76,7 +76,7 @@ import com.example.ui.theme.TextMuted
 import com.example.ui.theme.TextSecondary
 
 /**
- * Halo HUD Auvionyx Voice Screen:
+ * Halo HUD LumaNav Voice Screen:
  * Minimalist voice orb left + tabbed single-category voice triggers & quiet service telemetry right.
  * Zero keyboard/text inputs, zero chat history, strict native SpeechRecognizer/Geocoder honesty.
  */
@@ -169,11 +169,11 @@ fun VoiceScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.GraphicEq,
-                            contentDescription = "Auvionyx Voice",
+                            contentDescription = "LumaNav Voice",
                             tint = ElectricCyan,
                             modifier = Modifier.size(20.dp)
                         )
-                        Text("Auvionyx Voice", style = MaterialTheme.typography.titleLarge, color = GlassWhite)
+                        Text("LumaNav Voice", style = MaterialTheme.typography.titleLarge, color = GlassWhite)
                     }
 
                     Row(

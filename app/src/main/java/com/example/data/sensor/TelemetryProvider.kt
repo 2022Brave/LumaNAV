@@ -19,7 +19,10 @@ data class LiveGpsReading(
     val bearingDeg: Int,
     val accuracyMeters: Float?,
     val latitude: Double,
-    val longitude: Double
+    val longitude: Double,
+    val isLastKnown: Boolean = false,
+    val ageMillis: Long = 0L,
+    val hasBearing: Boolean = false
 )
 
 class TelemetryProvider(private val context: Context) {
@@ -45,6 +48,7 @@ class TelemetryProvider(private val context: Context) {
 
     @SuppressLint("MissingPermission")
     fun observeGpsLocation(): Flow<LiveGpsReading?> = callbackFlow {
+        var lastAcceptedTimestampMillis = 0L
         if (!hasLocationPermission()) {
             trySend(null)
             close()
@@ -58,44 +62,62 @@ class TelemetryProvider(private val context: Context) {
             return@callbackFlow
         }
 
+        fun emitLocation(location: Location, isLastKnown: Boolean) {
+            val ageMillis = (System.currentTimeMillis() - location.time).coerceAtLeast(0L)
+            val accuracy = if (location.hasAccuracy()) location.accuracy else null
+            if (!isLastKnown && location.time < lastAcceptedTimestampMillis) return
+            if (!GpsReadingPolicy.isAcceptableFix(
+                    latitude = location.latitude,
+                    longitude = location.longitude,
+                    accuracyMeters = accuracy,
+                    ageMillis = ageMillis,
+                    isLastKnown = isLastKnown
+                )
+            ) return
+
+            lastAcceptedTimestampMillis = maxOf(lastAcceptedTimestampMillis, location.time)
+            val speedKmh = if (location.hasSpeed()) {
+                (location.speed * 3.6f).roundToInt().coerceAtLeast(0)
+            } else {
+                0
+            }
+            val hasBearing = location.hasBearing()
+            trySend(
+                LiveGpsReading(
+                    speedKmh = speedKmh,
+                    bearingDeg = if (hasBearing) location.bearing.roundToInt() else 0,
+                    accuracyMeters = accuracy,
+                    latitude = location.latitude,
+                    longitude = location.longitude,
+                    isLastKnown = isLastKnown,
+                    ageMillis = ageMillis,
+                    hasBearing = hasBearing
+                )
+            )
+        }
+
         val listener = object : LocationListener {
             override fun onLocationChanged(location: Location) {
-                val speedKmh = if (location.hasSpeed()) {
-                    (location.speed * 3.6f).roundToInt().coerceAtLeast(0)
-                } else {
-                    0
-                }
-                val bearing = if (location.hasBearing()) {
-                    location.bearing.roundToInt()
-                } else {
-                    0
-                }
-                val accuracy = if (location.hasAccuracy()) location.accuracy else null
-                trySend(
-                    LiveGpsReading(
-                        speedKmh = speedKmh,
-                        bearingDeg = bearing,
-                        accuracyMeters = accuracy,
-                        latitude = location.latitude,
-                        longitude = location.longitude
-                    )
-                )
+                emitLocation(location, isLastKnown = false)
             }
         }
 
         val providers = listOfNotNull(
-            LocationManager.GPS_PROVIDER.takeIf { runCatching { locationManager.isProviderEnabled(it) }.getOrDefault(false) },
-            LocationManager.NETWORK_PROVIDER.takeIf { runCatching { locationManager.isProviderEnabled(it) }.getOrDefault(false) }
+            LocationManager.GPS_PROVIDER.takeIf {
+                runCatching { locationManager.isProviderEnabled(it) }.getOrDefault(false)
+            },
+            LocationManager.NETWORK_PROVIDER.takeIf {
+                runCatching { locationManager.isProviderEnabled(it) }.getOrDefault(false)
+            }
         )
 
         if (providers.isNotEmpty()) {
-            // Emit freshest lastKnownLocation across all enabled providers immediately
-            val bestLast = providers
+            // A recent system-cached fix can center the map while fresh GPS is acquired.
+            // It is explicitly marked as fallback and never reported as a live fix.
+            val bestLastKnown = providers
                 .mapNotNull { runCatching { locationManager.getLastKnownLocation(it) }.getOrNull() }
                 .maxByOrNull { it.time }
-            if (bestLast != null) {
-                listener.onLocationChanged(bestLast)
-            }
+            bestLastKnown?.let { emitLocation(it, isLastKnown = true) }
 
             providers.forEach { provider ->
                 runCatching {

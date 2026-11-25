@@ -15,14 +15,12 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.DirectionsCar
 import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.MusicNote
 import androidx.compose.material.icons.outlined.Navigation
 import androidx.compose.material.icons.outlined.Nightlight
 import androidx.compose.material.icons.outlined.Phone
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Speed
-import androidx.compose.material.icons.outlined.Traffic
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -55,15 +53,13 @@ fun AppsDrawerScreen(
 ) {
     val accent = LocalAuvionyxPalette.current.accentPrimary
     val entries = listOf(
-        AppLauncherEntry("Auvionyx Drive", "Split Cockpit", Icons.Outlined.Home, AuvionyxModule.DRIVE, "app_drive"),
-        AppLauncherEntry("Auvionyx Maps", "Navigation & Routes", Icons.Outlined.Navigation, AuvionyxModule.MAPS, "app_maps"),
-        AppLauncherEntry("Auvionyx Music", "Unified Media Hub", Icons.Outlined.MusicNote, AuvionyxModule.MUSIC, "app_music"),
-        AppLauncherEntry("Auvionyx HUD", "Heads-Up & Designer", Icons.Outlined.Speed, AuvionyxModule.HUD, "app_hud"),
-        AppLauncherEntry("Auvionyx Pulse", "Traffic Pulse & Alerts", Icons.Outlined.Traffic, AuvionyxModule.PULSE, "app_pulse"),
-        AppLauncherEntry("Auvionyx Voice", "Hands-Free Control", Icons.Outlined.Mic, AuvionyxModule.VOICE, "app_voice"),
-        AppLauncherEntry("Auvionyx AOD", "Ambient Display", Icons.Outlined.Nightlight, AuvionyxModule.AOD, "app_aod"),
-        AppLauncherEntry("Auvionyx Vehicle", "Range & Climate", Icons.Outlined.DirectionsCar, AuvionyxModule.VEHICLE, "app_vehicle"),
-        AppLauncherEntry("Auvionyx Settings", "System & Designer", Icons.Outlined.Settings, AuvionyxModule.SETTINGS, "app_settings"),
+        AppLauncherEntry("LumaNav Drive", "Split Cockpit", Icons.Outlined.Home, AuvionyxModule.DRIVE, "app_drive"),
+        AppLauncherEntry("LumaNav Maps", "Navigation & Routes", Icons.Outlined.Navigation, AuvionyxModule.MAPS, "app_maps"),
+        AppLauncherEntry("LumaNav Music", "Unified Media Hub", Icons.Outlined.MusicNote, AuvionyxModule.MUSIC, "app_music"),
+        AppLauncherEntry("LumaNav HUD", "Heads-Up & Designer", Icons.Outlined.Speed, AuvionyxModule.HUD, "app_hud"),
+        AppLauncherEntry("LumaNav AOD", "Ambient Display", Icons.Outlined.Nightlight, AuvionyxModule.AOD, "app_aod"),
+        AppLauncherEntry("LumaNav Vehicle", "Range & Climate", Icons.Outlined.DirectionsCar, AuvionyxModule.VEHICLE, "app_vehicle"),
+        AppLauncherEntry("LumaNav Settings", "System & Designer", Icons.Outlined.Settings, AuvionyxModule.SETTINGS, "app_settings"),
         AppLauncherEntry("Phone Dialer", "Android System Call", Icons.Outlined.Phone, null, "app_phone")
     )
 
@@ -71,12 +67,13 @@ fun AppsDrawerScreen(
         modifier = modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Text("Auvionyx Ecosystem", style = MaterialTheme.typography.headlineMedium, color = GlassWhite)
+        Text("LumaNav Cockpit", style = MaterialTheme.typography.headlineMedium, color = GlassWhite)
         LazyVerticalGrid(
             columns = GridCells.Fixed(if (isLandscapeWide) 5 else 2),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier.weight(1f).fillMaxWidth(),
+            contentPadding = PaddingValues(bottom = 28.dp)
         ) {
             items(entries, key = { it.testTag }) { item ->
                 GlassCard(
@@ -88,7 +85,7 @@ fun AppsDrawerScreen(
                             if (item.module != null) onSelectModule(item.module) else onOpenPhoneDialer()
                         },
                     cornerRadius = 22.dp,
-                    highlighted = item.module == AuvionyxModule.VOICE,
+                    highlighted = false,
                     contentPadding = PaddingValues(14.dp)
                 ) {
                     Column(

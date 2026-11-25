@@ -33,6 +33,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -74,6 +76,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -661,7 +664,7 @@ fun TrafficPulseBadge(
 
 /**
  * Authoritative Top Branding & Status Bar matching Active & Idle Cockpit blueprints:
- * - Left: Velocity A + AUVIONYX wordmark
+ * - Left: Velocity A + LumaNav wordmark
  * - Bottom center: Subtle Electric Cyan horizon shimmer hairline
  * - Right: Stacked Time/Date, Divider, Weather Icon + Temp + Locality, Signal, Wi-Fi, Bluetooth, Settings gear
  */
@@ -690,9 +693,9 @@ fun GlassTopStatusBar(
     val localityDisplay = when {
         isLiveGps && !currentLocation.contains("Acquiring", ignoreCase = true) ->
             currentLocation.substringBefore(",").take(18)
-        else -> "Noida (Demo)"
+        else -> "GPS pending"
     }
-    val tempDisplay = weatherTempC ?: 24
+    val tempDisplay = weatherTempC?.let { "${it}°C" } ?: "--"
 
     Box(
         modifier = modifier
@@ -723,7 +726,7 @@ fun GlassTopStatusBar(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            // Left: Official Velocity A + AUVIONYX wordmark (tap for AOD)
+            // Left: LumaNav wordmark (tap for AOD)
             VelocityACompactWordmark(
                 modifier = Modifier
                     .testTag("top_aod_button")
@@ -765,9 +768,9 @@ fun GlassTopStatusBar(
                         tint = IceBlue,
                         modifier = Modifier.size(20.dp)
                     )
-                    Column {
+                    Column(modifier = Modifier.width(116.dp)) {
                         Text(
-                            text = "${tempDisplay}°C",
+                            text = tempDisplay,
                             style = MaterialTheme.typography.titleMedium,
                             color = GlassWhite
                         )
@@ -776,6 +779,7 @@ fun GlassTopStatusBar(
                             style = MaterialTheme.typography.labelSmall,
                             color = TextSecondary,
                             maxLines = 1,
+                            softWrap = false,
                             overflow = TextOverflow.Ellipsis
                         )
                     }
@@ -839,7 +843,7 @@ fun GlassNavigationRail(
         Triple(AuvionyxModule.DRIVE, Icons.Outlined.Home, "Home"),
         Triple(AuvionyxModule.MAPS, Icons.Outlined.Navigation, "Maps"),
         Triple(AuvionyxModule.MUSIC, Icons.Outlined.MusicNote, "Music"),
-        Triple(AuvionyxModule.VEHICLE, Icons.Outlined.DirectionsCar, "Vehicle"),
+        Triple(AuvionyxModule.HUD, Icons.Outlined.Speed, "HUD"),
         Triple(AuvionyxModule.APPS, Icons.Outlined.Apps, "Apps"),
         Triple(AuvionyxModule.SETTINGS, Icons.Outlined.Settings, "Settings")
     )
@@ -852,8 +856,11 @@ fun GlassNavigationRail(
         contentPadding = PaddingValues(vertical = 12.dp, horizontal = 6.dp)
     ) {
         Column(
-            modifier = Modifier.fillMaxHeight(),
-            verticalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier
+                .fillMaxHeight()
+                .heightIn(min = 328.dp)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             railItems.forEach { (module, icon, label) ->
@@ -868,7 +875,7 @@ fun GlassNavigationRail(
                     Icon(
                         imageVector = if (module == AuvionyxModule.DRIVE && selected) Icons.Filled.Home else icon,
                         contentDescription = label,
-                        tint = if (selected) GlassWhite else TextSecondary,
+                        tint = if (selected) GlassWhite else GlassWhite.copy(alpha = 0.82f),
                         modifier = Modifier.size(22.dp)
                     )
                 }
@@ -879,15 +886,13 @@ fun GlassNavigationRail(
 
 /**
  * Full-Width Floating Bottom Navigation Dock matching Image 3 Active Cockpit blueprint:
- * [ Phone ] [ Maps ] [ Music ] ( Cyan Mic Orb ) [ HUD ] [ Apps ]
+ * [ Phone ] [ Maps ] [ Music ] [ HUD ] [ Apps ]
  */
 @Composable
 fun GlassBottomDock(
     activeModule: AuvionyxModule,
     onSelectModule: (AuvionyxModule) -> Unit,
     onOpenPhoneDialer: () -> Unit,
-    onActivateVoice: () -> Unit,
-    isVoiceActive: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val palette = LocalAuvionyxPalette.current
@@ -965,47 +970,6 @@ fun GlassBottomDock(
                 modifier = Modifier.weight(1f)
             )
 
-            // Center Illuminated Cyan Voice Mic Orb (replaces separate floating FAB clutter)
-            Box(
-                modifier = Modifier
-                    .padding(horizontal = 10.dp)
-                    .size(56.dp)
-                    .minimumInteractiveComponentSize()
-                    .testTag("dock_voice_orb")
-                    .drawBehind {
-                        drawCircle(
-                            brush = Brush.radialGradient(
-                                colors = listOf(accent.copy(alpha = 0.55f), Color.Transparent),
-                                radius = size.maxDimension * 0.95f
-                            )
-                        )
-                    }
-                    .clip(CircleShape)
-                    .background(
-                        Brush.radialGradient(
-                            colors = listOf(
-                                accent.copy(alpha = if (isVoiceActive) 0.55f else 0.30f),
-                                DeepBlue.copy(alpha = 0.65f),
-                                Color(0xFF040A14)
-                            )
-                        )
-                    )
-                    .border(
-                        width = 1.8.dp,
-                        brush = Brush.linearGradient(listOf(GlassWhite.copy(alpha = 0.85f), accent, IceBlue)),
-                        shape = CircleShape
-                    )
-                    .auvionyxBounceClick(onClick = onActivateVoice),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.Mic,
-                    contentDescription = "Activate Auvionyx Voice",
-                    tint = accent,
-                    modifier = Modifier.size(26.dp)
-                )
-            }
-
             DockShortcutItem(
                 icon = Icons.Outlined.Speed,
                 label = "HUD",
@@ -1020,6 +984,14 @@ fun GlassBottomDock(
                 selected = activeModule == AuvionyxModule.APPS,
                 testTag = "dock_apps",
                 onClick = { onSelectModule(AuvionyxModule.APPS) },
+                modifier = Modifier.weight(1f)
+            )
+            DockShortcutItem(
+                icon = Icons.Outlined.Settings,
+                label = "Settings",
+                selected = activeModule == AuvionyxModule.SETTINGS,
+                testTag = "dock_settings",
+                onClick = { onSelectModule(AuvionyxModule.SETTINGS) },
                 modifier = Modifier.weight(1f)
             )
         }

@@ -1,15 +1,15 @@
 <resources>
-    <string name="app_name">AUVIONYX</string>
-    <string name="brand_tagline">Intelligence in Motion.</string>
+    <string name="app_name">LumaNAV</string>
+    <string name="brand_tagline">Find your way. Feel the drive.</string>
     <string name="boot_powering_up">Powering Up…</string>
     <string name="skip_boot">Skip</string>
-    <string name="cd_velocity_a_logo">Auvionyx Velocity A Logo</string>
+    <string name="cd_velocity_a_logo">LumaNAV navigation logo</string>
     <string name="cd_back">Navigate back</string>
     <string name="cd_play_pause">Play or pause</string>
     <string name="cd_next_track">Next track</string>
     <string name="cd_previous_track">Previous track</string>
-    <string name="cd_voice_assistant">Activate Auvionyx Voice hands-free listening</string>
-    <string name="voice_disclaimer">Auvionyx Voice executes direct commands locally; natural-language fallback uses Firebase AI Logic without exposing keys.</string>
+    <string name="cd_voice_assistant">Activate LumaNAV Voice hands-free listening</string>
+    <string name="voice_disclaimer">LumaNav Voice executes direct commands locally; natural-language fallback uses Firebase AI Logic without exposing keys.</string>
     <string name="demo_telemetry_badge">Demo Telemetry</string>
     <string name="live_gps_badge">Live GPS</string>
 </resources>

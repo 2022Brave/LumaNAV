@@ -34,7 +34,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.DirectionsCar
 import androidx.compose.material.icons.outlined.GpsFixed
-import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.MusicNote
 import androidx.compose.material.icons.outlined.Navigation
 import androidx.compose.material.icons.outlined.Speed
@@ -65,8 +64,8 @@ import com.example.ui.components.DraggableLaminarSheet
 import com.example.ui.components.GlassCard
 import com.example.ui.components.IdleNextTurnPill
 import com.example.ui.components.IdleProminentSpeedometer
-import com.example.ui.components.InteractiveMapCanvas
-import com.example.ui.components.LivingFlow
+import com.example.ui.components.NativeMapLibreView
+import com.example.ui.components.LumaMotion
 import com.example.ui.components.MediaControlCluster
 import com.example.ui.components.photonLuminousTouch
 import com.example.ui.theme.ElectricCyan
@@ -81,6 +80,47 @@ import com.example.ui.theme.PulseSlow
 import com.example.ui.theme.TextSecondary
 import com.example.viewmodel.MapsAndPulseState
 import com.example.viewmodel.MediaPlayerState
+
+
+@Composable
+private fun CockpitNativeMapPanel(
+    currentLocation: Pair<Double, Double>?,
+    routePoints: List<Pair<Double, Double>>,
+    headingDegrees: Int,
+    accent: Color,
+    isNavigating: Boolean,
+    nextTurnDistance: String,
+    nextTurnRoad: String,
+    modifier: Modifier = Modifier
+) {
+    Box(modifier = modifier.clip(RoundedCornerShape(24.dp))) {
+        NativeMapLibreView(
+            currentLocation = currentLocation,
+            routePoints = routePoints,
+            headingDegrees = headingDegrees,
+            accent = accent,
+            modifier = Modifier.fillMaxSize()
+        )
+        Surface(
+            modifier = Modifier.align(Alignment.TopStart).padding(12.dp),
+            color = Color(0xCC07111D),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Text(
+                text = if (isNavigating && routePoints.size >= 2) {
+                    "$nextTurnDistance · $nextTurnRoad"
+                } else if (currentLocation != null) {
+                    "GPS FIXED · NO ACTIVE ROUTE"
+                } else {
+                    "WAITING FOR GPS"
+                },
+                color = GlassWhite,
+                style = MaterialTheme.typography.labelSmall,
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+            )
+        }
+    }
+}
 
 private data class ResolvedCockpitDisplay(
     val speedDisplay: Int,
@@ -103,7 +143,7 @@ private fun resolveCockpitDisplay(
     mapsPulse: MapsAndPulseState
 ): ResolvedCockpitDisplay {
     val hasLiveSession = telemetry.isLiveGpsActive || mapsPulse.isNavigating || telemetry.isSimulationRunning
-    val rawSpeedKmh = if (hasLiveSession) telemetry.speedKmh else 86
+    val rawSpeedKmh = telemetry.speedKmh
     val speedDisplay = if (settings.useMetricUnits) {
         rawSpeedKmh
     } else {
@@ -115,17 +155,17 @@ private fun resolveCockpitDisplay(
     val nextTurnDist = if (mapsPulse.isNavigating && telemetry.nextTurnDistanceLabel != "--") {
         telemetry.nextTurnDistanceLabel
     } else {
-        "2.4 km"
+        "--"
     }
     val nextTurnRoad = if (mapsPulse.isNavigating && telemetry.nextTurnRoad != "No Active Route") {
         telemetry.nextTurnRoad
     } else {
-        "Rajpur Road"
+        "No active route"
     }
-    val remMinutes = if (mapsPulse.isNavigating && telemetry.remainingMinutes > 0) telemetry.remainingMinutes else 19
-    val remKm = if (mapsPulse.isNavigating && telemetry.remainingDistanceKm > 0f) telemetry.remainingDistanceKm else 12.6f
-    val eta = if (mapsPulse.isNavigating && telemetry.etaTimeLabel != "--:--") telemetry.etaTimeLabel else "10:43"
-    val limit = telemetry.speedLimitKmh ?: if (!hasLiveSession) 100 else null
+    val remMinutes = if (mapsPulse.isNavigating && telemetry.remainingMinutes > 0) telemetry.remainingMinutes else 0
+    val remKm = if (mapsPulse.isNavigating && telemetry.remainingDistanceKm > 0f) telemetry.remainingDistanceKm else 0f
+    val eta = if (mapsPulse.isNavigating && telemetry.etaTimeLabel != "--:--") telemetry.etaTimeLabel else "--:--"
+    val limit = telemetry.speedLimitKmh
 
     return ResolvedCockpitDisplay(
         speedDisplay = speedDisplay,
@@ -138,7 +178,7 @@ private fun resolveCockpitDisplay(
         remainingMinutes = remMinutes,
         remainingKm = remKm,
         etaLabel = eta,
-        isDemoPreview = !hasLiveSession
+        isDemoPreview = telemetry.isSimulationRunning || settings.demoSimulationEnabled
     )
 }
 
@@ -166,7 +206,9 @@ fun DriveDashboardScreen(
 ) {
     if (isLandscapeWide) {
         LandscapeCockpitSurface(
-            isIdleCockpit = isIdleCockpit,
+            isIdleCockpit = isIdleCockpit &&
+                settings.dashboardRatio != DashboardSplitRatio.FULL_MAPS &&
+                settings.dashboardRatio != DashboardSplitRatio.FULL_MUSIC,
             settings = settings,
             telemetry = telemetry,
             mediaState = mediaState,
@@ -247,13 +289,13 @@ private fun LandscapeCockpitSurface(
                     EnterTransition.None togetherWith ExitTransition.None
                 } else {
                     fadeIn(
-                        tween(durationMillis = LivingFlow.PanelDurationMs, easing = LivingFlow.LaminarEasing)
+                        tween(durationMillis = LumaMotion.PanelDurationMs, easing = LumaMotion.LaminarEasing)
                     ) togetherWith fadeOut(
-                        tween(durationMillis = LivingFlow.StandardDurationMs, easing = LivingFlow.LaminarEasing)
+                        tween(durationMillis = LumaMotion.StandardDurationMs, easing = LumaMotion.LaminarEasing)
                     )
                 }
             },
-            label = "cockpitLivingFlowMorph",
+            label = "cockpitLumaMotionMorph",
             modifier = Modifier.fillMaxSize()
         ) { idle ->
             if (!idle) {
@@ -264,66 +306,55 @@ private fun LandscapeCockpitSurface(
                         .testTag("active_cockpit_root"),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    // Large Left/Center Map (~64% content area)
-                    InteractiveMapCanvas(
-                        telemetry = telemetry,
-                        markers = mapsPulse.markers,
-                        selectedMarkerId = mapsPulse.selectedMarkerId,
-                        showTrafficOverlay = settings.showTrafficOverlay,
-                        showSatelliteGrid = settings.showSatelliteGrid,
-                        isNavigating = mapsPulse.isNavigating,
-                        onSelectMarker = onSelectMarker,
-                        onToggleTraffic = onToggleTraffic,
-                        onToggleSatellite = onToggleSatellite,
-                        currentLatLon = mapsPulse.currentLatLon,
-                        destinationLatLon = mapsPulse.destinationLatLon,
-                        routePolylineGeo = mapsPulse.routePolylineGeo,
-                        navigationSourceLabel = mapsPulse.navigationSourceLabel,
-                        isDemoMode = resolved.isDemoPreview || settings.demoSimulationEnabled,
-                        showMapControls = true,
-                        compactHudMode = false,
-                        showFullScreenBorder = true,
-                        displayNextTurnDistance = resolved.nextTurnDistance,
-                        displayNextTurnRoad = resolved.nextTurnRoad,
-                        displayRemainingMinutes = resolved.remainingMinutes,
-                        displayRemainingKm = resolved.remainingKm,
-                        displayEtaLabel = resolved.etaLabel,
-                        onExpandMap = { onSelectModule(AuvionyxModule.MAPS) },
-                        modifier = Modifier
-                            .weight(0.64f)
-                            .fillMaxHeight()
-                            .sharedBounds(
-                                sharedContentState = rememberSharedContentState(key = "cockpit_map"),
-                                animatedVisibilityScope = this@AnimatedContent,
-                                boundsTransform = { _, _ -> LivingFlow.LaminarBoundsSpec }
-                            )
-                    )
+                    // Persisted dashboard split controls the real map/media panel widths.
+                    if (settings.dashboardRatio != DashboardSplitRatio.FULL_MUSIC) {
+                        CockpitNativeMapPanel(
+                            currentLocation = mapsPulse.currentLatLon,
+                            routePoints = mapsPulse.routePolylineGeo,
+                            headingDegrees = telemetry.headingDegrees,
+                            accent = ElectricCyan,
+                            isNavigating = mapsPulse.isNavigating,
+                            nextTurnDistance = telemetry.nextTurnDistanceLabel,
+                            nextTurnRoad = telemetry.nextTurnRoad,
+                            modifier = Modifier
+                                .weight(if (settings.dashboardRatio == DashboardSplitRatio.FULL_MAPS) 1f else settings.dashboardRatio.mapWeight)
+                                .fillMaxHeight()
+                                .sharedBounds(
+                                    sharedContentState = rememberSharedContentState(key = "cockpit_map"),
+                                    animatedVisibilityScope = this@AnimatedContent,
+                                    boundsTransform = { _, _ -> LumaMotion.LaminarBoundsSpec }
+                                )
+                        )
+                    }
 
-                    // Right Stacked Speedometer + Media Player Column (~36% content area)
+                    if (settings.dashboardRatio != DashboardSplitRatio.FULL_MAPS) {
+                    // Right Stacked Speedometer + Media Player Column
                     Column(
                         modifier = Modifier
-                            .weight(0.36f)
+                            .weight(if (settings.dashboardRatio == DashboardSplitRatio.FULL_MUSIC) 1f else settings.dashboardRatio.mediaWeight)
                             .fillMaxHeight(),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        ActiveSpeedometerCard(
-                            speedValue = resolved.speedDisplay,
-                            maxSpeed = resolved.maxSpeed,
-                            unitLabel = resolved.unitLabel,
-                            speedLimitValue = resolved.speedLimitDisplay,
-                            headingCardinal = resolved.headingCardinal,
-                            isLiveGps = telemetry.isLiveGpsActive,
-                            isDemoPreview = resolved.isDemoPreview,
-                            onClick = { onSelectModule(AuvionyxModule.HUD) },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .weight(0.45f)
-                                .sharedBounds(
-                                    sharedContentState = rememberSharedContentState(key = "cockpit_speedometer"),
-                                    animatedVisibilityScope = this@AnimatedContent,
-                                    boundsTransform = { _, _ -> LivingFlow.LaminarBoundsSpec }
-                                )
-                        )
+                        if (settings.dashboardRatio != DashboardSplitRatio.FULL_MUSIC) {
+                            ActiveSpeedometerCard(
+                                speedValue = resolved.speedDisplay,
+                                maxSpeed = resolved.maxSpeed,
+                                unitLabel = resolved.unitLabel,
+                                speedLimitValue = resolved.speedLimitDisplay,
+                                headingCardinal = resolved.headingCardinal,
+                                isLiveGps = telemetry.isLiveGpsActive,
+                                isDemoPreview = resolved.isDemoPreview,
+                                onClick = { onSelectModule(AuvionyxModule.HUD) },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .weight(0.45f)
+                                    .sharedBounds(
+                                        sharedContentState = rememberSharedContentState(key = "cockpit_speedometer"),
+                                        animatedVisibilityScope = this@AnimatedContent,
+                                        boundsTransform = { _, _ -> LumaMotion.LaminarBoundsSpec }
+                                    )
+                            )
+                        }
 
                         CockpitMediaPlayerCard(
                             track = track,
@@ -342,13 +373,14 @@ private fun LandscapeCockpitSurface(
                             onSeek = onSeek,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .weight(0.55f)
+                                .weight(if (settings.dashboardRatio == DashboardSplitRatio.FULL_MUSIC) 1f else 0.55f)
                                 .sharedBounds(
                                     sharedContentState = rememberSharedContentState(key = "cockpit_media"),
                                     animatedVisibilityScope = this@AnimatedContent,
-                                    boundsTransform = { _, _ -> LivingFlow.LaminarBoundsSpec }
+                                    boundsTransform = { _, _ -> LumaMotion.LaminarBoundsSpec }
                                 )
                         )
+                    }
                     }
                 }
             } else {
@@ -359,30 +391,20 @@ private fun LandscapeCockpitSurface(
                         .testTag("idle_cockpit_root")
                 ) {
                     // Expanded Full-Bleed Map (secondary controls & card borders hidden)
-                    InteractiveMapCanvas(
-                        telemetry = telemetry,
-                        markers = emptyList(),
-                        selectedMarkerId = null,
-                        showTrafficOverlay = settings.showTrafficOverlay,
-                        showSatelliteGrid = settings.showSatelliteGrid,
-                        isNavigating = mapsPulse.isNavigating || resolved.isDemoPreview,
-                        onSelectMarker = {},
-                        onToggleTraffic = {},
-                        onToggleSatellite = {},
-                        currentLatLon = mapsPulse.currentLatLon,
-                        destinationLatLon = mapsPulse.destinationLatLon,
-                        routePolylineGeo = mapsPulse.routePolylineGeo,
-                        navigationSourceLabel = mapsPulse.navigationSourceLabel,
-                        isDemoMode = resolved.isDemoPreview,
-                        showMapControls = false,
-                        compactHudMode = true,
-                        showFullScreenBorder = false,
+                    CockpitNativeMapPanel(
+                        currentLocation = mapsPulse.currentLatLon,
+                        routePoints = mapsPulse.routePolylineGeo,
+                        headingDegrees = telemetry.headingDegrees,
+                        accent = ElectricCyan,
+                        isNavigating = mapsPulse.isNavigating,
+                        nextTurnDistance = telemetry.nextTurnDistanceLabel,
+                        nextTurnRoad = telemetry.nextTurnRoad,
                         modifier = Modifier
                             .fillMaxSize()
                             .sharedBounds(
                                 sharedContentState = rememberSharedContentState(key = "cockpit_map"),
                                 animatedVisibilityScope = this@AnimatedContent,
-                                boundsTransform = { _, _ -> LivingFlow.LaminarBoundsSpec }
+                                boundsTransform = { _, _ -> LumaMotion.LaminarBoundsSpec }
                             )
                     )
 
@@ -398,7 +420,7 @@ private fun LandscapeCockpitSurface(
                             .sharedBounds(
                                 sharedContentState = rememberSharedContentState(key = "cockpit_speedometer"),
                                 animatedVisibilityScope = this@AnimatedContent,
-                                boundsTransform = { _, _ -> LivingFlow.LaminarBoundsSpec }
+                                boundsTransform = { _, _ -> LumaMotion.LaminarBoundsSpec }
                             )
                     )
 
@@ -426,7 +448,7 @@ private fun LandscapeCockpitSurface(
                             .sharedBounds(
                                 sharedContentState = rememberSharedContentState(key = "cockpit_media"),
                                 animatedVisibilityScope = this@AnimatedContent,
-                                boundsTransform = { _, _ -> LivingFlow.LaminarBoundsSpec }
+                                boundsTransform = { _, _ -> LumaMotion.LaminarBoundsSpec }
                             )
                     )
 
@@ -441,10 +463,10 @@ private fun LandscapeCockpitSurface(
                             .align(Alignment.BottomCenter)
                             .padding(bottom = 18.dp)
                             .animateEnterExit(
-                                enter = slideInVertically(LivingFlow.LaminarIntOffsetSpec) { it / 2 } +
-                                    fadeIn(tween(LivingFlow.StandardDurationMs, easing = LivingFlow.LaminarEasing)),
-                                exit = slideOutVertically(LivingFlow.LaminarIntOffsetSpec) { it / 2 } +
-                                    fadeOut(tween(LivingFlow.CompactDurationMs, easing = LivingFlow.LaminarEasing))
+                                enter = slideInVertically(LumaMotion.LaminarIntOffsetSpec) { it / 2 } +
+                                    fadeIn(tween(LumaMotion.StandardDurationMs, easing = LumaMotion.LaminarEasing)),
+                                exit = slideOutVertically(LumaMotion.LaminarIntOffsetSpec) { it / 2 } +
+                                    fadeOut(tween(LumaMotion.CompactDurationMs, easing = LumaMotion.LaminarEasing))
                             )
                     )
                 }
@@ -481,35 +503,21 @@ private fun SmartphonePortraitDriveDashboard(
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(12.dp),
-            contentPadding = PaddingValues(bottom = 132.dp)
+            contentPadding = PaddingValues(bottom = 252.dp)
         ) {
             item {
-                InteractiveMapCanvas(
-                    telemetry = telemetry,
-                    markers = mapsPulse.markers,
-                    selectedMarkerId = mapsPulse.selectedMarkerId,
-                    showTrafficOverlay = settings.showTrafficOverlay,
-                    showSatelliteGrid = settings.showSatelliteGrid,
-                    isNavigating = mapsPulse.isNavigating,
-                    onSelectMarker = onSelectMarker,
-                    onToggleTraffic = onToggleTraffic,
-                    onToggleSatellite = onToggleSatellite,
-                    currentLatLon = mapsPulse.currentLatLon,
-                    destinationLatLon = mapsPulse.destinationLatLon,
-                    routePolylineGeo = mapsPulse.routePolylineGeo,
-                    navigationSourceLabel = mapsPulse.navigationSourceLabel,
-                    isDemoMode = resolved.isDemoPreview || settings.demoSimulationEnabled,
-                    showMapControls = false,
-                    displayNextTurnDistance = resolved.nextTurnDistance,
-                    displayNextTurnRoad = resolved.nextTurnRoad,
-                    displayRemainingMinutes = resolved.remainingMinutes,
-                    displayRemainingKm = resolved.remainingKm,
-                    displayEtaLabel = resolved.etaLabel,
-                    onExpandMap = { onSelectModule(AuvionyxModule.MAPS) },
-                    modifier = Modifier
+                CockpitNativeMapPanel(
+                        currentLocation = mapsPulse.currentLatLon,
+                        routePoints = mapsPulse.routePolylineGeo,
+                        headingDegrees = telemetry.headingDegrees,
+                        accent = LocalAuvionyxPalette.current.accentPrimary,
+                        isNavigating = mapsPulse.isNavigating,
+                        nextTurnDistance = telemetry.nextTurnDistanceLabel,
+                        nextTurnRoad = telemetry.nextTurnRoad,
+                        modifier = Modifier
                         .fillMaxWidth()
                         .height(210.dp)
-                )
+                    )
             }
 
             item {
@@ -551,33 +559,7 @@ private fun SmartphonePortraitDriveDashboard(
                         }
                     }
 
-                    Surface(
-                        color = Color(0xFF0E131B),
-                        shape = RoundedCornerShape(18.dp),
-                        border = BorderStroke(0.8.dp, GlassWhite.copy(alpha = 0.16f)),
-                        modifier = Modifier
-                            .height(54.dp)
-                            .clip(RoundedCornerShape(18.dp))
-                            .testTag("portrait_open_voice")
-                            .photonLuminousTouch(
-                                pressScale = 0.95f,
-                                onClick = { onSelectModule(AuvionyxModule.VOICE) }
-                            )
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 16.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.Mic,
-                                contentDescription = "Voice",
-                                tint = accent,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Text("Voice", style = MaterialTheme.typography.labelLarge, color = GlassWhite)
-                        }
-                    }
+
                 }
             }
 
@@ -646,6 +628,8 @@ private fun SmartphonePortraitDriveDashboard(
             initialFraction = 0f,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
+                .clip(RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp))
+                .background(Color(0xFF0A0D12))
                 .testTag("portrait_media_laminar_sheet")
         ) {
             Row(

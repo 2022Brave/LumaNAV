@@ -1,9 +1,9 @@
 package com.example.ui.screens
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,20 +24,24 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
@@ -45,7 +49,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.AodStyle
 import com.example.data.model.VehicleTelemetry
+import com.example.ui.components.formatNavigationDistance
 import com.example.ui.components.LiquidGlassLens
+import com.example.ui.components.NativeMapLibreView
 import com.example.ui.theme.DeepBlue
 import com.example.ui.theme.ElectricCyan
 import com.example.ui.theme.GlassWhite
@@ -69,12 +75,27 @@ fun AodScreen(
     aodStyle: AodStyle,
     telemetry: VehicleTelemetry,
     useMetricUnits: Boolean,
+    currentLocation: Pair<Double, Double>?,
+    routePoints: List<Pair<Double, Double>>,
+    headingDegrees: Int,
+    isNavigating: Boolean,
+    nowPlayingTitle: String? = null,
+    nowPlayingArtist: String? = null,
+    hasActiveMedia: Boolean = false,
     onSelectAodStyle: (AodStyle) -> Unit,
     onExitAod: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val reducedMotion = LocalAuvionyxMotion.current.reducedMotion
     var shiftStep by remember { mutableIntStateOf(0) }
+    var controlsVisible by remember { mutableStateOf(true) }
+
+    LaunchedEffect(controlsVisible, aodStyle) {
+        if (controlsVisible) {
+            delay(4_000L)
+            controlsVisible = false
+        }
+    }
 
     LaunchedEffect(reducedMotion) {
         if (!reducedMotion) {
@@ -107,9 +128,20 @@ fun AodScreen(
         modifier = modifier
             .fillMaxSize()
             .background(ObsidianBlack)
+            .pointerInput(Unit) { detectTapGestures { controlsVisible = true } }
             .systemBarsPadding()
-            .padding(24.dp)
+            .padding(if (aodStyle == AodStyle.MAP) 0.dp else 24.dp)
     ) {
+        if (aodStyle == AodStyle.MAP) {
+            NativeMapLibreView(
+                currentLocation = currentLocation,
+                routePoints = routePoints,
+                headingDegrees = headingDegrees,
+                accent = ElectricCyan,
+                modifier = Modifier.fillMaxSize()
+            )
+            Box(Modifier.fillMaxSize().background(Color(0x55000000)))
+        }
         Column(
             modifier = Modifier
                 .align(Alignment.Center)
@@ -118,10 +150,26 @@ fun AodScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text(
-                text = "AUVIONYX AOD · ${aodStyle.label.uppercase()}",
+                text = "LumaNAV · ${aodStyle.label}",
                 style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 2.5.sp),
                 color = ElectricCyan.copy(alpha = 0.72f)
             )
+
+            Text(
+                text = "$speedVal $unit$speedSourceTag",
+                fontFamily = SpaceGroteskFontFamily,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = if (aodStyle == AodStyle.MAP) 40.sp else 34.sp,
+                color = ElectricCyan.copy(alpha = 0.92f)
+            )
+            if (hasActiveMedia && !nowPlayingTitle.isNullOrBlank()) {
+                Text(
+                    text = "♪ $nowPlayingTitle · ${nowPlayingArtist.orEmpty()}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = GlassWhite.copy(alpha = 0.48f),
+                    maxLines = 1
+                )
+            }
 
             when (aodStyle) {
                 AodStyle.MINIMAL -> {
@@ -133,33 +181,19 @@ fun AodScreen(
                         color = GlassWhite.copy(alpha = 0.84f)
                     )
                     Text(
-                        text = "$speedVal $unit$speedSourceTag · ${telemetry.headingCardinal}",
-                        style = MaterialTheme.typography.headlineMedium,
-                        color = ElectricCyan.copy(alpha = 0.88f)
+                        text = telemetry.headingCardinal,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = TextSecondary
                     )
                 }
 
                 AodStyle.MAP -> {
-                    Canvas(modifier = Modifier.size(190.dp)) {
-                        val w = size.width
-                        val h = size.height
-                        val path = Path().apply {
-                            moveTo(w * 0.45f, h * 0.92f)
-                            lineTo(w * 0.48f, h * 0.56f)
-                            quadraticTo(w * 0.50f, h * 0.34f, w * 0.74f, h * 0.18f)
-                        }
-                        drawPath(
-                            path = path,
-                            brush = Brush.verticalGradient(listOf(IceBlue, ElectricCyan, DeepBlue)),
-                            style = Stroke(width = 4.dp.toPx(), cap = StrokeCap.Round)
-                        )
-                        drawCircle(
-                            color = ElectricCyan.copy(alpha = 0.65f),
-                            radius = 6.dp.toPx(),
-                            center = Offset(w * 0.48f, h * 0.62f),
-                            style = Stroke(width = 2.dp.toPx())
-                        )
-                    }
+                    Text(
+                        text = if (isNavigating && routePoints.size >= 2) "TO · " + telemetry.destinationLabel.ifBlank { "ACTIVE NAVIGATION" } else "NO ACTIVE ROUTE",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = GlassWhite,
+                        modifier = Modifier.padding(top = 56.dp)
+                    )
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -171,7 +205,7 @@ fun AodScreen(
                             modifier = Modifier.size(28.dp)
                         )
                         Text(
-                            text = "${telemetry.nextTurnDistanceLabel} · ${telemetry.nextTurnRoad}",
+                            text = if (isNavigating && routePoints.size >= 2) "${telemetry.nextTurnDistanceLabel} · ${telemetry.nextTurnInstruction}" else "No active route",
                             style = MaterialTheme.typography.headlineMedium,
                             color = GlassWhite.copy(alpha = 0.85f)
                         )
@@ -188,7 +222,7 @@ fun AodScreen(
                     )
                     Text(
                         text = if (telemetry.remainingMinutes > 0) {
-                            "${if (telemetry.isSimulationRunning) "Demo Route" else "Route"}: ${telemetry.remainingMinutes} min · ${telemetry.remainingDistanceKm} km"
+                            "${if (telemetry.isSimulationRunning) "Demo Route" else "Route"}: ${telemetry.remainingMinutes} min · ${formatNavigationDistance(telemetry.remainingDistanceKm)}"
                         } else {
                             "No active route"
                         },
@@ -204,7 +238,7 @@ fun AodScreen(
                             .height(5.dp)
                     )
                     Text(
-                        text = "$speedVal $unit$speedSourceTag · Next: ${telemetry.nextTurnRoad}",
+                        text = "Next: ${telemetry.nextTurnRoad}",
                         style = MaterialTheme.typography.bodyMedium,
                         color = TextSecondary
                     )
@@ -218,53 +252,61 @@ fun AodScreen(
             )
         }
 
-        // Bottom Style Switcher & Wake Control
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.BottomCenter),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+        // Controls fade away after four seconds to keep the AOD canvas quiet.
+        AnimatedVisibility(
+            visible = controlsVisible,
+            enter = fadeIn(tween(if (reducedMotion) 120 else 220)),
+            exit = fadeOut(tween(if (reducedMotion) 120 else 320)),
+            modifier = Modifier.align(Alignment.BottomCenter)
         ) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                AodStyle.entries.forEach { style ->
-                    LiquidGlassLens(
-                        selected = aodStyle == style,
-                        onClick = { onSelectAodStyle(style) },
-                        cornerRadius = 14.dp,
-                        testTag = "aod_style_${style.name}",
-                        modifier = Modifier.height(42.dp)
-                    ) {
-                        Text(
-                            text = style.label,
-                            style = MaterialTheme.typography.labelMedium,
-                            color = if (aodStyle == style) GlassWhite else TextSecondary,
-                            modifier = Modifier.padding(horizontal = 12.dp)
-                        )
+            // Bottom Style Switcher & Wake Control
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.BottomCenter),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    AodStyle.entries.forEach { style ->
+                        LiquidGlassLens(
+                            selected = aodStyle == style,
+                            onClick = { onSelectAodStyle(style) },
+                            cornerRadius = 14.dp,
+                            testTag = "aod_style_${style.name}",
+                            modifier = Modifier.height(42.dp)
+                        ) {
+                            Text(
+                                text = style.label,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = if (aodStyle == style) GlassWhite else TextSecondary,
+                                modifier = Modifier.padding(horizontal = 12.dp)
+                            )
+                        }
                     }
                 }
-            }
-
-            Surface(
-                color = DeepBlue.copy(alpha = 0.45f),
-                shape = RoundedCornerShape(50),
-                border = BorderStroke(1.dp, ElectricCyan),
-                modifier = Modifier
-                    .testTag("aod_wake_button")
-                    .clickable(onClick = onExitAod)
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+    
+                Surface(
+                    color = DeepBlue.copy(alpha = 0.45f),
+                    shape = RoundedCornerShape(50),
+                    border = BorderStroke(1.dp, ElectricCyan),
+                    modifier = Modifier
+                        .testTag("aod_wake_button")
+                        .clickable(onClick = onExitAod)
                 ) {
-                    Icon(
-                        imageVector = Icons.Outlined.PowerSettingsNew,
-                        contentDescription = "Wake Auvionyx Drive",
-                        tint = ElectricCyan,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Text("Wake", style = MaterialTheme.typography.labelLarge, color = GlassWhite)
+                    Row(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.PowerSettingsNew,
+                            contentDescription = "Wake LumaNav Drive",
+                            tint = ElectricCyan,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Text("Wake LumaNav", style = MaterialTheme.typography.labelLarge, color = GlassWhite)
+                    }
                 }
             }
         }

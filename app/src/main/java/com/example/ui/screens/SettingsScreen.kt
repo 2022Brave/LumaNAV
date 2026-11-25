@@ -2,6 +2,7 @@ package com.example.ui.screens
 
 import android.Manifest
 import android.content.Intent
+import android.net.Uri
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -24,14 +25,16 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Devices
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Security
-import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -41,7 +44,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
-import com.example.data.model.AuvionyxModule
+import com.example.core.UpdateManager
 import com.example.data.model.DashboardSplitRatio
 import com.example.data.model.HudLayoutMode
 import com.example.data.model.MediaAppSource
@@ -54,7 +57,6 @@ import com.example.ui.components.LiquidGlassToggle
 import com.example.ui.theme.GlassWhite
 import com.example.ui.theme.IceBlue
 import com.example.ui.theme.LocalAuvionyxPalette
-import com.example.ui.theme.ObsidianBlack
 import com.example.ui.theme.TextMuted
 import com.example.ui.theme.TextSecondary
 import com.example.viewmodel.PermissionsSnapshot
@@ -66,10 +68,10 @@ fun SettingsScreen(
     permissions: PermissionsSnapshot,
     onRefreshPermissions: () -> Unit,
     onSetAdaptiveAlbumColors: (Boolean) -> Unit,
+    onSetDaylightHighContrast: (Boolean) -> Unit,
     onSetReducedMotion: (Boolean) -> Unit,
     onSetDashboardRatio: (DashboardSplitRatio) -> Unit,
     onSetHudLayout: (HudLayoutMode) -> Unit,
-    onOpenHudDesigner: () -> Unit,
     onSetMetricUnits: (Boolean) -> Unit,
     onSetTrafficOverlay: (Boolean) -> Unit,
     onSetSatelliteGrid: (Boolean) -> Unit,
@@ -92,10 +94,6 @@ fun SettingsScreen(
         contract = ActivityResultContracts.RequestPermission()
     ) { onRefreshPermissions() }
 
-    val audioLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { onRefreshPermissions() }
-
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -108,7 +106,7 @@ fun SettingsScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column {
-                    Text("Auvionyx Settings", style = MaterialTheme.typography.headlineMedium, color = GlassWhite)
+                    Text("LumaNav Settings", style = MaterialTheme.typography.headlineMedium, color = GlassWhite)
                     Text(
                         "Personalisation, Dashboard Designer & Native Capability Status",
                         style = MaterialTheme.typography.bodyMedium,
@@ -117,6 +115,8 @@ fun SettingsScreen(
                 }
             }
         }
+
+        item { SoftwareUpdatesCard() }
 
         // 1. Appearance & Motion
         item {
@@ -134,6 +134,14 @@ fun SettingsScreen(
                     onCheckedChange = { locked -> onSetAdaptiveAlbumColors(!locked) }
                 )
                 Spacer(Modifier.height(10.dp))
+                Spacer(Modifier.height(10.dp))
+                SettingsToggleRow(
+                    title = "Daylight High-Contrast",
+                    subtitle = "Brighter secondary text, borders and controls for IPS screens",
+                    checked = settings.daylightHighContrast,
+                    testTag = "settings_daylight_contrast_toggle",
+                    onCheckedChange = onSetDaylightHighContrast
+                )
                 SettingsToggleRow(
                     title = "Adaptive Album-Art Colours",
                     subtitle = "Optional dynamic accent tint derived from active track",
@@ -204,17 +212,6 @@ fun SettingsScreen(
                             )
                         }
                     }
-                }
-                Spacer(Modifier.height(10.dp))
-                Button(
-                    onClick = onOpenHudDesigner,
-                    colors = ButtonDefaults.buttonColors(containerColor = accent, contentColor = ObsidianBlack),
-                    shape = RoundedCornerShape(14.dp),
-                    modifier = Modifier.testTag("settings_open_hud")
-                ) {
-                    Icon(Icons.Outlined.Speed, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(8.dp))
-                    Text("Open Full HUD Designer")
                 }
             }
         }
@@ -317,7 +314,7 @@ fun SettingsScreen(
                 Spacer(Modifier.height(10.dp))
                 SettingsToggleRow(
                     title = "Optional Car Home Launcher Mode",
-                    subtitle = "Remain optional; boot directly into Auvionyx Drive when enabled",
+                    subtitle = "Remain optional; boot directly into LumaNav Drive when enabled",
                     checked = settings.optionalCarLauncherEnabled,
                     testTag = "settings_launcher_toggle",
                     onCheckedChange = onSetOptionalLauncher
@@ -389,7 +386,7 @@ fun SettingsScreen(
         item {
             ExpandableGlassPanel(
                 title = "Permission Manager",
-                subtitle = "Real Android Runtime Permissions (Location & Voice Mic)",
+                subtitle = "Location and navigation notification access",
                 expanded = permissionsExpanded,
                 onToggle = { permissionsExpanded = !permissionsExpanded }
             ) {
@@ -401,14 +398,7 @@ fun SettingsScreen(
                 )
                 Spacer(Modifier.height(10.dp))
                 PermissionRow(
-                    title = "Microphone for Auvionyx Voice (RECORD_AUDIO)",
-                    granted = permissions.audioGranted,
-                    testTag = "perm_request_audio",
-                    onRequest = { audioLauncher.launch(Manifest.permission.RECORD_AUDIO) }
-                )
-                Spacer(Modifier.height(10.dp))
-                PermissionRow(
-                    title = "Google Maps & Media Session Sync (Notification Access)",
+                    title = "Navigation Notifications (Maps, Waze & Mappls)",
                     granted = permissions.notificationAccessGranted,
                     testTag = "perm_request_notification_sync",
                     onRequest = {
@@ -417,6 +407,35 @@ fun SettingsScreen(
                         }
                     }
                 )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = "If this switch is greyed out on ColorOS/Android, it is likely blocked because LumaNav was sideloaded. Open App Info → tap ⋮ (top-right) → Allow restricted settings. Then return here and enable LumaNav under Notification access. This is an Android security restriction, not an app bug.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = TextMuted,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(Modifier.height(12.dp))
+                Surface(
+                    color = LocalAuvionyxPalette.current.accentPrimary.copy(alpha = 0.15f),
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(0.8.dp, LocalAuvionyxPalette.current.accentPrimary.copy(alpha = 0.6f)),
+                    modifier = Modifier.clickable {
+                        runCatching {
+                            context.startActivity(
+                                Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                    data = Uri.fromParts("package", context.packageName, null)
+                                }
+                            )
+                        }
+                    }.testTag("open_app_info_restricted_settings")
+                ) {
+                    Text(
+                        text = "Open App Info · Allow restricted settings",
+                        color = GlassWhite,
+                        style = MaterialTheme.typography.labelMedium,
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 9.dp)
+                    )
+                }
             }
         }
     }
@@ -469,7 +488,7 @@ private fun PermissionRow(
             Column {
                 Text(title, style = MaterialTheme.typography.bodyMedium, color = GlassWhite)
                 Text(
-                    text = if (granted) "Granted" else "Not granted",
+                    text = if (granted) "Granted" else "Enable in system settings · may be restricted for sideloaded apps",
                     style = MaterialTheme.typography.labelSmall,
                     color = if (granted) accent else TextMuted
                 )
@@ -489,6 +508,62 @@ private fun PermissionRow(
                     style = MaterialTheme.typography.labelMedium,
                     color = GlassWhite,
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SoftwareUpdatesCard() {
+    val context = LocalContext.current
+    val update by UpdateManager.state.collectAsState()
+    LaunchedEffect(Unit) {
+        if (update.latestVersion == null && !update.checking) {
+            UpdateManager.check(context.applicationContext)
+        }
+    }
+    GlassCard(
+        modifier = Modifier.fillMaxWidth(),
+        contentPadding = PaddingValues(16.dp)
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Software Updates", color = GlassWhite, style = MaterialTheme.typography.titleLarge)
+            Text(update.statusMessage, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
+            Text("Installed version · ${update.currentVersion}", color = GlassWhite, style = MaterialTheme.typography.bodyMedium)
+            update.latestVersion?.let {
+                Text("Latest release · $it", color = TextSecondary, style = MaterialTheme.typography.labelSmall)
+            }
+            if (update.releaseNotes.isNotBlank()) {
+                Text(
+                    text = update.releaseNotes,
+                    color = TextSecondary,
+                    style = MaterialTheme.typography.bodySmall,
+                    maxLines = 5
+                )
+            }
+            if (update.downloading) {
+                LinearProgressIndicator(
+                    progress = { update.downloadProgress / 100f },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Text("${update.downloadProgress}% downloaded", color = TextSecondary, style = MaterialTheme.typography.labelSmall)
+            }
+            Button(
+                onClick = {
+                    if (update.updateAvailable) UpdateManager.downloadAndInstall(context.applicationContext)
+                    else UpdateManager.check(context.applicationContext, force = true)
+                },
+                enabled = !update.checking && !update.downloading,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    when {
+                        update.downloading -> "Downloading…"
+                        update.updateAvailable -> "Download & Install"
+                        update.checking -> "Checking…"
+                        else -> "Check for Updates"
+                    }
                 )
             }
         }
