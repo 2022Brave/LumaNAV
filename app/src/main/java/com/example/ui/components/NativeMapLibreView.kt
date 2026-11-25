@@ -78,7 +78,8 @@ fun NativeMapLibreView(
     routePoints: List<Pair<Double, Double>>,
     headingDegrees: Int,
     accent: Color,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    show3DBuildings: Boolean = true
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -158,7 +159,7 @@ fun NativeMapLibreView(
                         )
                     )
                 }
-                addLumaNav3DBuildings(style)
+                if (show3DBuildings) addLumaNav3DBuildings(style)
                 loadedStyle = style
                 styleLoaded = true
             }
@@ -258,7 +259,7 @@ fun NativeMapLibreView(
                                 )
                             )
                         }
-                        addLumaNav3DBuildings(style)
+                        if (show3DBuildings) addLumaNav3DBuildings(style)
                         loadedStyle = style
                         styleLoaded = true
                     }
