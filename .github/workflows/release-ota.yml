@@ -1,10 +1,18 @@
 name: LumaNAV OTA Release
 
 on:
-  push:
-    branches:
-      - main
+  # Releases are intentionally manual. A normal merge or push must never
+  # publish an APK to the update channel.
   workflow_dispatch:
+    inputs:
+      confirm_release:
+        description: "Explicitly authorize publishing a LumaNAV release"
+        required: true
+        type: choice
+        options:
+          - "no"
+          - "publish"
+        default: "no"
 
 permissions:
   contents: write
@@ -15,6 +23,8 @@ concurrency:
 
 jobs:
   release:
+    # Only allow deliberate releases from the protected default branch.
+    if: github.ref == 'refs/heads/main' && inputs.confirm_release == 'publish'
     name: Build and publish OTA APK
     runs-on: ubuntu-latest
     timeout-minutes: 35
@@ -77,19 +87,41 @@ jobs:
           echo "Persistent LumaNAV release signing key verified."
 
       - name: Build release APK
+        shell: bash
         run: |
-          export LUMANAV_VERSION_CODE="$GITHUB_RUN_NUMBER"
-          echo "LUMANAV_VERSION_CODE=$LUMANAV_VERSION_CODE" >> "$GITHUB_ENV"
+          set -euo pipefail
+          # The first release must be newer than the already-installed CI APK
+          # (whose fallback versionCode is 1).
+          VERSION_CODE="$((GITHUB_RUN_NUMBER + 1000))"
+          echo "LUMANAV_VERSION_CODE=$VERSION_CODE" >> "$GITHUB_ENV"
           ./gradlew --no-daemon :app:assembleRelease
+
+      - name: Verify release APK signature
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="app/build/outputs/apk/release/app-release.apk"
+          APKSIGNER="$ANDROID_HOME/build-tools/36.0.0/apksigner"
+          "$APKSIGNER" verify --verbose --print-certs "$APK"
+          ACTUAL="$("$APKSIGNER" verify --print-certs "$APK" | awk -F': ' '/certificate SHA-256 digest:/ {print tolower($2); exit}' | tr -d ':')"
+          EXPECTED="cbebaf3e99c57e563f0f285e6d58403061a7d5d1c028ee1878923bcebefd2157"
+          if [[ "$ACTUAL" != "$EXPECTED" ]]; then
+            echo "::error::Release APK certificate does not match the permanent LumaNAV key."
+            echo "Expected: $EXPECTED"
+            echo "Actual:   $ACTUAL"
+            exit 1
+          fi
+          echo "Release APK certificate matches the permanent LumaNAV key."
 
       - name: Name APK and prepare release notes
         id: release_meta
         shell: bash
         run: |
           set -euo pipefail
-          VERSION="1.0.${GITHUB_RUN_NUMBER}"
+          VERSION_CODE="$((GITHUB_RUN_NUMBER + 1000))"
+          VERSION="1.0.$VERSION_CODE"
           APK="LumaNAV-${VERSION}.apk"
-          cp app/build/outputs/apk/release/*.apk "$APK"
+          cp app/build/outputs/apk/release/app-release.apk "$APK"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "apk=$APK" >> "$GITHUB_OUTPUT"
           echo "notes<<EOF" >> "$GITHUB_OUTPUT"
