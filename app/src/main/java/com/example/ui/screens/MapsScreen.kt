@@ -180,6 +180,11 @@ fun MapsScreen(
                     Icon(Icons.Outlined.Search, contentDescription = "Search", tint = accent)
                 }
             }
+            Text(
+                text = "Map data © OpenStreetMap contributors · Tiles by OpenFreeMap · Search by Photon",
+                style = MaterialTheme.typography.labelSmall,
+                color = TextSecondary
+            )
             // Minimal Service Indicators + External Navigation Sync Prompt
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -427,10 +432,10 @@ fun MapsScreen(
                                     modifier = Modifier.padding(12.dp),
                                     verticalArrangement = Arrangement.spacedBy(4.dp)
                                 ) {
-                                    ServiceStateBadge(state = status, labelPrefix = "Geocoder")
+                                    ServiceStateBadge(state = status, labelPrefix = "Place Search")
                                     Text(
                                         text = mapsPulse.destinationSearchMessage
-                                            ?: "No results when live Geocoder is unavailable.",
+                                            ?: "No matching places found, or place search is temporarily unavailable.",
                                         style = MaterialTheme.typography.labelSmall,
                                         color = TextSecondary
                                     )
