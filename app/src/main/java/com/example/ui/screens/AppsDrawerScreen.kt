@@ -72,7 +72,8 @@ fun AppsDrawerScreen(
             columns = GridCells.Fixed(if (isLandscapeWide) 5 else 2),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier.weight(1f).fillMaxWidth(),
+            contentPadding = PaddingValues(bottom = 28.dp)
         ) {
             items(entries, key = { it.testTag }) { item ->
                 GlassCard(
