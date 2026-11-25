@@ -713,7 +713,7 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
                         currentLocationLabel = placeName ?: String.format(Locale.US, "%.4f, %.4f", lat, lon)
                     )
                 }
-                // Recompute OSRM route if destination set without polyline yet
+                // Recompute the live Valhalla/OSRM route if destination is set without a polyline yet
                 val dest = _mapsPulse.value.confirmedDestination
                 if (dest != null && _mapsPulse.value.routePolylineGeo.isEmpty() && !_mapsPulse.value.isExternalGoogleMapsSyncActive) {
                     computeOsrmRouteToDestination(dest)
@@ -1070,7 +1070,7 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
                     durationMin = liveRoute.durationMinutes, distanceKm = liveRoute.distanceKm,
                     etaLabel = liveRoute.etaTimeLabel, trafficState = TrafficSeverity.CLEAR, isSelected = true
                 )
-                _mapsPulse.update { it.copy(routePolylineGeo = liveRoute.polylinePoints, routes = listOf(routeItem), isNavigating = true, mapsServiceState = ServiceAvailabilityState.LIVE, navigationSourceLabel = "LumaNav · OSRM", destinationSearchMessage = "Route ready · " + liveRoute.distanceKm + " km · " + liveRoute.durationMinutes + " min") }
+                _mapsPulse.update { it.copy(routePolylineGeo = liveRoute.polylinePoints, routes = listOf(routeItem), isNavigating = true, mapsServiceState = ServiceAvailabilityState.LIVE, navigationSourceLabel = "LumaNav · ${liveRoute.routingProvider}", destinationSearchMessage = "Route ready · " + liveRoute.distanceKm + " km · " + liveRoute.durationMinutes + " min") }
                 _telemetry.update { it.copy(nextTurnDistanceLabel = liveRoute.nextTurnDistanceLabel, nextTurnRoad = liveRoute.nextTurnRoad, nextTurnInstruction = liveRoute.nextTurnInstruction, remainingDistanceKm = liveRoute.distanceKm, remainingMinutes = liveRoute.durationMinutes, etaTimeLabel = liveRoute.etaTimeLabel, journeyProgress = 0f) }
             } finally {
                 routeJob = null
