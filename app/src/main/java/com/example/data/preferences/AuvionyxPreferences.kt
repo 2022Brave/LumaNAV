@@ -12,6 +12,7 @@ import com.example.data.model.AodStyle
 import com.example.data.model.DashboardSplitRatio
 import com.example.data.model.HudAccentChoice
 import com.example.data.model.HudConfig
+import com.example.data.model.HudCockpitStyle
 import com.example.data.model.HudLayoutMode
 import com.example.data.model.HudPosition
 import com.example.data.model.MediaAppSource
@@ -58,6 +59,7 @@ class AuvionyxPreferencesRepository(private val context: Context) {
         val HUD_SHOW_MEDIA = booleanPreferencesKey("hud_show_media")
         val HUD_SPEED_CALIBRATION = floatPreferencesKey("hud_speed_calibration")
         val HUD_LAY_FLAT_START = booleanPreferencesKey("hud_lay_flat_start")
+        val HUD_COCKPIT_STYLE = stringPreferencesKey("hud_cockpit_style")
         val AOD_STYLE = stringPreferencesKey("aod_style")
         val MEDIA_SOURCE = stringPreferencesKey("media_source")
         val METRIC_UNITS = booleanPreferencesKey("metric_units")
@@ -95,7 +97,10 @@ class AuvionyxPreferencesRepository(private val context: Context) {
                 showEta = prefs[Keys.HUD_SHOW_ETA] ?: true,
                 showMediaInfo = prefs[Keys.HUD_SHOW_MEDIA] ?: true,
                 speedometerMatchPercent = (prefs[Keys.HUD_SPEED_CALIBRATION] ?: 4f).coerceIn(0f, 10f),
-                layFlatToStartHud = prefs[Keys.HUD_LAY_FLAT_START] ?: false
+                layFlatToStartHud = prefs[Keys.HUD_LAY_FLAT_START] ?: false,
+                cockpitStyle = prefs[Keys.HUD_COCKPIT_STYLE]?.let {
+                    runCatching { HudCockpitStyle.valueOf(it) }.getOrNull()
+                } ?: HudCockpitStyle.DIGITAL_MINIMAL
             ),
             aodStyle = prefs[Keys.AOD_STYLE]?.let {
                 runCatching { AodStyle.valueOf(it) }.getOrNull()
@@ -143,6 +148,7 @@ class AuvionyxPreferencesRepository(private val context: Context) {
             prefs[Keys.HUD_SHOW_MEDIA] = config.showMediaInfo
             prefs[Keys.HUD_SPEED_CALIBRATION] = config.speedometerMatchPercent.coerceIn(0f, 10f)
             prefs[Keys.HUD_LAY_FLAT_START] = config.layFlatToStartHud
+            prefs[Keys.HUD_COCKPIT_STYLE] = config.cockpitStyle.name
         }
     }
 
