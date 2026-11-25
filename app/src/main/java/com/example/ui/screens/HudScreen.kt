@@ -187,7 +187,7 @@ fun HudScreen(
                     currentLocation = currentLocation,
                     routePoints = routePoints,
                     headingDegrees = headingDegrees,
-                    accent = hudAccent,
+                    accent = ElectricCyan,
                     isNavigating = routePoints.size >= 2,
                     nextTurnDistance = telemetry.nextTurnDistanceLabel,
                     nextTurnRoad = telemetry.nextTurnRoad,
