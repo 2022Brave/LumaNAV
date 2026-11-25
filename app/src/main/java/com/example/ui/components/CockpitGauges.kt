@@ -12,6 +12,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -497,6 +498,7 @@ fun IdleProminentSpeedometer(
  * - Active Cockpit mode (`compactMode = false`): Art + Title/Artist + Source Icon + Cyan Slider + 5-button row (Shuffle, Prev, Glowing Play/Pause, Next, Favorite)
  * - Idle Cockpit mode (`compactMode = true`): Floating frosted card + Art + Title/Artist + Cyan Slider + Compact 3-button row (Prev, Glowing Play/Pause, Next)
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun CockpitMediaPlayerCard(
     track: MediaTrack,
