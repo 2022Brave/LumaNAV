@@ -17,6 +17,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
@@ -217,6 +219,7 @@ fun MusicScreen(
                         color = GlassWhite.copy(alpha = 0.9f),
                         modifier = Modifier
                             .align(Alignment.TopStart)
+                            .statusBarsPadding()
                             .padding(start = 24.dp, top = 12.dp)
                     )
                 }
@@ -253,28 +256,29 @@ fun MusicScreen(
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.Center,
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Surface(
                             onClick = onPrevTrack,
+                            modifier = Modifier.requiredSize(56.dp),
                             shape = CircleShape,
                             color = Color(0x553B4652),
                             border = BorderStroke(1.dp, GlassWhite.copy(alpha = 0.16f))
                         ) {
-                            Box(Modifier.size(56.dp), contentAlignment = Alignment.Center) {
+                            Box(Modifier.requiredSize(56.dp), contentAlignment = Alignment.Center) {
                                 Icon(Icons.Rounded.SkipPrevious, "Previous", tint = GlassWhite, modifier = Modifier.size(28.dp))
                             }
                         }
-                        Spacer(Modifier.width(22.dp))
                         Surface(
                             onClick = onPlayPause,
+                            modifier = Modifier.weight(1f).height(58.dp),
                             shape = RoundedCornerShape(28.dp),
                             color = ElectricCyan,
                             contentColor = Color.Black
                         ) {
                             Row(
-                                modifier = Modifier.width(148.dp).height(58.dp),
+                                modifier = Modifier.fillMaxSize(),
                                 horizontalArrangement = Arrangement.Center,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
@@ -287,14 +291,14 @@ fun MusicScreen(
                                 Text(if (mediaState.isPlaying) "PAUSE" else "PLAY", fontWeight = FontWeight.Bold)
                             }
                         }
-                        Spacer(Modifier.width(22.dp))
                         Surface(
                             onClick = onNextTrack,
+                            modifier = Modifier.requiredSize(56.dp),
                             shape = CircleShape,
                             color = Color(0x553B4652),
                             border = BorderStroke(1.dp, GlassWhite.copy(alpha = 0.16f))
                         ) {
-                            Box(Modifier.size(56.dp), contentAlignment = Alignment.Center) {
+                            Box(Modifier.requiredSize(56.dp), contentAlignment = Alignment.Center) {
                                 Icon(Icons.Rounded.SkipNext, "Next", tint = GlassWhite, modifier = Modifier.size(28.dp))
                             }
                         }
