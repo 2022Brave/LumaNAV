@@ -247,9 +247,7 @@ fun DriveDashboardScreen(
 
     if (isLandscapeWide) {
         LandscapeCockpitSurface(
-            isIdleCockpit = isIdleCockpit &&
-                settings.dashboardRatio != DashboardSplitRatio.FULL_MAPS &&
-                settings.dashboardRatio != DashboardSplitRatio.FULL_MUSIC,
+            isIdleCockpit = isIdleCockpit,
             settings = settings,
             telemetry = telemetry,
             mediaState = mediaState,
