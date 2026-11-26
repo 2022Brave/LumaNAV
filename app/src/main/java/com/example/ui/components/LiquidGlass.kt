@@ -1101,6 +1101,7 @@ fun MediaControlCluster(
     onNext: () -> Unit,
     onToggleRepeatOrFav: () -> Unit,
     showRepeatInsteadOfFav: Boolean = false,
+    showShuffleRepeat: Boolean = true,
     accentOverride: Color? = null,
     modifier: Modifier = Modifier
 ) {
@@ -1112,18 +1113,20 @@ fun MediaControlCluster(
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        IconButton(
-            onClick = onToggleShuffle,
-            modifier = Modifier
-                .clip(CircleShape)
-                .photonLuminousTouch()
-                .testTag("media_shuffle")
-        ) {
-            Icon(
-                imageVector = Icons.Outlined.Shuffle,
-                contentDescription = "Shuffle",
-                tint = if (isShuffle) accent else IceBlue.copy(alpha = 0.7f)
-            )
+        if (showShuffleRepeat) {
+            IconButton(
+                onClick = onToggleShuffle,
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .photonLuminousTouch()
+                    .testTag("media_shuffle")
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Shuffle,
+                    contentDescription = "Shuffle",
+                    tint = if (isShuffle) accent else IceBlue.copy(alpha = 0.7f)
+                )
+            }
         }
         IconButton(
             onClick = onPrevious,
@@ -1191,25 +1194,27 @@ fun MediaControlCluster(
                 modifier = Modifier.size(28.dp)
             )
         }
-        IconButton(
-            onClick = onToggleRepeatOrFav,
-            modifier = Modifier
-                .clip(CircleShape)
-                .photonLuminousTouch()
-                .testTag("media_fav_repeat")
-        ) {
-            if (showRepeatInsteadOfFav) {
-                Icon(
-                    imageVector = Icons.Outlined.Repeat,
-                    contentDescription = "Repeat",
-                    tint = if (isRepeat) accent else IceBlue.copy(alpha = 0.7f)
-                )
-            } else {
-                Icon(
-                    imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
-                    contentDescription = "Favorite track",
-                    tint = if (isFavorite) accent else IceBlue.copy(alpha = 0.7f)
-                )
+        if (showShuffleRepeat) {
+            IconButton(
+                onClick = onToggleRepeatOrFav,
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .photonLuminousTouch()
+                    .testTag("media_fav_repeat")
+            ) {
+                if (showRepeatInsteadOfFav) {
+                    Icon(
+                        imageVector = Icons.Outlined.Repeat,
+                        contentDescription = "Repeat",
+                        tint = if (isRepeat) accent else IceBlue.copy(alpha = 0.7f)
+                    )
+                } else {
+                    Icon(
+                        imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                        contentDescription = "Favorite track",
+                        tint = if (isFavorite) accent else IceBlue.copy(alpha = 0.7f)
+                    )
+                }
             }
         }
     }
