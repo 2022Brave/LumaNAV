@@ -73,10 +73,7 @@ auvionyx-source-export/
         │   │   │   │   ├── HudScreen.kt
         │   │   │   │   ├── MapsScreen.kt
         │   │   │   │   ├── MusicScreen.kt
-        │   │   │   │   ├── PulseScreen.kt
         │   │   │   │   ├── SettingsScreen.kt
-        │   │   │   │   ├── VehicleScreen.kt
-        │   │   │   │   └── VoiceScreen.kt
         │   │   │   └── theme/
         │   │   │       ├── Color.kt
         │   │   │       ├── Theme.kt
@@ -173,10 +170,7 @@ auvionyx-source-export/
 - `ui/screens/HudScreen.kt`
 - `ui/screens/MapsScreen.kt`
 - `ui/screens/MusicScreen.kt`
-- `ui/screens/PulseScreen.kt`
 - `ui/screens/SettingsScreen.kt`
-- `ui/screens/VehicleScreen.kt`
-- `ui/screens/VoiceScreen.kt`
 - `ui/theme/Color.kt`
 - `ui/theme/Theme.kt`
 - `ui/theme/Type.kt`
@@ -386,7 +380,7 @@ Defined across `.env.example`, `app/build.gradle.kts`, and `AppCheckInit.kt`:
 ## 9. Known Limitations
 
 - **Custom Vector Map Canvas vs. Google Maps SDK Tiles:** `InteractiveMapCanvas.kt` draws a high-contrast 3D perspective AMOLED vector map on Compose `Canvas` (rendering live OSRM road polylines when GPS/route coordinates are active, and falling back to a labeled demo vector corridor when idle). No Google Maps SDK API key or map tile SDK is bundled.
-- **Sample/Demo Data Fallbacks:** When no live GPS fix, OSRM route, or vehicle telemetry bridge is active, Traffic Pulse corridor alerts/predictions (`AuvionyxSampleData`), EV battery/range/tire values, and showcase media tracks operate in demo/sample mode (badged in the UI as Demo Telemetry).
+- **Sample/Demo Data Fallbacks:** When no live GPS fix, OSRM route, or vehicle telemetry bridge is active, Traffic overlay corridor alerts and showcase media tracks operate in demo/sample mode (badged in the UI as Demo Telemetry).
 - **Privileged Android Permissions Needed at Runtime:** Live Google Maps notification mirroring and cross-app `MediaSessionManager` control require the user to grant **Notification Access** to `AuvionyxNotificationListener` in Android System Settings.
 - **No `gradlew` Wrapper Binary Included:** Only `gradle/wrapper/gradle-wrapper.properties` (`9.3.1`) is present; run `gradle wrapper` or open in Android Studio to generate `gradlew`/`gradlew.bat` and `gradle-wrapper.jar` locally.
 
@@ -396,4 +390,4 @@ Defined across `.env.example`, `app/build.gradle.kts`, and `AppCheckInit.kt`:
 
 - **Design System:** AMOLED Obsidian Black (`#000000`), Electric Cyan (`#00D9F5`), Ice Blue (`#63BFFF`), Deep Blue (`#1267D5`), Glass White (`#FFFFFF`), custom Space Grotesk + Inter fonts (`res/font/`), adaptive launcher icon (`res/mipmap-*`).
 - **UI & Motion Layer:** `LiquidGlass.kt` + `LivingFlowMotion.kt` (ColorOS Living Flow laminar spring curves, Fluid Cloud dynamic alert/turn pill, container morphing, water-drop rail indicator, touch-activated quick dock, and idle-fade cockpit transitions).
-- **Modules:** Home Cockpit (`DriveDashboardScreen`), Maps (`MapsScreen`), Music (`MusicScreen`), HUD (`HudScreen`), Traffic Pulse (`PulseScreen`), Auvionyx Voice (`VoiceScreen` + `AuvionyxVoiceOverlay`), AOD (`AodScreen`), Vehicle (`VehicleScreen`), Apps (`AppsDrawerScreen`), Settings (`SettingsScreen`).
+- **Modules:** Drive (`DriveDashboardScreen`), Maps (`MapsScreen`), Music (`MusicScreen`), HUD (`HudScreen`), AOD (`AodScreen`), Apps (`AppsDrawerScreen`), and Settings (`SettingsScreen`). Voice capture remains an overlay service; traffic controls live in Maps.
