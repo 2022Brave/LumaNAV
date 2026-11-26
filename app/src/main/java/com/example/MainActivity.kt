@@ -219,11 +219,6 @@ fun AuvionyxRootApp(viewModel: AuvionyxViewModel) {
         }
     }
 
-    // Voice capture is disabled in the navigation-focused build; never request microphone access.
-    fun triggerVoiceCapture() {
-        if (permissions.audioGranted) viewModel.activateVoiceListening()
-    }
-
     fun openPhoneDialer() {
         val dialIntent = Intent(Intent.ACTION_DIAL).apply {
             data = Uri.parse("tel:")
@@ -399,7 +394,6 @@ fun AuvionyxRootApp(viewModel: AuvionyxViewModel) {
                                     isLandscapeWide = true,
                                     isIdleCockpit = cockpitIdleActive,
                                     viewModel = viewModel,
-                                    onActivateVoiceCapture = ::triggerVoiceCapture,
                                     onOpenPhoneDialer = ::openPhoneDialer,
                                     onMapsFullscreenChanged = { isMapsFullscreen = it },
                                     )
@@ -418,7 +412,6 @@ fun AuvionyxRootApp(viewModel: AuvionyxViewModel) {
                                 isLandscapeWide = false,
                                 isIdleCockpit = false,
                                 viewModel = viewModel,
-                                onActivateVoiceCapture = ::triggerVoiceCapture,
                                 onOpenPhoneDialer = ::openPhoneDialer,
                                 onMapsFullscreenChanged = { isMapsFullscreen = it },
                             )
@@ -445,7 +438,6 @@ private fun ModuleContentRouter(
     isLandscapeWide: Boolean,
     isIdleCockpit: Boolean,
     viewModel: AuvionyxViewModel,
-    onActivateVoiceCapture: () -> Unit,
     onOpenPhoneDialer: () -> Unit,
     onMapsFullscreenChanged: (Boolean) -> Unit,
 ) {
