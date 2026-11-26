@@ -191,6 +191,26 @@ fun MapsScreen(
                 ) {
                     Text("SAVED · ${mapsPulse.savedPlaces.size}", color = accent, style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(horizontal = 14.dp, vertical = 9.dp))
                 }
+                listOf("HOME", "WORK").forEach { quickPlace ->
+                    Surface(
+                        onClick = {
+                            val saved = mapsPulse.savedPlaces.firstOrNull { place ->
+                                place.name.equals(quickPlace, ignoreCase = true) ||
+                                    place.category.equals(quickPlace, ignoreCase = true)
+                            }
+                            if (saved != null) {
+                                onConfirmDestination(saved.toDestinationCandidate())
+                            } else {
+                                showSavedPlaces = true
+                            }
+                        },
+                        color = Color(0xFF0E1522),
+                        shape = RoundedCornerShape(50),
+                        border = BorderStroke(1.dp, GlassWhite.copy(alpha = 0.12f))
+                    ) {
+                        Text(quickPlace, color = GlassWhite, style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(horizontal = 14.dp, vertical = 9.dp))
+                    }
+                }
                 Surface(
                     onClick = {
                         onDestinationQueryChange("fuel station")
@@ -201,6 +221,17 @@ fun MapsScreen(
                     border = BorderStroke(1.dp, GlassWhite.copy(alpha = 0.12f))
                 ) {
                     Text("FUEL", color = GlassWhite, style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(horizontal = 14.dp, vertical = 9.dp))
+                }
+                Surface(
+                    onClick = {
+                        val recent = mapsPulse.confirmedDestination ?: mapsPulse.destinationCandidates.firstOrNull()
+                        if (recent != null) onConfirmDestination(recent) else showSavedPlaces = true
+                    },
+                    color = Color(0xFF0E1522),
+                    shape = RoundedCornerShape(50),
+                    border = BorderStroke(1.dp, GlassWhite.copy(alpha = 0.12f))
+                ) {
+                    Text("RECENT", color = GlassWhite, style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(horizontal = 14.dp, vertical = 9.dp))
                 }
             }
             Text(
