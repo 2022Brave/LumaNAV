@@ -310,11 +310,11 @@ fun AodScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.PowerSettingsNew,
-                            contentDescription = "Wake LumaNav Drive",
+                            contentDescription = "Wake LumaNAV Drive",
                             tint = ElectricCyan,
                             modifier = Modifier.size(18.dp)
                         )
-                        Text("Wake LumaNav", style = MaterialTheme.typography.labelLarge, color = GlassWhite)
+                        Text("Wake LumaNAV", style = MaterialTheme.typography.labelLarge, color = GlassWhite)
                     }
                 }
             }
