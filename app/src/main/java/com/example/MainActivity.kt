@@ -169,7 +169,6 @@ fun AuvionyxRootApp(viewModel: AuvionyxViewModel) {
     val mapsPulse by viewModel.mapsPulse.collectAsStateWithLifecycle()
     val syncDevices by viewModel.syncDevices.collectAsStateWithLifecycle()
     val permissions by viewModel.permissions.collectAsStateWithLifecycle()
-    val voiceState by viewModel.voiceState.collectAsStateWithLifecycle()
     val updateState by UpdateManager.state.collectAsStateWithLifecycle()
 
     val context = LocalContext.current
