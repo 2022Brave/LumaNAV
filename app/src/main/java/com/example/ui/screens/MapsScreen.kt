@@ -517,7 +517,7 @@ fun MapsScreen(
             ) { Text("MAP · ${activeMapStyle.first}", color = accent, modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp), style = MaterialTheme.typography.labelSmall) }
             Surface(
                 onClick = { mapFullscreen = false },
-                modifier = Modifier.align(Alignment.TopEnd).padding(14.dp),
+                modifier = Modifier.align(Alignment.BottomEnd).padding(14.dp),
                 color = Color(0xE609111B),
                 shape = RoundedCornerShape(12.dp),
                 border = BorderStroke(1.dp, accent.copy(alpha = 0.55f))
@@ -555,7 +555,7 @@ fun MapsScreen(
                 ) { Text("MAP · ${activeMapStyle.first}", color = accent, modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp), style = MaterialTheme.typography.labelSmall) }
                 Surface(
                     onClick = { mapFullscreen = true },
-                    modifier = Modifier.align(Alignment.TopEnd).padding(14.dp),
+                    modifier = Modifier.align(Alignment.BottomEnd).padding(14.dp),
                     color = Color(0xE609111B), shape = RoundedCornerShape(12.dp),
                     border = BorderStroke(1.dp, accent.copy(alpha = 0.55f))
                 ) { Text("FULLSCREEN", color = accent, modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp), style = MaterialTheme.typography.labelSmall) }
@@ -594,7 +594,7 @@ fun MapsScreen(
             ) { Text("MAP · ${activeMapStyle.first}", color = accent, modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp), style = MaterialTheme.typography.labelSmall) }
             Surface(
                 onClick = { mapFullscreen = !mapFullscreen },
-                modifier = Modifier.align(Alignment.TopEnd).padding(14.dp).zIndex(2f),
+                modifier = Modifier.align(Alignment.BottomEnd).padding(14.dp).zIndex(2f),
                 color = Color(0xE609111B), shape = RoundedCornerShape(12.dp),
                 border = BorderStroke(1.dp, accent.copy(alpha = 0.55f))
             ) { Text(if (mapFullscreen) "EXIT FULLSCREEN" else "FULLSCREEN", color = accent, modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp), style = MaterialTheme.typography.labelSmall) }
