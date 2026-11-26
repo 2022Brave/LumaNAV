@@ -809,10 +809,8 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
                     _telemetry.update { current ->
                         current.copy(
                             speedKmh = nextSpeed,
-                            rangeKm = if (current.rangeKm == 0) 418 else current.rangeKm,
-                            batteryPercent = if (current.batteryPercent == 0) 84 else current.batteryPercent,
-                            tirePsi = if (current.tirePsi.isEmpty()) listOf(34, 34, 33, 33) else current.tirePsi,
-                            isSimulationRunning = true
+                                batteryPercent = if (current.batteryPercent == 0) 84 else current.batteryPercent,
+                                isSimulationRunning = true
                         )
                     }
                 } else {
