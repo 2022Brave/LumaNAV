@@ -58,6 +58,7 @@ import org.maplibre.android.style.layers.PropertyFactory.fillExtrusionBase
 import org.maplibre.android.style.layers.PropertyFactory.fillExtrusionColor
 import org.maplibre.android.style.layers.PropertyFactory.fillExtrusionHeight
 import org.maplibre.android.style.layers.PropertyFactory.fillExtrusionOpacity
+import org.maplibre.android.style.layers.PropertyFactory.lineBlur
 import org.maplibre.android.style.layers.PropertyFactory.lineCap
 import org.maplibre.android.style.layers.PropertyFactory.lineColor
 import org.maplibre.android.style.layers.PropertyFactory.lineJoin
@@ -376,8 +377,9 @@ private fun applyLumaNavWireframe(style: Style) {
             is SymbolLayer -> layer.setProperties(visibility(Property.NONE))
             is LineLayer -> if (layer.id != ROUTE_LAYER_ID) layer.setProperties(
                 lineColor("#00D9F5"),
-                lineOpacity(0.88f),
+                lineOpacity(0.92f),
                 lineWidth(1.15f),
+                lineBlur(1.3f),
                 lineCap(Property.LINE_CAP_ROUND),
                 lineJoin(Property.LINE_JOIN_ROUND)
             )
