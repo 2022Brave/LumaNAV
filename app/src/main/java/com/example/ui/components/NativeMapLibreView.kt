@@ -102,6 +102,7 @@ fun NativeMapLibreView(
     var retryToken by remember { mutableStateOf(0) }
     var hasCenteredOnFix by remember { mutableStateOf(false) }
     var lastRequestedStyle by remember { mutableStateOf(AUVIONYX_DARK_STYLE) }
+    var lastRequestedWireframe by remember { mutableStateOf(false) }
 
     val mapView = remember(context) {
         MapLibre.getInstance(context.applicationContext)
@@ -144,8 +145,9 @@ fun NativeMapLibreView(
 
 
     LaunchedEffect(retryToken, mapLibreMap, styleUri, wireframeMode) {
-        if (mapLibreMap != null && (retryToken > 0 || styleUri != lastRequestedStyle)) {
+        if (mapLibreMap != null && (retryToken > 0 || styleUri != lastRequestedStyle || wireframeMode != lastRequestedWireframe)) {
             lastRequestedStyle = styleUri
+            lastRequestedWireframe = wireframeMode
             styleLoaded = false
             styleError = null
             loadedStyle = null
@@ -174,6 +176,7 @@ fun NativeMapLibreView(
                 }
                 if (show3DBuildings) addLumaNav3DBuildings(style)
                 if (wireframeMode) applyLumaNavWireframe(style)
+                lastRequestedWireframe = wireframeMode
                 loadedStyle = style
                 styleLoaded = true
             }
@@ -281,6 +284,7 @@ fun NativeMapLibreView(
                         }
                         if (show3DBuildings) addLumaNav3DBuildings(style)
                         if (wireframeMode) applyLumaNavWireframe(style)
+                        lastRequestedWireframe = wireframeMode
                         loadedStyle = style
                         styleLoaded = true
                     }
@@ -370,7 +374,7 @@ private fun applyLumaNavWireframe(style: Style) {
             is FillLayer -> layer.setProperties(fillOpacity(0f))
             is RasterLayer -> layer.setProperties(visibility(Property.NONE))
             is SymbolLayer -> layer.setProperties(visibility(Property.NONE))
-            is LineLayer -> layer.setProperties(
+            is LineLayer -> if (layer.id != ROUTE_LAYER_ID) layer.setProperties(
                 lineColor("#00D9F5"),
                 lineOpacity(0.88f),
                 lineWidth(1.15f),
