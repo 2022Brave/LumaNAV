@@ -80,7 +80,8 @@ fun NativeMapLibreView(
     accent: Color,
     modifier: Modifier = Modifier,
     show3DBuildings: Boolean = true,
-    styleUri: String = AUVIONYX_DARK_STYLE
+    styleUri: String = AUVIONYX_DARK_STYLE,
+    attributionBottomMarginDp: Int = 0
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -231,6 +232,11 @@ fun NativeMapLibreView(
                 getMapAsync { map ->
                     mapLibreMap = map
                     map.uiSettings.isCompassEnabled = false
+                    if (attributionBottomMarginDp > 0) {
+                        val bottomMarginPx = (attributionBottomMarginDp * context.resources.displayMetrics.density).toInt()
+                        map.uiSettings.setLogoMargins(12, 0, 0, bottomMarginPx)
+                        map.uiSettings.setAttributionMargins(12, 0, 0, bottomMarginPx)
+                    }
                     map.uiSettings.isRotateGesturesEnabled = true
                     map.uiSettings.isTiltGesturesEnabled = true
                     map.addOnCameraMoveStartedListener(cameraGestureListener)
