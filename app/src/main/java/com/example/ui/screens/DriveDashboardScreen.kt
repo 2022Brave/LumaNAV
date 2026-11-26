@@ -32,6 +32,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
@@ -672,8 +673,7 @@ private fun SmartphonePortraitDriveDashboard(
                 .clip(RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp))
                 .background(Color(0xFF0A0D12))
                 .testTag("portrait_media_laminar_sheet")
-                .padding(bottom = 72.dp)
-                .navigationBarsPadding()
+                .offset(y = (-72).dp)
         ) {
             Row(
                 modifier = Modifier
