@@ -43,6 +43,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -156,7 +157,7 @@ fun MapsScreen(
     LaunchedEffect(mapFullscreen) { onMapFullscreenChanged(mapFullscreen) }
     val mapStyles = listOf(
         "DARK" to "https://tiles.openfreemap.org/styles/dark",
-        "WIREFRAME" to "https://tiles.openfreemap.org/styles/positron",
+        "WIREFRAME" to "https://tiles.openfreemap.org/styles/dark",
         "STREETS" to "https://tiles.openfreemap.org/styles/liberty"
     )
     var mapStyleIndex by remember { mutableStateOf(0) }
@@ -679,7 +680,8 @@ fun MapsScreen(
                 accent = accent,
                 modifier = Modifier.fillMaxSize(),
                 styleUri = activeMapStyle.second,
-                    show3DBuildings = activeMapStyle.first != "WIREFRAME"
+                    show3DBuildings = activeMapStyle.first != "WIREFRAME",
+                wireframeMode = activeMapStyle.first == "WIREFRAME"
             )
             Surface(
                 onClick = { mapStyleIndex = (mapStyleIndex + 1) % mapStyles.size },
