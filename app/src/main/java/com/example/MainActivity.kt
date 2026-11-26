@@ -100,10 +100,7 @@ import com.example.ui.screens.DriveDashboardScreen
 import com.example.ui.screens.HudScreen
 import com.example.ui.screens.MapsScreen
 import com.example.ui.screens.MusicScreen
-import com.example.ui.screens.PulseScreen
 import com.example.ui.screens.SettingsScreen
-import com.example.ui.screens.VehicleScreen
-import com.example.ui.screens.VoiceScreen
 import com.example.ui.theme.AuvionyxTheme
 import com.example.ui.theme.GlassWhite
 import com.example.ui.theme.LocalAuvionyxMotion
@@ -458,7 +455,6 @@ private fun ModuleContentRouter(
     val mapsPulse by viewModel.mapsPulse.collectAsStateWithLifecycle()
     val syncDevices by viewModel.syncDevices.collectAsStateWithLifecycle()
     val permissions by viewModel.permissions.collectAsStateWithLifecycle()
-    val voiceState by viewModel.voiceState.collectAsStateWithLifecycle()
     val reducedMotion = LocalAuvionyxMotion.current.reducedMotion
 
     AnimatedContent(
@@ -550,42 +546,6 @@ private fun ModuleContentRouter(
                 onPrevTrack = { viewModel.previousTrack() }
             )
 
-            AuvionyxModule.PULSE -> PulseScreen(
-                isLandscapeWide = isLandscapeWide,
-                settings = settings,
-                telemetry = telemetry,
-                mapsPulse = mapsPulse,
-                onSelectPulseTab = { viewModel.selectPulseTab(it) },
-                onSelectMarker = { viewModel.selectMarker(it) },
-                onToggleTraffic = { viewModel.setTrafficOverlay(!settings.showTrafficOverlay) },
-                onToggleSatellite = { viewModel.setSatelliteGrid(!settings.showSatelliteGrid) },
-                onReportIncident = { title, corridor, sev ->
-                    viewModel.reportTrafficIncident(title, corridor, sev)
-                }
-            )
-
-            AuvionyxModule.VOICE -> VoiceScreen(
-                isLandscapeWide = isLandscapeWide,
-                voiceState = voiceState,
-                onPermissionUpdated = { viewModel.refreshPermissionsAndGps() },
-                onActivateMic = { viewModel.activateVoiceListening() },
-                onStopMic = { viewModel.stopVoiceListening() },
-                onResetToIdle = { viewModel.resetVoiceStateToIdle() },
-                onConfirmCandidate = { viewModel.confirmDestinationCandidate(it) },
-                onExecuteVoiceCommand = { viewModel.executeVoiceUtterance(it) },
-                onToggleTts = { viewModel.setTtsConfirmationsEnabled(it) },
-                onToggleWakeWord = { viewModel.setWakeWordEnabled(it) },
-                onToggleGeminiInterpreter = { viewModel.setGeminiComplexFallbackEnabled(it) }
-            )
-
-            AuvionyxModule.VEHICLE -> VehicleScreen(
-                isLandscapeWide = isLandscapeWide,
-                telemetry = telemetry,
-                onAdjustDriverTemp = { viewModel.adjustDriverTemp(it) },
-                onAdjustPassengerTemp = { viewModel.adjustPassengerTemp(it) },
-                onSelectDriveMode = { viewModel.setDriveMode(it) }
-            )
-
             AuvionyxModule.SETTINGS -> SettingsScreen(
                 settings = settings,
                 syncDevices = syncDevices,
@@ -631,10 +591,8 @@ private fun SmartphoneBottomNavBar(
         Triple(AuvionyxModule.APPS, Icons.Outlined.Apps, "Apps")
     )
     val secondaryItems = listOf(
-        AuvionyxModule.PULSE to "Pulse",
-        AuvionyxModule.VEHICLE to "Vehicle",
-        AuvionyxModule.VOICE to "Voice",
-        AuvionyxModule.HUD to "HUD"
+        AuvionyxModule.HUD to "HUD",
+        AuvionyxModule.AOD to "AOD"
     )
 
     Surface(
