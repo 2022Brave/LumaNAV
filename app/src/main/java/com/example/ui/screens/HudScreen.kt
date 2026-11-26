@@ -5,7 +5,6 @@ import android.app.Activity
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -691,14 +690,8 @@ private fun HudMinimalTurnCard(
     accent: Color,
     modifier: Modifier = Modifier
 ) {
-    Surface(
-        modifier = modifier,
-        color = Color.Transparent,
-        shape = CircleShape,
-        
-    ) {
-        Column(
-            modifier = Modifier.fillMaxSize().padding(20.dp),
+    Column(
+        modifier = modifier.fillMaxSize().padding(20.dp),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -722,5 +715,4 @@ private fun HudMinimalTurnCard(
                 overflow = TextOverflow.Ellipsis
             )
         }
-    }
 }
