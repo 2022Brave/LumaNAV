@@ -124,9 +124,15 @@ jobs:
           fi
 
       - name: Compile debug APK
-        env:
-          LUMANAV_VERSION_CODE: ${{ github.run_id }}
-        run: ./gradlew --no-daemon :app:assembleDebug
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Android versionCode is limited to 2,100,000,000. Use a shared,
+          # UTC epoch-based sequence (10-second resolution) across dev/stable workflows.
+          VERSION_CODE="$(($(date -u +%s) / 10))"
+          echo "LUMANAV_VERSION_CODE=$VERSION_CODE" >> "$GITHUB_ENV"
+          export LUMANAV_VERSION_CODE="$VERSION_CODE"
+          ./gradlew --no-daemon :app:assembleDebug
 
       - name: Verify APK signature and certificate fingerprint
         shell: bash
@@ -166,10 +172,10 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/branding/lumanav-ui-overhaul'
         shell: bash
         env:
-          VERSION_CODE: ${{ github.run_id }}
           COMMIT_SUBJECT: ${{ github.event.head_commit.message }}
         run: |
           set -euo pipefail
+          VERSION_CODE="$LUMANAV_VERSION_CODE"
           VERSION="1.0.${VERSION_CODE}"
           APK="LumaNAV-dev-${VERSION}.apk"
           cp app/build/outputs/apk/debug/app-debug.apk "${APK}"
@@ -193,11 +199,11 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/branding/lumanav-ui-overhaul'
         shell: bash
         env:
-          VERSION_CODE: ${{ github.run_id }}
           COMMIT_SHA: ${{ github.sha }}
           COMMIT_SUBJECT: ${{ github.event.head_commit.message }}
         run: |
           set -euo pipefail
+          VERSION_CODE="$LUMANAV_VERSION_CODE"
           VERSION="1.0.${VERSION_CODE}"
           APK="LumaNAV-dev-${VERSION}.apk"
           APK_URL="https://github.com/2022Brave/LumaNAV/releases/download/dev-${GITHUB_RUN_ID}/${APK}"
