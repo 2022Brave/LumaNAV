@@ -655,7 +655,7 @@ private fun SmartphonePortraitDriveDashboard(
 
         // Velocity-responsive Draggable Laminar Frosted Glass Media Sheet on Phone Portrait
         DraggableLaminarSheet(
-            minHeight = 108.dp,
+            minHeight = 160.dp,
             maxHeight = 230.dp,
             initialFraction = 0f,
             modifier = Modifier
