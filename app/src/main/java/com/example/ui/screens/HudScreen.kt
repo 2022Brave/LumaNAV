@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -155,6 +156,7 @@ fun HudScreen(
     ) {
         if (toolbarVisible) {
             Row(
+                modifier = Modifier.statusBarsPadding(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -360,7 +362,7 @@ private fun ArcGaugeHudLayout(
             }
             Column(
                 modifier = Modifier.weight(0.62f).fillMaxHeight(),
-                verticalArrangement = Arrangement.SpaceEvenly
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Row(modifier = Modifier.fillMaxWidth()) {
                     ArcGaugeMetric("TOP SPEED", "--", unitLabel, accent, Modifier.weight(1f))
