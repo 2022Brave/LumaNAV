@@ -1,10 +1,8 @@
 package com.example.viewmodel
 
 import android.app.Application
-import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
-import android.os.BatteryManager
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.core.GoogleMapsLiveNavigation
@@ -323,7 +321,6 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
         observeLiveGoogleMapsNotifications()
         startMediaTicker()
         observeDemoSimulationSetting()
-        refreshDeviceBattery()
         refreshPermissionsAndGps()
         viewModelScope.launch {
             prefsRepo.savedPlacesFlow.collect { saved ->
@@ -338,14 +335,6 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
 
     fun navigateTo(module: AuvionyxModule) {
         _activeModule.value = module
-    }
-
-    private fun refreshDeviceBattery() {
-        val bm = getApplication<Application>().getSystemService(Context.BATTERY_SERVICE) as? BatteryManager
-        val pct = bm?.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY) ?: -1
-        if (pct in 0..100) {
-            _telemetry.update { it.copy(batteryPercent = pct) }
-        }
     }
 
     private fun observeLiveGoogleMapsNotifications() {
@@ -809,7 +798,6 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
                     _telemetry.update { current ->
                         current.copy(
                             speedKmh = nextSpeed,
-                                batteryPercent = if (current.batteryPercent == 0) 84 else current.batteryPercent,
                                 isSimulationRunning = true
                         )
                     }
