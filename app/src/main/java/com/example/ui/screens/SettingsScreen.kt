@@ -111,7 +111,7 @@ fun SettingsScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column {
-                    Text("LumaNav Settings", style = MaterialTheme.typography.headlineMedium, color = GlassWhite)
+                    Text("LumaNAV Settings", style = MaterialTheme.typography.headlineMedium, color = GlassWhite)
                     Text(
                         "Personalisation, Dashboard Designer & Native Capability Status",
                         style = MaterialTheme.typography.bodyMedium,
@@ -379,7 +379,7 @@ fun SettingsScreen(
                 Spacer(Modifier.height(10.dp))
                 SettingsToggleRow(
                     title = "Optional Car Home Launcher Mode",
-                    subtitle = "Remain optional; boot directly into LumaNav Drive when enabled",
+                    subtitle = "Remain optional; boot directly into LumaNAV Drive when enabled",
                     checked = settings.optionalCarLauncherEnabled,
                     testTag = "settings_launcher_toggle",
                     onCheckedChange = onSetOptionalLauncher
@@ -474,7 +474,7 @@ fun SettingsScreen(
                 )
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    text = "If this switch is greyed out on ColorOS/Android, it is likely blocked because LumaNav was sideloaded. Open App Info → tap ⋮ (top-right) → Allow restricted settings. Then return here and enable LumaNav under Notification access. This is an Android security restriction, not an app bug.",
+                    text = "If this switch is greyed out on ColorOS/Android, it is likely blocked because LumaNAV was sideloaded. Open App Info → tap ⋮ (top-right) → Allow restricted settings. Then return here and enable LumaNAV under Notification access. This is an Android security restriction, not an app bug.",
                     style = MaterialTheme.typography.bodySmall,
                     color = TextMuted,
                     modifier = Modifier.fillMaxWidth()
