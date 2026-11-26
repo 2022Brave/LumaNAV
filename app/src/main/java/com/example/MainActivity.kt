@@ -346,14 +346,21 @@ fun AuvionyxRootApp(viewModel: AuvionyxViewModel) {
 
                 // Automatically enter Immersive Idle Cockpit after 6s untouched on landscape Drive Cockpit
                 LaunchedEffect(lastInteractionTimeMs, activeModule, isLandscapeWide, voiceState.visualState) {
+                    isIdleCockpit = false
                     if (activeModule == AuvionyxModule.DRIVE &&
                         isLandscapeWide &&
                         voiceState.visualState == VoiceVisualState.IDLE
                     ) {
+                        val interactionAtStart = lastInteractionTimeMs
                         delay(6_000L)
-                        isIdleCockpit = true
-                    } else {
-                        isIdleCockpit = false
+                        if (
+                            lastInteractionTimeMs == interactionAtStart &&
+                            activeModule == AuvionyxModule.DRIVE &&
+                            isLandscapeWide &&
+                            voiceState.visualState == VoiceVisualState.IDLE
+                        ) {
+                            isIdleCockpit = true
+                        }
                     }
                 }
 
