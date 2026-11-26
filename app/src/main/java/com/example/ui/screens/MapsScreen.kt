@@ -60,6 +60,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
@@ -600,8 +601,33 @@ fun MapsScreen(
                                     Text(place.name, color = GlassWhite, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                     Text(place.addressSummary, color = TextSecondary, style = MaterialTheme.typography.labelSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
                                 }
-                                IconButton(onClick = { onRemoveSavedPlace(place.id) }) {
-                                    Icon(Icons.Outlined.DeleteOutline, contentDescription = "Remove saved place", tint = TextSecondary)
+                                Column(
+                                    horizontalAlignment = Alignment.End,
+                                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Surface(
+                                        onClick = {
+                                            onSaveDestination(place.toDestinationCandidate().copy(name = "Home", category = "Home"))
+                                            showSavedPlaces = false
+                                        },
+                                        color = DeepBlue.copy(alpha = 0.35f),
+                                        shape = RoundedCornerShape(8.dp)
+                                    ) {
+                                        Text("SET HOME", color = accent, style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp))
+                                    }
+                                    Surface(
+                                        onClick = {
+                                            onSaveDestination(place.toDestinationCandidate().copy(name = "Work", category = "Work"))
+                                            showSavedPlaces = false
+                                        },
+                                        color = DeepBlue.copy(alpha = 0.35f),
+                                        shape = RoundedCornerShape(8.dp)
+                                    ) {
+                                        Text("SET WORK", color = accent, style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp))
+                                    }
+                                    IconButton(onClick = { onRemoveSavedPlace(place.id) }) {
+                                        Icon(Icons.Outlined.DeleteOutline, contentDescription = "Remove saved place", tint = TextSecondary)
+                                    }
                                 }
                             }
                         }
