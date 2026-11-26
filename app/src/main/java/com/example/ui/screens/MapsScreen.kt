@@ -119,6 +119,13 @@ fun MapsScreen(
 ) {
     val context = LocalContext.current
     var mapFullscreen by remember { mutableStateOf(false) }
+    val mapStyles = listOf(
+        "DARK" to "https://tiles.openfreemap.org/styles/dark",
+        "STREETS" to "https://tiles.openfreemap.org/styles/liberty",
+        "LIGHT" to "https://tiles.openfreemap.org/styles/positron"
+    )
+    var mapStyleIndex by remember { mutableStateOf(0) }
+    val activeMapStyle = mapStyles[mapStyleIndex]
     val accent = LocalAuvionyxPalette.current.accentPrimary
     val reducedMotion = LocalAuvionyxMotion.current.reducedMotion
     val locationLauncher = rememberLauncherForActivityResult(
@@ -498,8 +505,15 @@ fun MapsScreen(
                 routePoints = mapsPulse.routePolylineGeo,
                 headingDegrees = telemetry.headingDegrees,
                 accent = accent,
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.fillMaxSize(),
+                styleUri = activeMapStyle.second
             )
+            Surface(
+                onClick = { mapStyleIndex = (mapStyleIndex + 1) % mapStyles.size },
+                modifier = Modifier.align(Alignment.TopCenter).padding(14.dp),
+                color = Color(0xE609111B), shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(1.dp, accent.copy(alpha = 0.55f))
+            ) { Text("MAP · ${activeMapStyle.first}", color = accent, modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp), style = MaterialTheme.typography.labelSmall) }
             Surface(
                 onClick = { mapFullscreen = false },
                 modifier = Modifier.align(Alignment.TopEnd).padding(14.dp),
@@ -528,8 +542,15 @@ fun MapsScreen(
                     routePoints = mapsPulse.routePolylineGeo,
                     headingDegrees = telemetry.headingDegrees,
                     accent = accent,
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier.fillMaxSize(),
+                    styleUri = activeMapStyle.second
                 )
+                Surface(
+                    onClick = { mapStyleIndex = (mapStyleIndex + 1) % mapStyles.size },
+                    modifier = Modifier.align(Alignment.TopCenter).padding(14.dp),
+                    color = Color(0xE609111B), shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, accent.copy(alpha = 0.55f))
+                ) { Text("MAP · ${activeMapStyle.first}", color = accent, modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp), style = MaterialTheme.typography.labelSmall) }
                 Surface(
                     onClick = { mapFullscreen = true },
                     modifier = Modifier.align(Alignment.TopEnd).padding(14.dp),
@@ -559,8 +580,15 @@ fun MapsScreen(
                 routePoints = mapsPulse.routePolylineGeo,
                 headingDegrees = telemetry.headingDegrees,
                 accent = accent,
-                modifier = Modifier.fillMaxSize().zIndex(0f)
+                modifier = Modifier.fillMaxSize().zIndex(0f),
+                styleUri = activeMapStyle.second
             )
+            Surface(
+                onClick = { mapStyleIndex = (mapStyleIndex + 1) % mapStyles.size },
+                modifier = Modifier.align(Alignment.TopCenter).padding(14.dp).zIndex(2f),
+                color = Color(0xE609111B), shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(1.dp, accent.copy(alpha = 0.55f))
+            ) { Text("MAP · ${activeMapStyle.first}", color = accent, modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp), style = MaterialTheme.typography.labelSmall) }
             Surface(
                 onClick = { mapFullscreen = !mapFullscreen },
                 modifier = Modifier.align(Alignment.TopEnd).padding(14.dp).zIndex(2f),
