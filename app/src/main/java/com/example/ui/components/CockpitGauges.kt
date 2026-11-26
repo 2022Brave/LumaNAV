@@ -6,6 +6,14 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.draw.blur
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -520,8 +528,22 @@ fun CockpitMediaPlayerCard(
 ) {
     val accent = LocalAuvionyxPalette.current.accentPrimary
 
+    Box(modifier = modifier) {
+        if (!compactMode) {
+            if (externalArtwork != null) {
+                Image(
+                    bitmap = externalArtwork.asImageBitmap(),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize().blur(30.dp)
+                )
+            } else {
+                Box(Modifier.fillMaxSize().background(Brush.radialGradient(listOf(track.adaptiveColor.copy(alpha = 0.34f), Color.Black))))
+            }
+            Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color(0xA8000000), Color(0xE8000000)))))
+        }
     LiquidGlassCockpitCard(
-        modifier = modifier
+        modifier = Modifier.fillMaxSize()
             .testTag(if (compactMode) "idle_media_card" else "active_media_card")
             .clip(RoundedCornerShape(24.dp))
             .photonLuminousTouch(pressScale = 0.98f, onClick = onOpenMusic),
@@ -599,7 +621,9 @@ fun CockpitMediaPlayerCard(
 
             // Middle: Sleek Cyan Progress Scrubber + Timestamps
             Column(modifier = Modifier.fillMaxWidth()) {
-                Slider(
+                if (!compactMode) {
+                    CockpitWavyProgressBar(positionSec, track.durationSec, isPlaying, track.adaptiveColor, onSeek)
+                } else Slider(
                     value = positionSec.coerceIn(0, track.durationSec.coerceAtLeast(1)).toFloat(),
                     onValueChange = { onSeek(it.toInt()) },
                     valueRange = 0f..track.durationSec.coerceAtLeast(1).toFloat(),
@@ -608,9 +632,7 @@ fun CockpitMediaPlayerCard(
                         activeTrackColor = accent,
                         inactiveTrackColor = GlassWhite.copy(alpha = 0.16f)
                     ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp)
+                    modifier = Modifier.fillMaxWidth().height(48.dp)
                 )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -744,6 +766,63 @@ fun CockpitMediaPlayerCard(
                 }
             }
         }
+    }
+    }
+}
+
+@Composable
+private fun CockpitWavyProgressBar(
+    positionSec: Int,
+    durationSec: Int,
+    isPlaying: Boolean,
+    accent: Color,
+    onSeek: (Int) -> Unit
+) {
+    val amplitude by animateFloatAsState(
+        targetValue = if (isPlaying) 1f else 0f,
+        animationSpec = tween(480, easing = LivingFlow.LaminarEasing),
+        label = "cockpitWaveAmplitude"
+    )
+    val transition = rememberInfiniteTransition(label = "cockpitWavePhase")
+    val phase by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = (2f * PI).toFloat(),
+        animationSpec = infiniteRepeatable(tween(2200, easing = LinearEasing)),
+        label = "cockpitWavePhaseValue"
+    )
+    val progress = (positionSec.toFloat() / durationSec.coerceAtLeast(1)).coerceIn(0f, 1f)
+    Canvas(
+        modifier = Modifier.fillMaxWidth().height(42.dp)
+            .pointerInput(durationSec) {
+                detectTapGestures { point ->
+                    onSeek((point.x / size.width.coerceAtLeast(1f) * durationSec).toInt().coerceIn(0, durationSec))
+                }
+            }
+            .pointerInput(durationSec) {
+                detectDragGestures { change, _ ->
+                    onSeek((change.position.x / size.width.coerceAtLeast(1f) * durationSec).toInt().coerceIn(0, durationSec))
+                    change.consume()
+                }
+            }
+    ) {
+        val centerY = size.height / 2f
+        val progressX = size.width * progress
+        drawLine(GlassWhite.copy(alpha = 0.18f), Offset(0f, centerY), Offset(size.width, centerY), 3.dp.toPx(), cap = StrokeCap.Round)
+        val layers = listOf(Triple(9.dp.toPx(), 5.dp.toPx(), 0.16f), Triple(5.dp.toPx(), 3.dp.toPx(), 0.40f), Triple(2.dp.toPx(), 2.dp.toPx(), 0.96f))
+        layers.forEachIndexed { index, layer ->
+            val path = Path()
+            var x = 0f
+            val step = 3.dp.toPx()
+            while (x <= progressX) {
+                val angle = (x / size.width.coerceAtLeast(1f) * 5.5f * 2f * PI).toFloat() + phase + index * 0.65f
+                val y = centerY + sin(angle) * layer.first * amplitude
+                if (x == 0f) path.moveTo(x, y) else path.lineTo(x, y)
+                x += step
+            }
+            drawPath(path, accent.copy(alpha = layer.third), style = Stroke(width = layer.second, cap = StrokeCap.Round))
+        }
+        drawCircle(GlassWhite, 8.dp.toPx(), Offset(progressX, centerY), style = Stroke(width = 2.dp.toPx()))
+        drawCircle(accent, 5.dp.toPx(), Offset(progressX, centerY))
     }
 }
 
