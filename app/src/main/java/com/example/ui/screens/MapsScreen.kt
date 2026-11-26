@@ -719,7 +719,8 @@ fun MapsScreen(
                     accent = accent,
                     modifier = Modifier.fillMaxSize(),
                     styleUri = activeMapStyle.second,
-                    show3DBuildings = activeMapStyle.first != "WIREFRAME"
+                    show3DBuildings = activeMapStyle.first != "WIREFRAME",
+                    wireframeMode = activeMapStyle.first == "WIREFRAME"
                 )
                 Surface(
                     onClick = { mapStyleIndex = (mapStyleIndex + 1) % mapStyles.size },
@@ -758,7 +759,8 @@ fun MapsScreen(
                 accent = accent,
                 modifier = Modifier.fillMaxSize().zIndex(0f),
                 styleUri = activeMapStyle.second,
-                    show3DBuildings = activeMapStyle.first != "WIREFRAME"
+                show3DBuildings = activeMapStyle.first != "WIREFRAME",
+                wireframeMode = activeMapStyle.first == "WIREFRAME"
             )
             BoxWithConstraints(
                 modifier = Modifier.fillMaxSize().zIndex(4f)
