@@ -62,8 +62,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -76,7 +74,6 @@ import androidx.compose.ui.zIndex
 import androidx.compose.ui.unit.dp
 import com.example.data.model.DestinationCandidate
 import com.example.data.model.MapPlaceMarker
-import com.example.data.model.SavedPlace
 import com.example.data.model.ServiceAvailabilityState
 import com.example.data.model.VehicleTelemetry
 import com.example.data.preferences.AuvionyxSettingsState
