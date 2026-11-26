@@ -85,8 +85,34 @@ fun MusicScreen(
     val track = mediaState.currentTrack
     val duration = track.durationSec.coerceAtLeast(1)
 
+    Box(modifier = modifier.fillMaxSize()) {
+        if (isLandscapeWide) {
+            val liveArtwork = mediaState.externalArtwork
+            if (liveArtwork != null) {
+                Image(
+                    bitmap = liveArtwork.asImageBitmap(),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize().blur(34.dp)
+                )
+            } else {
+                AlbumArtworkArt(
+                    artVariant = track.artVariant,
+                    accentColor = track.adaptiveColor,
+                    cornerRadius = 0.dp,
+                    modifier = Modifier.fillMaxSize().blur(28.dp)
+                )
+            }
+            Box(
+                Modifier.fillMaxSize().background(
+                    Brush.verticalGradient(
+                        listOf(Color(0xB8000000), Color(0xE6000000), Color(0xF2000000))
+                    )
+                )
+            )
+        }
     GlassCard(
-        modifier = modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxSize(),
         cornerRadius = 28.dp,
         highlighted = mediaState.isPlaying,
         contentPadding = androidx.compose.foundation.layout.PaddingValues(
@@ -140,6 +166,20 @@ fun MusicScreen(
                     verticalArrangement = Arrangement.SpaceEvenly
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                            Surface(
+                                color = Color(0x553B4652),
+                                shape = RoundedCornerShape(50),
+                                border = BorderStroke(1.dp, GlassWhite.copy(alpha = 0.16f))
+                            ) {
+                                Text(
+                                    "AUDIO · SYSTEM",
+                                    color = accent,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp)
+                                )
+                            }
+                        }
                         Text(
                             text = track.title,
                             style = MaterialTheme.typography.headlineLarge.copy(
@@ -161,7 +201,7 @@ fun MusicScreen(
                             Text(track.album, style = MaterialTheme.typography.labelMedium, color = TextMuted)
                         }
                     }
-                    MusicProgress(mediaState, duration, accent, onSeek)
+                    MusicProgress(mediaState, duration, accent, onSeek, animatedWave = true)
                     MusicTransport(
                         mediaState = mediaState,
                         accent = accent,
@@ -352,6 +392,7 @@ fun MusicScreen(
             }
         }
     }
+    }
 }
 
 @Composable
@@ -392,10 +433,13 @@ private fun MusicProgress(
     state: MediaPlayerState,
     duration: Int,
     accent: Color,
-    onSeek: (Int) -> Unit
+    onSeek: (Int) -> Unit,
+    animatedWave: Boolean = false
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Slider(
+        if (animatedWave) {
+            WavyMusicProgressBar(state, duration, accent, onSeek)
+        } else Slider(
             value = state.effectivePositionSec.toFloat().coerceIn(0f, duration.toFloat()),
             onValueChange = { onSeek(it.toInt()) },
             valueRange = 0f..duration.toFloat(),
@@ -410,6 +454,80 @@ private fun MusicProgress(
             Text(formatDuration(state.effectivePositionSec), style = MaterialTheme.typography.labelSmall, color = TextMuted)
             Text(formatDuration(duration), style = MaterialTheme.typography.labelSmall, color = TextMuted)
         }
+    }
+}
+
+
+@Composable
+private fun WavyMusicProgressBar(
+    state: MediaPlayerState,
+    duration: Int,
+    accent: Color,
+    onSeek: (Int) -> Unit
+) {
+    val amplitude by animateFloatAsState(
+        targetValue = if (state.isPlaying) 1f else 0f,
+        animationSpec = tween(480, easing = LivingFlow.LaminarEasing),
+        label = "musicWaveAmplitude"
+    )
+    val transition = rememberInfiniteTransition(label = "musicWavePhase")
+    val phase by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = (2f * Math.PI).toFloat(),
+        animationSpec = infiniteRepeatable(tween(2200, easing = LinearEasing)),
+        label = "musicWavePhaseValue"
+    )
+    val progress = (state.effectivePositionSec.toFloat() / duration.coerceAtLeast(1)).coerceIn(0f, 1f)
+    Canvas(
+        modifier = Modifier.fillMaxWidth().height(42.dp)
+            .pointerInput(duration) {
+                detectTapGestures { point ->
+                    onSeek((point.x / size.width.coerceAtLeast(1) * duration).toInt().coerceIn(0, duration))
+                }
+            }
+            .pointerInput(duration) {
+                detectDragGestures { change, _ ->
+                    onSeek((change.position.x / size.width.coerceAtLeast(1) * duration).toInt().coerceIn(0, duration))
+                    change.consume()
+                }
+            }
+    ) {
+        val centerY = size.height / 2f
+        val progressX = size.width * progress
+        drawLine(
+            color = GlassWhite.copy(alpha = 0.20f),
+            start = Offset(0f, centerY),
+            end = Offset(size.width, centerY),
+            strokeWidth = 3.dp.toPx(),
+            cap = StrokeCap.Round
+        )
+        val layers = listOf(
+            Triple(10.dp.toPx(), 5.dp.toPx(), 0.16f),
+            Triple(6.dp.toPx(), 3.dp.toPx(), 0.38f),
+            Triple(2.2.dp.toPx(), 2.dp.toPx(), 0.96f)
+        )
+        layers.forEachIndexed { index, layer ->
+            val path = Path()
+            val step = 3.dp.toPx()
+            var x = 0f
+            while (x <= progressX) {
+                val wave = sin((x / size.width.coerceAtLeast(1f) * 5.5f * 2f * Math.PI).toFloat() + phase + index * 0.7f)
+                val y = centerY + wave * layer.first * amplitude
+                if (x == 0f) path.moveTo(x, y) else path.lineTo(x, y)
+                x += step
+            }
+            if (progressX > 0f) {
+                val wave = sin(5.5f * 2f * Math.PI + phase + index * 0.7f)
+                path.lineTo(progressX, centerY + wave * layer.first * amplitude)
+            }
+            drawPath(
+                path = path,
+                color = accent.copy(alpha = layer.third),
+                style = Stroke(width = layer.second, cap = StrokeCap.Round)
+            )
+        }
+        drawCircle(color = GlassWhite.copy(alpha = 0.95f), radius = 8.dp.toPx(), center = Offset(progressX, centerY), style = Stroke(width = 2.dp.toPx()))
+        drawCircle(color = accent, radius = 5.dp.toPx(), center = Offset(progressX, centerY))
     }
 }
 
@@ -430,10 +548,10 @@ private fun MusicTransport(
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        IconButton(onClick = onToggleShuffle, modifier = Modifier.size(buttonSize)) {
+        IconButton(onClick = onToggleShuffle, modifier = Modifier.size(buttonSize).background(Color(0x553B4652), CircleShape)) {
             Icon(Icons.Outlined.Shuffle, "Shuffle", tint = if (mediaState.isShuffle) accent else TextSecondary, modifier = Modifier.size(large.let { if (it) 26.dp else 22.dp }))
         }
-        IconButton(onClick = onPrevTrack, modifier = Modifier.size(buttonSize)) {
+        IconButton(onClick = onPrevTrack, modifier = Modifier.size(buttonSize).background(Color(0x553B4652), CircleShape)) {
             Icon(Icons.Rounded.SkipPrevious, "Previous", tint = GlassWhite, modifier = Modifier.size(if (large) 34.dp else 28.dp))
         }
         Surface(
@@ -455,10 +573,10 @@ private fun MusicTransport(
                 )
             }
         }
-        IconButton(onClick = onNextTrack, modifier = Modifier.size(buttonSize)) {
+        IconButton(onClick = onNextTrack, modifier = Modifier.size(buttonSize).background(Color(0x553B4652), CircleShape)) {
             Icon(Icons.Rounded.SkipNext, "Next", tint = GlassWhite, modifier = Modifier.size(if (large) 34.dp else 28.dp))
         }
-        IconButton(onClick = onToggleRepeat, modifier = Modifier.size(buttonSize)) {
+        IconButton(onClick = onToggleRepeat, modifier = Modifier.size(buttonSize).background(Color(0x553B4652), CircleShape)) {
             Icon(Icons.Outlined.Repeat, "Repeat", tint = if (mediaState.isRepeat) accent else TextSecondary, modifier = Modifier.size(large.let { if (it) 26.dp else 22.dp }))
         }
     }
