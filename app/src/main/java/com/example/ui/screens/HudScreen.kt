@@ -305,7 +305,7 @@ fun HudScreen(
                         unitLabel = unitLabel,
                         accent = hudAccent,
                         landscape = false,
-                        modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 18.dp)
+                        modifier = Modifier.align(Alignment.TopStart).padding(start = 12.dp, top = 120.dp)
                     )
                     Surface(
                         modifier = Modifier.align(Alignment.TopEnd).statusBarsPadding().padding(14.dp),
