@@ -54,6 +54,7 @@ import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.MusicNote
+import androidx.compose.material.icons.outlined.Nightlight
 import androidx.compose.material.icons.outlined.Navigation
 import androidx.compose.material.icons.outlined.Phone
 import androidx.compose.material.icons.outlined.Repeat
