@@ -26,6 +26,8 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -43,9 +45,12 @@ import androidx.compose.material.icons.outlined.Navigation
 import androidx.compose.material.icons.outlined.Place
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Clear
+import androidx.compose.material.icons.outlined.BookmarkBorder
+import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.NotificationsActive
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.IconButton
@@ -69,6 +74,7 @@ import androidx.compose.ui.zIndex
 import androidx.compose.ui.unit.dp
 import com.example.data.model.DestinationCandidate
 import com.example.data.model.MapPlaceMarker
+import com.example.data.model.SavedPlace
 import com.example.data.model.ServiceAvailabilityState
 import com.example.data.model.VehicleTelemetry
 import com.example.data.preferences.AuvionyxSettingsState
@@ -105,6 +111,8 @@ fun MapsScreen(
     notificationAccessGranted: Boolean,
     onPermissionUpdated: () -> Unit,
     onConfirmDestination: (DestinationCandidate) -> Unit,
+    onSaveDestination: (DestinationCandidate) -> Unit,
+    onRemoveSavedPlace: (String) -> Unit,
     onDestinationQueryChange: (String) -> Unit,
     onSearchDestination: (String) -> Unit,
     onClearDestinationSearch: () -> Unit,
@@ -117,6 +125,7 @@ fun MapsScreen(
 ) {
     val context = LocalContext.current
     var mapFullscreen by remember { mutableStateOf(false) }
+    var showSavedPlaces by remember { mutableStateOf(false) }
     val mapStyles = listOf(
         "DARK" to "https://tiles.openfreemap.org/styles/dark",
         "WIREFRAME" to "https://tiles.openfreemap.org/styles/positron",
@@ -166,6 +175,31 @@ fun MapsScreen(
                     modifier = Modifier.testTag("maps_search_submit")
                 ) {
                     Icon(Icons.Outlined.Search, contentDescription = "Search", tint = accent)
+                }
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Surface(
+                    onClick = { showSavedPlaces = true },
+                    color = DeepBlue.copy(alpha = 0.28f),
+                    shape = RoundedCornerShape(50),
+                    border = BorderStroke(1.dp, accent.copy(alpha = 0.45f)),
+                    modifier = Modifier.testTag("maps_saved_places_chip")
+                ) {
+                    Text("SAVED · ${mapsPulse.savedPlaces.size}", color = accent, style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(horizontal = 14.dp, vertical = 9.dp))
+                }
+                Surface(
+                    onClick = {
+                        onDestinationQueryChange("fuel station")
+                        onSearchDestination("fuel station")
+                    },
+                    color = Color(0xFF0E1522),
+                    shape = RoundedCornerShape(50),
+                    border = BorderStroke(1.dp, GlassWhite.copy(alpha = 0.12f))
+                ) {
+                    Text("FUEL", color = GlassWhite, style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(horizontal = 14.dp, vertical = 9.dp))
                 }
             }
             Text(
@@ -284,6 +318,11 @@ fun MapsScreen(
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis
                                         )
+                                    }
+                                    if (target.latitude != null && target.longitude != null) {
+                                        IconButton(onClick = { onSaveDestination(target) }) {
+                                            Icon(Icons.Outlined.BookmarkBorder, contentDescription = "Save destination", tint = accent)
+                                        }
                                     }
                                     ServiceStateBadge(state = ServiceAvailabilityState.LIVE)
                                 }
@@ -406,6 +445,11 @@ fun MapsScreen(
                                             overflow = TextOverflow.Ellipsis
                                         )
                                     }
+                                    if (candidate.latitude != null && candidate.longitude != null) {
+                                        IconButton(onClick = { onSaveDestination(candidate) }) {
+                                            Icon(Icons.Outlined.BookmarkBorder, contentDescription = "Save place", tint = accent)
+                                        }
+                                    }
                                     Text("Select", style = MaterialTheme.typography.labelMedium, color = accent)
                                 }
                             }
@@ -494,6 +538,46 @@ fun MapsScreen(
                 )
             }
         }
+    }
+
+    if (showSavedPlaces) {
+        AlertDialog(
+            onDismissRequest = { showSavedPlaces = false },
+            title = { Text("Saved Places", color = GlassWhite) },
+            text = {
+                if (mapsPulse.savedPlaces.isEmpty()) {
+                    Text("No saved places yet. Search for a destination and tap the bookmark icon to save it.", color = TextSecondary)
+                } else {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        mapsPulse.savedPlaces.forEach { place ->
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Column(
+                                    modifier = Modifier.weight(1f)
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .photonLuminousTouch(pressScale = 0.97f, onClick = {
+                                            onConfirmDestination(place.toDestinationCandidate())
+                                            showSavedPlaces = false
+                                        })
+                                        .padding(10.dp)
+                                ) {
+                                    Text(place.name, color = GlassWhite, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                    Text(place.addressSummary, color = TextSecondary, style = MaterialTheme.typography.labelSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                                }
+                                IconButton(onClick = { onRemoveSavedPlace(place.id) }) {
+                                    Icon(Icons.Outlined.DeleteOutline, contentDescription = "Remove saved place", tint = TextSecondary)
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(onClick = { showSavedPlaces = false }) { Text("Close") }
+            },
+            containerColor = Color(0xFF101722),
+            titleContentColor = GlassWhite,
+            textContentColor = TextSecondary
+        )
     }
 
     if (isLandscapeWide && mapFullscreen) {
