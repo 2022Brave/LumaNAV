@@ -194,6 +194,11 @@ fun AuvionyxRootApp(viewModel: AuvionyxViewModel) {
     val scope = rememberCoroutineScope()
     var dismissedUpdateVersion by remember { mutableStateOf<String?>(null) }
     var askedInitialLocation by remember { mutableStateOf(false) }
+    var isMapsFullscreen by remember { mutableStateOf(false) }
+
+    LaunchedEffect(activeModule) {
+        if (activeModule != AuvionyxModule.MAPS) isMapsFullscreen = false
+    }
 
     val startupLocationLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
@@ -366,13 +371,13 @@ fun AuvionyxRootApp(viewModel: AuvionyxViewModel) {
                                 .fillMaxWidth()
                                 .weight(1f)
                                 .padding(
-                                    horizontal = if (cockpitIdleActive || isHudMode) 0.dp else 14.dp,
-                                    vertical = if (cockpitIdleActive || isHudMode) 0.dp else 4.dp
+                                    horizontal = if (cockpitIdleActive || isHudMode || isMapsFullscreen) 0.dp else 14.dp,
+                                    vertical = if (cockpitIdleActive || isHudMode || isMapsFullscreen) 0.dp else 4.dp
                                 ),
-                            horizontalArrangement = Arrangement.spacedBy(if (cockpitIdleActive || isHudMode) 0.dp else 12.dp)
+                            horizontalArrangement = Arrangement.spacedBy(if (cockpitIdleActive || isHudMode || isMapsFullscreen) 0.dp else 12.dp)
                         ) {
                             AnimatedVisibility(
-                                visible = !cockpitIdleActive && !isHudMode,
+                                visible = !cockpitIdleActive && !isHudMode && !isMapsFullscreen,
                                 enter = fadeIn(tween(LumaMotion.StandardDurationMs, easing = LumaMotion.LaminarEasing)) +
                                     expandHorizontally(tween(LumaMotion.StandardDurationMs, easing = LumaMotion.LaminarEasing)) +
                                     slideInHorizontally(LumaMotion.LaminarIntOffsetSpec) { -it / 3 },
@@ -404,6 +409,7 @@ fun AuvionyxRootApp(viewModel: AuvionyxViewModel) {
                                     viewModel = viewModel,
                                     onActivateVoiceCapture = ::triggerVoiceCapture,
                                     onOpenPhoneDialer = ::openPhoneDialer,
+                                    onMapsFullscreenChanged = { isMapsFullscreen = it },
                                     )
                             }
                         }
@@ -448,6 +454,7 @@ private fun ModuleContentRouter(
     viewModel: AuvionyxViewModel,
     onActivateVoiceCapture: () -> Unit,
     onOpenPhoneDialer: () -> Unit,
+    onMapsFullscreenChanged: (Boolean) -> Unit,
 ) {
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val mediaState by viewModel.mediaState.collectAsStateWithLifecycle()
@@ -512,7 +519,8 @@ private fun ModuleContentRouter(
                 onSelectRoute = { viewModel.selectRoute(it) },
                 onToggleNavigation = { viewModel.toggleNavigation() },
                 onToggleTraffic = { viewModel.setTrafficOverlay(!settings.showTrafficOverlay) },
-                onToggleSatellite = { viewModel.setSatelliteGrid(!settings.showSatelliteGrid) }
+                onToggleSatellite = { viewModel.setSatelliteGrid(!settings.showSatelliteGrid) },
+                onMapFullscreenChanged = onMapsFullscreenChanged
             )
 
             AuvionyxModule.MUSIC -> MusicScreen(
