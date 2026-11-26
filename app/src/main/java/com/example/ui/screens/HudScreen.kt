@@ -1,7 +1,6 @@
 package com.example.ui.screens
 
 import android.app.Activity
-import android.view.WindowManager
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
@@ -108,7 +107,7 @@ fun HudScreen(
 ) {
     var mirrorForWindshield by remember { mutableStateOf(hudConfig.mirrorFlipForWindshield) }
     val activity = LocalContext.current as? Activity
-    val originalWindowBrightness = remember(activity) { activity?.window?.attributes?.screenBrightness ?: WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE }
+    val originalWindowBrightness = remember(activity) { activity?.window?.attributes?.screenBrightness ?: -1f }
     var hudBrightness by remember { mutableFloatStateOf(if (originalWindowBrightness in 0f..1f) originalWindowBrightness else 0.75f) }
     var glowIntensity by remember { mutableFloatStateOf(0.85f) }
     SideEffect {
