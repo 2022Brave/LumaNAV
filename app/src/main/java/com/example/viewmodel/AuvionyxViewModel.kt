@@ -22,7 +22,6 @@ import com.example.data.model.AuvionyxSampleData
 import com.example.data.model.DashboardSplitRatio
 import com.example.data.model.DestinationCandidate
 import com.example.data.model.DestinationSearchOutcome
-import com.example.data.model.DriveMode
 import com.example.data.model.HudConfig
 import com.example.data.model.HudLayoutMode
 import com.example.data.model.MapPlaceMarker
@@ -68,12 +67,6 @@ import java.util.UUID
 import kotlin.math.roundToInt
 
 private const val DEFAULT_ACCENT_ARGB = -16721419 // 0xFF00D9F5 (Electric Cyan)
-
-enum class PulseFeedTab(val label: String) {
-    LIVE("Corridors"),
-    FORECAST("Forecast"),
-    INCIDENTS("Incidents")
-}
 
 data class MediaPlayerState(
     val tracks: List<MediaTrack> = AuvionyxSampleData.tracks,
@@ -205,7 +198,6 @@ data class MapsAndPulseState(
     val markers: List<MapPlaceMarker> = emptyList(),
     val selectedMarkerId: String? = null,
     val incidents: List<TrafficIncident> = emptyList(),
-    val activePulseTab: PulseFeedTab = PulseFeedTab.LIVE,
     val isNavigating: Boolean = false,
     val isExternalGoogleMapsSyncActive: Boolean = false,
     val navigationSourceLabel: String? = null,
@@ -1152,10 +1144,6 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    fun selectPulseTab(tab: PulseFeedTab) {
-        _mapsPulse.update { it.copy(activePulseTab = tab) }
-    }
-
     fun reportTrafficIncident(title: String, corridor: String, severity: TrafficSeverity) {
         val delay = when (severity) {
             TrafficSeverity.HIGH -> 14
@@ -1176,25 +1164,6 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
         _mapsPulse.update { state ->
             state.copy(incidents = listOf(newIncident) + state.incidents)
         }
-    }
-
-    // Vehicle Controls
-    fun adjustDriverTemp(deltaC: Float) {
-        _telemetry.update {
-            val next = ((it.cabinDriverTempC + deltaC) * 2f).roundToInt() / 2f
-            it.copy(cabinDriverTempC = next.coerceIn(16.0f, 28.0f))
-        }
-    }
-
-    fun adjustPassengerTemp(deltaC: Float) {
-        _telemetry.update {
-            val next = ((it.cabinPassengerTempC + deltaC) * 2f).roundToInt() / 2f
-            it.copy(cabinPassengerTempC = next.coerceIn(16.0f, 28.0f))
-        }
-    }
-
-    fun setDriveMode(mode: DriveMode) {
-        _telemetry.update { it.copy(driveMode = mode) }
     }
 
     fun toggleDeviceSync(deviceId: String) {
@@ -1691,15 +1660,14 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
     ): VoiceCommandOutcome {
         return when (command.action) {
             VoiceCommandAction.TRAFFIC_CONDITIONS -> {
-                selectPulseTab(PulseFeedTab.LIVE)
-                navigateTo(AuvionyxModule.PULSE)
+                navigateTo(AuvionyxModule.MAPS)
                 val count = _mapsPulse.value.incidents.count { it.severity == TrafficSeverity.HIGH }
                 VoiceCommandOutcome(
                     category = VoiceCommandCategory.NAVIGATION,
                     action = command.action,
                     recognizedPhrase = recognizedPhrase,
-                    confirmationTitle = customConfirmation ?: "Opening Traffic Pulse ($count alerts)",
-                    confirmationDetail = if (_mapsPulse.value.incidents.isEmpty()) "No active corridor reports." else "Displaying active incidents.",
+                    confirmationTitle = customConfirmation ?: "Opening Maps traffic view ($count alerts)",
+                    confirmationDetail = if (_mapsPulse.value.incidents.isEmpty()) "No active corridor reports." else "Traffic and route information is available in Maps.",
                     serviceState = _mapsPulse.value.mapsServiceState,
                     usedGeminiInterpreter = usedGemini
                 )
@@ -1842,13 +1810,12 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
 
             VoiceCommandAction.DISPLAY_VEHICLE_DASHBOARD -> {
                 val tel = _telemetry.value
-                navigateTo(AuvionyxModule.VEHICLE)
                 VoiceCommandOutcome(
-                    category = VoiceCommandCategory.VEHICLE,
+                    category = VoiceCommandCategory.INTERFACE,
                     action = command.action,
                     recognizedPhrase = recognizedPhrase,
-                    confirmationTitle = customConfirmation ?: "Vehicle Dashboard",
-                    confirmationDetail = "${tel.batteryPercent}% device battery · ${tel.driveMode.label} Mode.",
+                    confirmationTitle = customConfirmation ?: "Vehicle screen retired",
+                    confirmationDetail = "Live speed, GPS and route telemetry remain available in Drive and HUD.",
                     serviceState = if (tel.isSimulationRunning) ServiceAvailabilityState.DEMO else ServiceAvailabilityState.LIVE,
                     usedGeminiInterpreter = usedGemini
                 )
