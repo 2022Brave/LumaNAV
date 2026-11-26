@@ -79,7 +79,8 @@ fun NativeMapLibreView(
     headingDegrees: Int,
     accent: Color,
     modifier: Modifier = Modifier,
-    show3DBuildings: Boolean = true
+    show3DBuildings: Boolean = true,
+    styleUri: String = AUVIONYX_DARK_STYLE
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -90,6 +91,7 @@ fun NativeMapLibreView(
     var cameraFollowEnabled by remember { mutableStateOf(true) }
     var retryToken by remember { mutableStateOf(0) }
     var hasCenteredOnFix by remember { mutableStateOf(false) }
+    var lastRequestedStyle by remember { mutableStateOf(AUVIONYX_DARK_STYLE) }
 
     val mapView = remember(context) {
         MapLibre.getInstance(context.applicationContext)
@@ -131,12 +133,13 @@ fun NativeMapLibreView(
     }
 
 
-    LaunchedEffect(retryToken, mapLibreMap) {
-        if (retryToken > 0 && mapLibreMap != null) {
+    LaunchedEffect(retryToken, mapLibreMap, styleUri) {
+        if (mapLibreMap != null && (retryToken > 0 || styleUri != lastRequestedStyle)) {
+            lastRequestedStyle = styleUri
             styleLoaded = false
             styleError = null
             loadedStyle = null
-            mapLibreMap?.setStyle(Style.Builder().fromUri(AUVIONYX_DARK_STYLE)) { style ->
+            mapLibreMap?.setStyle(Style.Builder().fromUri(styleUri)) { style ->
                 if (style.getSource(ROUTE_SOURCE_ID) == null) {
                     style.addSource(GeoJsonSource(ROUTE_SOURCE_ID, emptyFeatureCollection()))
                     style.addLayer(
