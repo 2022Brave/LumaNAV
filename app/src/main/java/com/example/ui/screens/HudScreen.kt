@@ -254,6 +254,25 @@ fun HudScreen(
                         landscape = true,
                         modifier = Modifier.align(Alignment.BottomStart).padding(18.dp)
                     )
+                    Surface(
+                        modifier = Modifier.align(Alignment.TopEnd).statusBarsPadding().padding(14.dp),
+                        color = Color(0xCC03070C),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text("ETA ${telemetry.etaTimeLabel} · ${formatNavigationDistance(telemetry.remainingDistanceKm)}",
+                            color = hudAccent, style = MaterialTheme.typography.labelSmall,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp))
+                    }
+                    HudBottomMusicBar(
+                        track = mediaState.currentTrack,
+                        isPlaying = mediaState.isPlaying,
+                        accent = hudAccent,
+                        onOpenMusic = { onSelectModule(AuvionyxModule.MUSIC) },
+                        onPrevious = onPrevTrack,
+                        onPlayPause = onPlayPause,
+                        onNext = onNextTrack,
+                        modifier = Modifier.align(Alignment.BottomEnd).padding(18.dp)
+                    )
                 }
             }
         } else {
@@ -288,35 +307,30 @@ fun HudScreen(
                         landscape = false,
                         modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 18.dp)
                     )
+                    Surface(
+                        modifier = Modifier.align(Alignment.TopEnd).statusBarsPadding().padding(14.dp),
+                        color = Color(0xCC03070C),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text("ETA ${telemetry.etaTimeLabel} · ${formatNavigationDistance(telemetry.remainingDistanceKm)}",
+                            color = hudAccent, style = MaterialTheme.typography.labelSmall,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp))
+                    }
+                    HudBottomMusicBar(
+                        track = mediaState.currentTrack,
+                        isPlaying = mediaState.isPlaying,
+                        accent = hudAccent,
+                        onOpenMusic = { onSelectModule(AuvionyxModule.MUSIC) },
+                        onPrevious = onPrevTrack,
+                        onPlayPause = onPlayPause,
+                        onNext = onNextTrack,
+                        modifier = Modifier.align(Alignment.BottomEnd).padding(12.dp)
+                    )
                 }
             }
         }
 
-        if (hudConfig.layoutMode == HudLayoutMode.ADVANCED &&
-            hudConfig.cockpitStyle != com.example.data.model.HudCockpitStyle.ARC_GAUGE
-        ) {
-            Surface(
-                color = Color.Transparent,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text("ETA ${telemetry.etaTimeLabel}", color = GlassWhite, style = MaterialTheme.typography.labelMedium)
-                    Text(formatNavigationDistance(telemetry.remainingDistanceKm), color = hudAccent, style = MaterialTheme.typography.labelMedium)
-                }
-            }
-            HudBottomMusicBar(
-                track = mediaState.currentTrack,
-                isPlaying = mediaState.isPlaying,
-                accent = hudAccent,
-                onOpenMusic = { onSelectModule(AuvionyxModule.MUSIC) },
-                onPrevious = onPrevTrack,
-                onPlayPause = onPlayPause,
-                onNext = onNextTrack
-            )
-        }
+
     }
 }
 
