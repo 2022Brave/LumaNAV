@@ -647,16 +647,7 @@ private fun SmartphonePortraitDriveDashboard(
                                     onSelectModule(AuvionyxModule.MUSIC)
                                 }
                             },
-                            modifier = Modifier.weight(1f)
-                        )
-                        HaloGlanceTile(
-                            title = "Vehicle",
-                            subtitle = "${telemetry.batteryPercent}% Batt · ${telemetry.driveMode.label}",
-                            icon = Icons.Outlined.DirectionsCar,
-                            statusState = if (telemetry.isSimulationRunning) ServiceAvailabilityState.DEMO else ServiceAvailabilityState.LIVE,
-                            testTag = "phone_tile_vehicle",
-                            onClick = { onSelectModule(AuvionyxModule.VEHICLE) },
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.fillMaxWidth()
                         )
                     }
                 }
