@@ -10,6 +10,16 @@ import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.tween
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
@@ -129,6 +139,20 @@ fun MapsScreen(
     val context = LocalContext.current
     var mapFullscreen by remember { mutableStateOf(false) }
     var showSavedPlaces by remember { mutableStateOf(false) }
+    var searchActive by remember { mutableStateOf(false) }
+    var imeWasVisible by remember { mutableStateOf(false) }
+    val focusRequester = remember { FocusRequester() }
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val imeBottom = WindowInsets.ime.getBottom(LocalDensity.current)
+    LaunchedEffect(imeBottom) {
+        val visible = imeBottom > 0
+        if (imeWasVisible && !visible) {
+            searchActive = false
+            focusManager.clearFocus()
+        }
+        imeWasVisible = visible
+    }
     LaunchedEffect(mapFullscreen) { onMapFullscreenChanged(mapFullscreen) }
     val mapStyles = listOf(
         "DARK" to "https://tiles.openfreemap.org/styles/dark",
@@ -152,33 +176,35 @@ fun MapsScreen(
             ),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                OutlinedTextField(
-                    value = mapsPulse.destinationQuery,
-                    onValueChange = onDestinationQueryChange,
-                    modifier = Modifier.weight(1f).testTag("maps_destination_search"),
-                    singleLine = true,
-                    placeholder = { Text("Search destination…", color = TextSecondary) },
-                    leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = "Search destination", tint = accent) },
-                    trailingIcon = {
-                        if (mapsPulse.destinationQuery.isNotBlank()) {
-                            IconButton(onClick = onClearDestinationSearch) {
-                                Icon(Icons.Outlined.Clear, contentDescription = "Clear destination", tint = TextSecondary)
-                            }
-                        }
-                    },
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                    keyboardActions = KeyboardActions(onSearch = { onSearchDestination(mapsPulse.destinationQuery) })
-                )
-                IconButton(
-                    onClick = { onSearchDestination(mapsPulse.destinationQuery) },
-                    modifier = Modifier.testTag("maps_search_submit")
+            if (isLandscapeWide) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Icon(Icons.Outlined.Search, contentDescription = "Search", tint = accent)
+                    OutlinedTextField(
+                        value = mapsPulse.destinationQuery,
+                        onValueChange = onDestinationQueryChange,
+                        modifier = Modifier.weight(1f).testTag("maps_destination_search"),
+                        singleLine = true,
+                        placeholder = { Text("Search destination…", color = TextSecondary) },
+                        leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = "Search destination", tint = accent) },
+                        trailingIcon = {
+                            if (mapsPulse.destinationQuery.isNotBlank()) {
+                                IconButton(onClick = onClearDestinationSearch) {
+                                    Icon(Icons.Outlined.Clear, contentDescription = "Clear destination", tint = TextSecondary)
+                                }
+                            }
+                        },
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                        keyboardActions = KeyboardActions(onSearch = { onSearchDestination(mapsPulse.destinationQuery) })
+                    )
+                    IconButton(
+                        onClick = { onSearchDestination(mapsPulse.destinationQuery) },
+                        modifier = Modifier.testTag("maps_search_submit")
+                    ) {
+                        Icon(Icons.Outlined.Search, contentDescription = "Search", tint = accent)
+                    }
                 }
             }
             Row(
@@ -236,6 +262,7 @@ fun MapsScreen(
                 ) {
                     Text("RECENT", color = GlassWhite, style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(horizontal = 14.dp, vertical = 9.dp))
                 }
+                Spacer(Modifier.width(18.dp))
             }
             Text(
                 text = "Map data © OpenStreetMap contributors · Tiles by OpenFreeMap · Search by Photon",
@@ -426,7 +453,7 @@ fun MapsScreen(
             }
 
             // Continuous Morph between Candidate Disambiguation List & Route Alternatives
-            AnimatedContent(
+            if (!searchActive) AnimatedContent(
                 targetState = mapsPulse.destinationCandidates.isNotEmpty(),
                 transitionSpec = {
                     if (reducedMotion) {
@@ -731,6 +758,104 @@ fun MapsScreen(
                 styleUri = activeMapStyle.second,
                     show3DBuildings = activeMapStyle.first != "WIREFRAME"
             )
+            BoxWithConstraints(
+                modifier = Modifier.fillMaxSize().zIndex(4f)
+            ) {
+                val searchBarY by animateDpAsState(
+                    targetValue = if (searchActive) 0.dp else (maxHeight - 112.dp).coerceAtLeast(0.dp),
+                    animationSpec = tween(
+                        durationMillis = if (reducedMotion) 0 else LivingFlow.StandardDurationMs,
+                        easing = LivingFlow.LaminarEasing
+                    ),
+                    label = "mapsFloatingSearchPosition"
+                )
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .offset(y = searchBarY)
+                        .fillMaxWidth()
+                        .padding(horizontal = 14.dp)
+                        .statusBarsPadding()
+                        .imePadding(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedTextField(
+                            value = mapsPulse.destinationQuery,
+                            onValueChange = onDestinationQueryChange,
+                            modifier = Modifier.weight(1f)
+                                .focusRequester(focusRequester)
+                                .onFocusChanged { if (it.isFocused) searchActive = true }
+                                .testTag("maps_destination_search"),
+                            singleLine = true,
+                            placeholder = { Text("Search destination…", color = TextSecondary) },
+                            leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = "Search destination", tint = accent) },
+                            trailingIcon = {
+                                if (mapsPulse.destinationQuery.isNotBlank()) {
+                                    IconButton(onClick = onClearDestinationSearch) {
+                                        Icon(Icons.Outlined.Clear, contentDescription = "Clear destination", tint = TextSecondary)
+                                    }
+                                }
+                            },
+                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                            keyboardActions = KeyboardActions(onSearch = {
+                                onSearchDestination(mapsPulse.destinationQuery)
+                                keyboardController?.hide()
+                                searchActive = false
+                                focusManager.clearFocus()
+                            })
+                        )
+                        IconButton(
+                            onClick = {
+                                onSearchDestination(mapsPulse.destinationQuery)
+                                keyboardController?.hide()
+                                searchActive = false
+                                focusManager.clearFocus()
+                            },
+                            modifier = Modifier.testTag("maps_search_submit")
+                        ) {
+                            Icon(Icons.Outlined.Search, contentDescription = "Search", tint = accent)
+                        }
+                    }
+                    if (searchActive && mapsPulse.destinationCandidates.isNotEmpty()) {
+                        Surface(
+                            modifier = Modifier.fillMaxWidth().heightIn(max = 340.dp),
+                            color = Color(0xF20A1019),
+                            shape = RoundedCornerShape(18.dp),
+                            border = BorderStroke(1.dp, accent.copy(alpha = 0.42f))
+                        ) {
+                            LazyColumn(
+                                modifier = Modifier.fillMaxWidth().heightIn(max = 340.dp).padding(8.dp),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                items(mapsPulse.destinationCandidates, key = { it.id }) { candidate ->
+                                    Surface(
+                                        color = Color(0xFF111B28),
+                                        shape = RoundedCornerShape(12.dp),
+                                        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
+                                            .photonLuminousTouch(pressScale = 0.97f, onClick = {
+                                                onConfirmDestination(candidate)
+                                                keyboardController?.hide()
+                                                searchActive = false
+                                                focusManager.clearFocus()
+                                            })
+                                    ) {
+                                        Column(Modifier.padding(horizontal = 14.dp, vertical = 11.dp)) {
+                                            Text(candidate.name, color = GlassWhite, style = MaterialTheme.typography.titleSmall)
+                                            Text(candidate.addressSummary, color = TextSecondary, style = MaterialTheme.typography.labelSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             Surface(
                 onClick = { mapStyleIndex = (mapStyleIndex + 1) % mapStyles.size },
                 modifier = Modifier.align(Alignment.TopCenter).statusBarsPadding().padding(14.dp).zIndex(2f),
