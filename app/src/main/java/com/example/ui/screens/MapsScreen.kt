@@ -121,8 +121,8 @@ fun MapsScreen(
     var mapFullscreen by remember { mutableStateOf(false) }
     val mapStyles = listOf(
         "DARK" to "https://tiles.openfreemap.org/styles/dark",
-        "STREETS" to "https://tiles.openfreemap.org/styles/liberty",
-        "LIGHT" to "https://tiles.openfreemap.org/styles/positron"
+        "WIREFRAME" to "https://tiles.openfreemap.org/styles/positron",
+        "STREETS" to "https://tiles.openfreemap.org/styles/liberty"
     )
     var mapStyleIndex by remember { mutableStateOf(0) }
     val activeMapStyle = mapStyles[mapStyleIndex]
@@ -506,7 +506,8 @@ fun MapsScreen(
                 headingDegrees = telemetry.headingDegrees,
                 accent = accent,
                 modifier = Modifier.fillMaxSize(),
-                styleUri = activeMapStyle.second
+                styleUri = activeMapStyle.second,
+                    show3DBuildings = activeMapStyle.first != "WIREFRAME"
             )
             Surface(
                 onClick = { mapStyleIndex = (mapStyleIndex + 1) % mapStyles.size },
@@ -543,7 +544,8 @@ fun MapsScreen(
                     headingDegrees = telemetry.headingDegrees,
                     accent = accent,
                     modifier = Modifier.fillMaxSize(),
-                    styleUri = activeMapStyle.second
+                    styleUri = activeMapStyle.second,
+                    show3DBuildings = activeMapStyle.first != "WIREFRAME"
                 )
                 Surface(
                     onClick = { mapStyleIndex = (mapStyleIndex + 1) % mapStyles.size },
@@ -581,7 +583,8 @@ fun MapsScreen(
                 headingDegrees = telemetry.headingDegrees,
                 accent = accent,
                 modifier = Modifier.fillMaxSize().zIndex(0f),
-                styleUri = activeMapStyle.second
+                styleUri = activeMapStyle.second,
+                    show3DBuildings = activeMapStyle.first != "WIREFRAME"
             )
             Surface(
                 onClick = { mapStyleIndex = (mapStyleIndex + 1) % mapStyles.size },
