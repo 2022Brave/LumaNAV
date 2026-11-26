@@ -846,6 +846,7 @@ fun GlassNavigationRail(
         Triple(AuvionyxModule.MAPS, Icons.Outlined.Navigation, "Maps"),
         Triple(AuvionyxModule.MUSIC, Icons.Outlined.MusicNote, "Music"),
         Triple(AuvionyxModule.HUD, Icons.Outlined.Speed, "HUD"),
+        Triple(AuvionyxModule.AOD, Icons.Outlined.Nightlight, "AOD"),
         Triple(AuvionyxModule.APPS, Icons.Outlined.Apps, "Apps"),
         Triple(AuvionyxModule.SETTINGS, Icons.Outlined.Settings, "Settings")
     )
