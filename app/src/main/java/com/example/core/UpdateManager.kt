@@ -93,7 +93,7 @@ object UpdateManager {
             return JSONObject(latestResponse.second)
         }
         if (latestResponse.first == HttpURLConnection.HTTP_FORBIDDEN ||
-            latestResponse.first == HttpURLConnection.HTTP_TOO_MANY_REQUESTS
+            latestResponse.first == 429
         ) {
             return fetchLatestReleaseManifest()
         }
