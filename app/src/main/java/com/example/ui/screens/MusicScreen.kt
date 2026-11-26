@@ -43,6 +43,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.outlined.Repeat
+import androidx.compose.material.icons.outlined.MusicNote
 import androidx.compose.material.icons.outlined.Bluetooth
 import androidx.compose.material.icons.outlined.Shuffle
 import androidx.compose.material.icons.rounded.SkipNext
@@ -111,6 +112,8 @@ fun MusicScreen(
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize().blur(34.dp)
                 )
+            } else if (mediaState.isPlaying) {
+                Box(Modifier.fillMaxSize().background(Brush.radialGradient(listOf(track.adaptiveColor.copy(alpha = 0.42f), Color.Black))))
             } else {
                 AlbumArtworkArt(
                     artVariant = track.artVariant,
@@ -217,7 +220,7 @@ fun MusicScreen(
                             Text(track.album, style = MaterialTheme.typography.labelMedium, color = TextMuted)
                         }
                     }
-                    MusicProgress(mediaState, duration, accent, onSeek, animatedWave = true)
+                    MusicProgress(mediaState, duration, track.adaptiveColor, onSeek, animatedWave = true)
                     MusicTransport(
                         mediaState = mediaState,
                         accent = accent,
@@ -433,6 +436,15 @@ private fun MusicArtwork(track: MediaTrack, state: MediaPlayerState, modifier: M
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize()
             )
+        } else if (state.isPlaying) {
+            Box(
+                modifier = Modifier.fillMaxSize().background(
+                    Brush.radialGradient(listOf(track.adaptiveColor.copy(alpha = 0.42f), Color(0xFF030609)))
+                ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Outlined.MusicNote, contentDescription = null, tint = track.adaptiveColor.copy(alpha = 0.7f), modifier = Modifier.size(72.dp))
+            }
         } else {
             AlbumArtworkArt(
                 artVariant = track.artVariant,
