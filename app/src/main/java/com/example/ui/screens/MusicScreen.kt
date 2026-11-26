@@ -16,6 +16,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
@@ -515,7 +516,7 @@ private fun WavyMusicProgressBar(
             }
             .pointerInput(duration) {
                 detectDragGestures { change, _ ->
-                    onSeek((change.position.x / size.width.coerceAtLeast(1) * duration).toInt().coerceIn(0, duration))
+                    onSeek((change.position.x / size.width.coerceAtLeast(1f) * duration).toInt().coerceIn(0, duration))
                     change.consume()
                 }
             }
