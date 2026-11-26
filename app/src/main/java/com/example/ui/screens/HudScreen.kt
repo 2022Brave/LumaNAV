@@ -230,19 +230,16 @@ fun HudScreen(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                GlassCard(
+                Box(
                     modifier = Modifier.weight(0.27f).fillMaxHeight(),
-                    cornerRadius = 24.dp,
-                    contentPadding = PaddingValues(8.dp)
+                    contentAlignment = Alignment.Center
                 ) {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        HudSpeedometerGauge(
-                            speed = speedDisplay,
-                            maxSpeed = if (settings.useMetricUnits) 160 else 100,
-                            unitLabel = unitLabel,
-                            accent = hudAccent
-                        )
-                    }
+                    HudSpeedometerGauge(
+                        speed = speedDisplay,
+                        maxSpeed = if (settings.useMetricUnits) 160 else 100,
+                        unitLabel = unitLabel,
+                        accent = hudAccent
+                    )
                 }
                 if (hudConfig.layoutMode == HudLayoutMode.MINIMAL) {
                     HudMinimalTurnCard(
@@ -268,20 +265,17 @@ fun HudScreen(
                 }
             }
         } else {
-            GlassCard(
+            Box(
                 modifier = Modifier.fillMaxWidth().height(126.dp),
-                cornerRadius = 22.dp,
-                contentPadding = PaddingValues(6.dp)
+                contentAlignment = Alignment.Center
             ) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    HudSpeedometerGauge(
-                        speed = speedDisplay,
-                        maxSpeed = if (settings.useMetricUnits) 160 else 100,
-                        unitLabel = unitLabel,
-                        accent = hudAccent,
-                        compact = true
-                    )
-                }
+                HudSpeedometerGauge(
+                    speed = speedDisplay,
+                    maxSpeed = if (settings.useMetricUnits) 160 else 100,
+                    unitLabel = unitLabel,
+                    accent = hudAccent,
+                    compact = true
+                )
             }
             if (hudConfig.layoutMode == HudLayoutMode.MINIMAL) {
                 HudMinimalTurnCard(
@@ -311,9 +305,7 @@ fun HudScreen(
             hudConfig.cockpitStyle != com.example.data.model.HudCockpitStyle.ARC_GAUGE
         ) {
             Surface(
-                color = Color(0xFF0A0D12),
-                shape = RoundedCornerShape(14.dp),
-                border = BorderStroke(1.dp, hudAccent.copy(alpha = 0.32f)),
+                color = Color.Transparent,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
@@ -553,6 +545,15 @@ private fun HudSpeedometerGauge(
                 style = Stroke(width = stroke, cap = StrokeCap.Round)
             )
             drawArc(
+                color = accent.copy(alpha = 0.24f),
+                startAngle = startAngle,
+                sweepAngle = sweepTotal * fraction,
+                useCenter = false,
+                topLeft = Offset(inset, inset),
+                size = arcSize,
+                style = Stroke(width = stroke + 8.dp.toPx(), cap = StrokeCap.Round)
+            )
+            drawArc(
                 brush = Brush.sweepGradient(listOf(DeepBlue, accent, IceBlue)),
                 startAngle = startAngle,
                 sweepAngle = sweepTotal * fraction,
@@ -596,17 +597,17 @@ private fun HudBottomMusicBar(
     onPlayPause: () -> Unit,
     onNext: () -> Unit
 ) {
-    GlassCard(
+    Surface(
         modifier = Modifier
             .fillMaxWidth()
             .testTag("hud_bottom_music_bar")
             .clip(RoundedCornerShape(20.dp))
             .photonLuminousTouch(pressScale = 0.98f, glowColor = accent, onClick = onOpenMusic),
-        cornerRadius = 20.dp,
-        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp)
+        color = Color.Transparent,
+        shape = RoundedCornerShape(20.dp)
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             AlbumArtworkArt(
@@ -695,8 +696,8 @@ private fun HudMinimalTurnCard(
 ) {
     Surface(
         modifier = modifier,
-        color = Color(0xFF0A0D12),
-        shape = RoundedCornerShape(24.dp),
+        color = Color.Transparent,
+        shape = CircleShape,
         
     ) {
         Column(
