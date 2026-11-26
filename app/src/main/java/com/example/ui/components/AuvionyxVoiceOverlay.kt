@@ -153,7 +153,7 @@ fun FloatingVoiceMicOverlay(
                                 modifier = Modifier.size(18.dp)
                             )
                             Text(
-                                text = "LumaNav Voice · ${voiceState.visualState.label}",
+                                text = "LumaNAV Voice · ${voiceState.visualState.label}",
                                 style = MaterialTheme.typography.titleMedium,
                                 color = GlassWhite
                             )
@@ -168,7 +168,7 @@ fun FloatingVoiceMicOverlay(
                             ) {
                                 Icon(
                                     imageVector = Icons.Outlined.OpenInNew,
-                                    contentDescription = "Open LumaNav Voice console",
+                                    contentDescription = "Open LumaNAV Voice console",
                                     tint = IceBlue,
                                     modifier = Modifier.size(18.dp)
                                 )
@@ -554,7 +554,7 @@ private fun FloatingIdleMicOrb(
         ) {
             Icon(
                 imageVector = Icons.Outlined.Mic,
-                contentDescription = "Activate LumaNav Voice",
+                contentDescription = "Activate LumaNAV Voice",
                 tint = GlassWhite,
                 modifier = Modifier.size(24.dp)
             )
