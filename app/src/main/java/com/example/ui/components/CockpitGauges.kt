@@ -570,6 +570,15 @@ fun CockpitMediaPlayerCard(
                             .size(if (compactMode) 58.dp else 66.dp)
                             .clip(RoundedCornerShape(14.dp))
                     )
+                } else if (isPlaying) {
+                    Box(
+                        modifier = Modifier.size(if (compactMode) 58.dp else 66.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(Brush.radialGradient(listOf(track.adaptiveColor.copy(alpha = 0.48f), Color.Black))),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Outlined.MusicNote, contentDescription = null, tint = track.adaptiveColor, modifier = Modifier.size(28.dp))
+                    }
                 } else {
                     AlbumArtworkArt(
                         artVariant = track.artVariant,
