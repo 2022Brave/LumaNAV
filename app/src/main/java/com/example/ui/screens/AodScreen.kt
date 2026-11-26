@@ -138,7 +138,8 @@ fun AodScreen(
                 routePoints = routePoints,
                 headingDegrees = headingDegrees,
                 accent = ElectricCyan,
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.fillMaxSize(),
+                attributionBottomMarginDp = 88
             )
             Box(Modifier.fillMaxSize().background(Color(0x55000000)))
         }
