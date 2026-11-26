@@ -6,11 +6,9 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -74,7 +72,6 @@ import com.example.data.model.MediaTrack
 import com.example.data.model.VehicleTelemetry
 import com.example.data.preferences.AuvionyxSettingsState
 import com.example.ui.components.AlbumArtworkArt
-import com.example.ui.components.GlassCard
 import com.example.ui.components.photonLuminousTouch
 import com.example.ui.theme.DeepBlue
 import com.example.ui.theme.ElectricCyan
