@@ -58,7 +58,6 @@ fun AppsDrawerScreen(
         AppLauncherEntry("LumaNav Music", "Unified Media Hub", Icons.Outlined.MusicNote, AuvionyxModule.MUSIC, "app_music"),
         AppLauncherEntry("LumaNav HUD", "Heads-Up & Designer", Icons.Outlined.Speed, AuvionyxModule.HUD, "app_hud"),
         AppLauncherEntry("LumaNav AOD", "Ambient Display", Icons.Outlined.Nightlight, AuvionyxModule.AOD, "app_aod"),
-        AppLauncherEntry("LumaNav Vehicle", "Range & Climate", Icons.Outlined.DirectionsCar, AuvionyxModule.VEHICLE, "app_vehicle"),
         AppLauncherEntry("LumaNav Settings", "System & Designer", Icons.Outlined.Settings, AuvionyxModule.SETTINGS, "app_settings"),
         AppLauncherEntry("Phone Dialer", "Android System Call", Icons.Outlined.Phone, null, "app_phone")
     )
