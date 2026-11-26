@@ -44,10 +44,12 @@ object UpdateManager {
         scope.launch {
             mutableState.value = mutableState.value.copy(
                 checking = true,
-                statusMessage = "Checking GitHub Releases…"
+                statusMessage = "Checking LumaNAV development updates…"
             )
             val result = runCatching {
-                val release = fetchLatestRelease()
+                // The personal development channel is checked first. Its raw manifest
+                // avoids GitHub API rate limits and is updated after each successful CI build.
+                val release = fetchLatestDevelopmentUpdate()
                 val tag = release.optString("tag_name").removePrefix("v")
                 val latestCode = release.optInt("version_code", -1).takeIf { it > 0 }
                     ?: tag.substringAfterLast('.', "").toIntOrNull()
@@ -73,17 +75,48 @@ object UpdateManager {
                     updateAvailable = latestIsNewer && apkUrl != null,
                     statusMessage = when {
                         latestIsNewer && apkUrl == null -> "Release $tag exists, but no APK asset was attached."
-                        latestIsNewer -> "Update available"
+                        latestIsNewer -> "Development update available"
                         else -> "You're up to date"
                     }
                 )
             }
             mutableState.value = result.getOrElse { error ->
                 val detail = error.message ?: error.javaClass.simpleName
-                android.util.Log.e("LumaNAV-Updater", "Release check failed", error)
+                android.util.Log.e("LumaNAV-Updater", "Development update check failed", error)
                 mutableState.value.copy(statusMessage = "Update check failed: $detail")
             }.copy(checking = false)
         }
+    }
+
+    private fun fetchLatestDevelopmentUpdate(): JSONObject {
+        val response = requestGitHubJson(
+            "https://raw.githubusercontent.com/2022Brave/LumaNAV/branding/lumanav-ui-overhaul/latest-dev.json"
+        )
+        if (response.first == HttpURLConnection.HTTP_OK) {
+            val manifest = JSONObject(response.second)
+            val versionName = manifest.optString("versionName").ifBlank {
+                throw IllegalStateException("Development OTA manifest is missing versionName")
+            }
+            val apkUrl = manifest.optString("apkUrl")
+            val assets = org.json.JSONArray()
+            if (apkUrl.isNotBlank()) {
+                val assetName = Uri.parse(apkUrl).lastPathSegment?.takeIf { it.endsWith(".apk", true) }
+                    ?: "LumaNAV-development-update.apk"
+                assets.put(JSONObject().put("name", assetName).put("browser_download_url", apkUrl))
+            }
+            return JSONObject()
+                .put("tag_name", versionName)
+                .put("version_code", manifest.optInt("versionCode", -1))
+                .put("body", manifest.optString("notes", "Development build"))
+                .put("assets", assets)
+        }
+        if (response.first == HttpURLConnection.HTTP_NOT_FOUND) {
+            // Before the first development OTA has been published, retain stable OTA support.
+            return fetchLatestRelease()
+        }
+        throw IllegalStateException(
+            "Development manifest request failed: HTTP ${response.first}: ${githubErrorMessage(response.second)}"
+        )
     }
 
     private fun fetchLatestRelease(): JSONObject {
