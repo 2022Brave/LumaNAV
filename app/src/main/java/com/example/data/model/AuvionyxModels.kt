@@ -7,7 +7,7 @@ import com.example.ui.theme.GlassWhite
 import com.example.ui.theme.IceBlue
 
 enum class AuvionyxModule(val route: String, val label: String) {
-    DRIVE("drive", "Home"),
+    DRIVE("drive", "Drive"),
     MAPS("maps", "Maps"),
     MUSIC("music", "Music"),
     HUD("hud", "HUD"),
