@@ -29,6 +29,7 @@ import com.example.data.model.MapPlaceMarker
 import com.example.data.model.MediaAppSource
 import com.example.data.model.MediaTrack
 import com.example.data.model.RouteAlternative
+import com.example.data.model.SavedPlace
 import com.example.data.model.ServiceAvailabilityState
 import com.example.data.model.SyncDeviceProfile
 import com.example.data.model.TrafficIncident
@@ -198,6 +199,7 @@ data class MapsAndPulseState(
     val destinationSearchState: ServiceAvailabilityState? = null,
     val destinationSearchMessage: String? = null,
     val destinationCandidates: List<DestinationCandidate> = emptyList(),
+    val savedPlaces: List<SavedPlace> = emptyList(),
     val confirmedDestination: DestinationCandidate? = null,
     val routes: List<RouteAlternative> = emptyList(),
     val markers: List<MapPlaceMarker> = emptyList(),
@@ -331,6 +333,11 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
         observeDemoSimulationSetting()
         refreshDeviceBattery()
         refreshPermissionsAndGps()
+        viewModelScope.launch {
+            prefsRepo.savedPlacesFlow.collect { saved ->
+                _mapsPulse.update { it.copy(savedPlaces = saved) }
+            }
+        }
     }
 
     fun finishBootSplash() {
@@ -964,6 +971,30 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
 
     fun toggleNavigation() {
         _mapsPulse.update { it.copy(isNavigating = !it.isNavigating) }
+    }
+
+    fun saveDestination(candidate: DestinationCandidate) {
+        val latitude = candidate.latitude ?: return
+        val longitude = candidate.longitude ?: return
+        if (!latitude.isFinite() || latitude !in -90.0..90.0 ||
+            !longitude.isFinite() || longitude !in -180.0..180.0
+        ) return
+        viewModelScope.launch {
+            prefsRepo.savePlace(
+                SavedPlace(
+                    id = "saved_${latitude}_${longitude}",
+                    name = candidate.name,
+                    addressSummary = candidate.addressSummary,
+                    latitude = latitude,
+                    longitude = longitude,
+                    category = candidate.category
+                )
+            )
+        }
+    }
+
+    fun removeSavedDestination(id: String) {
+        viewModelScope.launch { prefsRepo.removeSavedPlace(id) }
     }
 
     fun confirmDestinationCandidate(candidate: DestinationCandidate) {
