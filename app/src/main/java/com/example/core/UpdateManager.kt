@@ -49,7 +49,8 @@ object UpdateManager {
             val result = runCatching {
                 val release = fetchLatestRelease()
                 val tag = release.optString("tag_name").removePrefix("v")
-                val latestCode = tag.substringAfterLast('.', "").toIntOrNull()
+                val latestCode = release.optInt("version_code", -1).takeIf { it > 0 }
+                    ?: tag.substringAfterLast('.', "").toIntOrNull()
                 val currentCode = BuildConfig.VERSION_CODE
                 val assets = release.optJSONArray("assets")
                 var apkUrl: String? = null
@@ -91,6 +92,11 @@ object UpdateManager {
         if (latestResponse.first == HttpURLConnection.HTTP_OK) {
             return JSONObject(latestResponse.second)
         }
+        if (latestResponse.first == HttpURLConnection.HTTP_FORBIDDEN ||
+            latestResponse.first == HttpURLConnection.HTTP_TOO_MANY_REQUESTS
+        ) {
+            return fetchLatestReleaseManifest()
+        }
         if (latestResponse.first != HttpURLConnection.HTTP_NOT_FOUND) {
             throw IllegalStateException("HTTP ${latestResponse.first}: ${githubErrorMessage(latestResponse.second)}")
         }
@@ -106,6 +112,33 @@ object UpdateManager {
             throw IllegalStateException("HTTP 404: No published release found")
         }
         return releases.getJSONObject(0)
+    }
+
+    private fun fetchLatestReleaseManifest(): JSONObject {
+        val manifestResponse = requestGitHubJson(
+            "https://raw.githubusercontent.com/2022Brave/LumaNAV/main/latest.json"
+        )
+        if (manifestResponse.first !in 200..299) {
+            throw IllegalStateException(
+                "GitHub API rate limited and raw manifest fallback failed: HTTP ${manifestResponse.first}"
+            )
+        }
+        val manifest = JSONObject(manifestResponse.second)
+        val versionName = manifest.optString("versionName").ifBlank {
+            throw IllegalStateException("Updater manifest is missing versionName")
+        }
+        val apkUrl = manifest.optString("apkUrl").ifBlank {
+            throw IllegalStateException("Updater manifest is missing apkUrl")
+        }
+        val assetName = Uri.parse(apkUrl).lastPathSegment?.takeIf { it.endsWith(".apk", true) }
+            ?: "LumaNAV-update.apk"
+        return JSONObject()
+            .put("tag_name", versionName)
+            .put("version_code", manifest.optInt("versionCode", -1))
+            .put("body", manifest.optString("notes", "No release notes provided."))
+            .put("assets", org.json.JSONArray().put(
+                JSONObject().put("name", assetName).put("browser_download_url", apkUrl)
+            ))
     }
 
     private fun requestGitHubJson(endpoint: String): Pair<Int, String> {
