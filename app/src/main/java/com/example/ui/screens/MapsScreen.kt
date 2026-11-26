@@ -28,6 +28,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -87,6 +88,7 @@ import com.example.ui.theme.GlassWhite
 import com.example.ui.theme.IceBlue
 import com.example.ui.theme.LocalAuvionyxMotion
 import com.example.ui.theme.LocalAuvionyxPalette
+import com.example.ui.components.formatNavigationDistance
 import com.example.ui.theme.ObsidianBlack
 import com.example.ui.theme.PulseClear
 import com.example.ui.theme.PulseCongestion
@@ -459,7 +461,7 @@ fun MapsScreen(
                                     }
                                     Spacer(Modifier.height(4.dp))
                                     Text(
-                                        text = "${route.viaRoad} · ${route.durationMin} min (${route.distanceKm} km)",
+                                        text = "${route.viaRoad} · ${route.durationMin} min (${formatNavigationDistance(route.distanceKm)})",
                                         style = MaterialTheme.typography.bodySmall,
                                         color = TextSecondary
                                     )
@@ -511,7 +513,7 @@ fun MapsScreen(
             )
             Surface(
                 onClick = { mapStyleIndex = (mapStyleIndex + 1) % mapStyles.size },
-                modifier = Modifier.align(Alignment.TopCenter).padding(14.dp),
+                modifier = Modifier.align(Alignment.TopCenter).statusBarsPadding().padding(14.dp),
                 color = Color(0xE609111B), shape = RoundedCornerShape(12.dp),
                 border = BorderStroke(1.dp, accent.copy(alpha = 0.55f))
             ) { Text("MAP · ${activeMapStyle.first}", color = accent, modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp), style = MaterialTheme.typography.labelSmall) }
@@ -549,7 +551,7 @@ fun MapsScreen(
                 )
                 Surface(
                     onClick = { mapStyleIndex = (mapStyleIndex + 1) % mapStyles.size },
-                    modifier = Modifier.align(Alignment.TopCenter).padding(14.dp),
+                    modifier = Modifier.align(Alignment.TopCenter).statusBarsPadding().padding(14.dp),
                     color = Color(0xE609111B), shape = RoundedCornerShape(12.dp),
                     border = BorderStroke(1.dp, accent.copy(alpha = 0.55f))
                 ) { Text("MAP · ${activeMapStyle.first}", color = accent, modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp), style = MaterialTheme.typography.labelSmall) }
@@ -561,7 +563,7 @@ fun MapsScreen(
                 ) { Text("FULLSCREEN", color = accent, modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp), style = MaterialTheme.typography.labelSmall) }
                 if (mapsPulse.confirmedDestination != null) {
                     Surface(
-                        modifier = Modifier.align(Alignment.TopStart).padding(14.dp),
+                        modifier = Modifier.align(Alignment.TopStart).statusBarsPadding().padding(14.dp),
                         color = Color(0xE609111B),
                         shape = RoundedCornerShape(14.dp),
                         border = BorderStroke(1.dp, accent.copy(alpha = 0.48f))
@@ -588,7 +590,7 @@ fun MapsScreen(
             )
             Surface(
                 onClick = { mapStyleIndex = (mapStyleIndex + 1) % mapStyles.size },
-                modifier = Modifier.align(Alignment.TopCenter).padding(14.dp).zIndex(2f),
+                modifier = Modifier.align(Alignment.TopCenter).statusBarsPadding().padding(14.dp).zIndex(2f),
                 color = Color(0xE609111B), shape = RoundedCornerShape(12.dp),
                 border = BorderStroke(1.dp, accent.copy(alpha = 0.55f))
             ) { Text("MAP · ${activeMapStyle.first}", color = accent, modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp), style = MaterialTheme.typography.labelSmall) }
@@ -600,7 +602,7 @@ fun MapsScreen(
             ) { Text(if (mapFullscreen) "EXIT FULLSCREEN" else "FULLSCREEN", color = accent, modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp), style = MaterialTheme.typography.labelSmall) }
             if (mapsPulse.confirmedDestination != null) {
                 Surface(
-                    modifier = Modifier.align(Alignment.TopStart).padding(14.dp).zIndex(0.5f),
+                    modifier = Modifier.align(Alignment.TopStart).statusBarsPadding().padding(14.dp).zIndex(0.5f),
                     color = Color(0xE609111B),
                     shape = RoundedCornerShape(14.dp),
                     border = BorderStroke(1.dp, accent.copy(alpha = 0.48f))
