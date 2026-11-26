@@ -271,7 +271,7 @@ fun HudScreen(
                         onPrevious = onPrevTrack,
                         onPlayPause = onPlayPause,
                         onNext = onNextTrack,
-                        modifier = Modifier.align(Alignment.BottomEnd).padding(18.dp)
+                        modifier = Modifier.align(Alignment.BottomEnd).padding(18.dp).width(280.dp)
                     )
                 }
             }
@@ -324,7 +324,7 @@ fun HudScreen(
                         onPrevious = onPrevTrack,
                         onPlayPause = onPlayPause,
                         onNext = onNextTrack,
-                        modifier = Modifier.align(Alignment.BottomEnd).padding(12.dp)
+                        modifier = Modifier.align(Alignment.BottomEnd).padding(12.dp).width(220.dp)
                     )
                 }
             }
@@ -633,10 +633,11 @@ private fun HudBottomMusicBar(
     onOpenMusic: () -> Unit,
     onPrevious: () -> Unit,
     onPlayPause: () -> Unit,
-    onNext: () -> Unit
+    onNext: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Surface(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .testTag("hud_bottom_music_bar")
             .clip(RoundedCornerShape(20.dp))
