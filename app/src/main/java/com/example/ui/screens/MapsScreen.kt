@@ -38,9 +38,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AltRoute
 import androidx.compose.material.icons.outlined.CheckCircle
-import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.GpsFixed
-import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.Navigation
 import androidx.compose.material.icons.outlined.Place
 import androidx.compose.material.icons.outlined.Search
@@ -59,7 +57,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -78,7 +75,6 @@ import com.example.data.preferences.AuvionyxSettingsState
 import com.example.ui.components.DraggableLaminarSheet
 import com.example.ui.components.GlassCard
 import com.example.ui.components.NativeMapLibreView
-import com.example.ui.components.LiquidGlassLens
 import com.example.ui.components.LivingFlow
 import com.example.ui.components.ServiceStateBadge
 import com.example.ui.components.TrafficPulseBadge
