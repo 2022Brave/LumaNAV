@@ -212,7 +212,19 @@ fun HudScreen(
                 }
             }
         }
-        if (isLandscapeWide) {
+        if (hudConfig.cockpitStyle == com.example.data.model.HudCockpitStyle.ARC_GAUGE) {
+            ArcGaugeHudLayout(
+                speed = speedDisplay,
+                maxSpeed = if (settings.useMetricUnits) 160 else 100,
+                unitLabel = unitLabel,
+                telemetry = telemetry,
+                currentLocation = currentLocation,
+                routePoints = routePoints,
+                headingDegrees = headingDegrees,
+                accent = hudAccent,
+                modifier = Modifier.fillMaxWidth().weight(1f)
+            )
+        } else if (isLandscapeWide) {
             Row(
                 modifier = Modifier.fillMaxWidth().weight(1f),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -295,7 +307,9 @@ fun HudScreen(
             }
         }
 
-        if (hudConfig.layoutMode == HudLayoutMode.ADVANCED) {
+        if (hudConfig.layoutMode == HudLayoutMode.ADVANCED &&
+            hudConfig.cockpitStyle != com.example.data.model.HudCockpitStyle.ARC_GAUGE
+        ) {
             Surface(
                 color = Color(0xFF0A0D12),
                 shape = RoundedCornerShape(14.dp),
@@ -324,6 +338,96 @@ fun HudScreen(
 }
 
 @Composable
+private fun ArcGaugeHudLayout(
+    speed: Int,
+    maxSpeed: Int,
+    unitLabel: String,
+    telemetry: VehicleTelemetry,
+    currentLocation: Pair<Double, Double>?,
+    routePoints: List<Pair<Double, Double>>,
+    headingDegrees: Int,
+    accent: Color,
+    modifier: Modifier = Modifier
+) {
+    Box(modifier = modifier.background(Color.Black)) {
+        NativeMapLibreView(
+            currentLocation = currentLocation,
+            routePoints = routePoints,
+            headingDegrees = headingDegrees,
+            accent = accent,
+            modifier = Modifier.fillMaxSize().graphicsLayer { alpha = 0.28f }
+        )
+        Box(
+            modifier = Modifier.fillMaxSize().background(
+                Brush.radialGradient(colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.94f)))
+            )
+        )
+        Row(
+            modifier = Modifier.fillMaxSize().padding(horizontal = 22.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(20.dp)
+        ) {
+            Box(Modifier.weight(0.38f).fillMaxHeight(), contentAlignment = Alignment.Center) {
+                HudSpeedometerGauge(speed, maxSpeed, unitLabel, accent)
+            }
+            Column(
+                modifier = Modifier.weight(0.62f).fillMaxHeight(),
+                verticalArrangement = Arrangement.SpaceEvenly
+            ) {
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    ArcGaugeMetric("TOP SPEED", "--", unitLabel, accent, Modifier.weight(1f))
+                    ArcGaugeMetric("AVG SPEED", "--", unitLabel, accent, Modifier.weight(1f))
+                }
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    ArcGaugeMetric("TRIP DIST", "--", "km", accent, Modifier.weight(1f))
+                    ArcGaugeMetric("HEADING", "${telemetry.headingCardinal} ${headingDegrees}°", "", accent, Modifier.weight(1f))
+                }
+                Surface(color = accent.copy(alpha = 0.13f), shape = RoundedCornerShape(18.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        Icon(Icons.Outlined.Navigation, contentDescription = "Next turn", tint = accent, modifier = Modifier.size(34.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = if (routePoints.size >= 2) telemetry.nextTurnDistanceLabel else "READY",
+                                color = accent,
+                                style = MaterialTheme.typography.labelLarge
+                            )
+                            Text(
+                                text = if (routePoints.size >= 2) telemetry.nextTurnInstruction else "NO ACTIVE ROUTE",
+                                color = GlassWhite,
+                                style = MaterialTheme.typography.titleMedium,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ArcGaugeMetric(
+    label: String,
+    value: String,
+    unit: String,
+    accent: Color,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier.padding(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(label, color = TextSecondary, style = MaterialTheme.typography.labelSmall)
+        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(value, color = GlassWhite, fontWeight = FontWeight.Bold, fontSize = 26.sp, maxLines = 1)
+            if (unit.isNotBlank()) Text(unit, color = accent, style = MaterialTheme.typography.labelSmall)
+        }
+    }
+}
+
+@Composable
 private fun AuvionyxNativeMapPanel(
     currentLocation: Pair<Double, Double>?,
     routePoints: List<Pair<Double, Double>>,
@@ -339,9 +443,7 @@ private fun AuvionyxNativeMapPanel(
 ) {
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(24.dp))
-            .background(Color(0xFF03070C))
-            .border(1.dp, accent.copy(alpha = 0.24f), RoundedCornerShape(24.dp))
+            .background(Color.Black)
             .testTag("hud_live_map_panel")
     ) {
         NativeMapLibreView(
@@ -357,7 +459,7 @@ private fun AuvionyxNativeMapPanel(
             modifier = Modifier.align(Alignment.TopStart).padding(12.dp),
             color = Color(0xCC03070C),
             shape = RoundedCornerShape(12.dp),
-            border = BorderStroke(1.5.dp, accent.copy(alpha = 0.72f))
+            
         ) {
             Row(
                 modifier = Modifier.padding(horizontal = 18.dp, vertical = 14.dp),
@@ -595,7 +697,7 @@ private fun HudMinimalTurnCard(
         modifier = modifier,
         color = Color(0xFF0A0D12),
         shape = RoundedCornerShape(24.dp),
-        border = BorderStroke(1.dp, accent.copy(alpha = 0.48f))
+        
     ) {
         Column(
             modifier = Modifier.fillMaxSize().padding(20.dp),
