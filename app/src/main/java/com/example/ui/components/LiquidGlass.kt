@@ -843,7 +843,7 @@ fun GlassNavigationRail(
     onToggleExpanded: () -> Unit = {}
 ) {
     val railItems = listOf(
-        Triple(AuvionyxModule.DRIVE, Icons.Outlined.Home, "Home"),
+        Triple(AuvionyxModule.DRIVE, Icons.Outlined.Home, "Drive"),
         Triple(AuvionyxModule.MAPS, Icons.Outlined.Navigation, "Maps"),
         Triple(AuvionyxModule.MUSIC, Icons.Outlined.MusicNote, "Music"),
         Triple(AuvionyxModule.HUD, Icons.Outlined.Speed, "HUD"),
