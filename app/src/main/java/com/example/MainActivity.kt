@@ -424,6 +424,7 @@ fun AuvionyxRootApp(viewModel: AuvionyxViewModel) {
                                 viewModel = viewModel,
                                 onActivateVoiceCapture = ::triggerVoiceCapture,
                                 onOpenPhoneDialer = ::openPhoneDialer,
+                                onMapsFullscreenChanged = { isMapsFullscreen = it },
                             )
                         }
 
