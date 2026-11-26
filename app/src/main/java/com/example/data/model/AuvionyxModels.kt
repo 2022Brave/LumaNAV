@@ -11,10 +11,7 @@ enum class AuvionyxModule(val route: String, val label: String) {
     MAPS("maps", "Maps"),
     MUSIC("music", "Music"),
     HUD("hud", "HUD"),
-    PULSE("pulse", "Traffic Pulse"),
-    VOICE("voice", "LumaNav Voice"),
     AOD("aod", "AOD"),
-    VEHICLE("vehicle", "Vehicle"),
     SETTINGS("settings", "Settings"),
     APPS("apps", "Apps")
 }
@@ -143,12 +140,6 @@ data class GoogleMapsIntegrationStatus(
     val renderModeLabel: String = "DEMO VECTOR PREVIEW"
 )
 
-enum class DriveMode(val label: String) {
-    ECO("Eco"),
-    TOUR("Tour"),
-    SPORT("Sport")
-}
-
 data class VehicleTelemetry(
     val speedKmh: Int = 0,
     val speedLimitKmh: Int? = null, // Null unless verified road speed-limit feed is connected
@@ -158,7 +149,7 @@ data class VehicleTelemetry(
     val gpsAccuracyMeters: Float? = null,
     val nextTurnDistanceLabel: String = "--",
     val nextTurnRoad: String = "No Active Route",
-    val nextTurnInstruction: String = "Set a destination in Google Maps or via Voice",
+    val nextTurnInstruction: String = "Set a destination in Maps or external navigation",
     val etaTimeLabel: String = "--:--",
     val remainingMinutes: Int = 0,
     val remainingDistanceKm: Float = 0f,
@@ -167,12 +158,7 @@ data class VehicleTelemetry(
     val destinationLabel: String = "",
     val weatherTempC: Int? = null,
     val weatherCondition: String = "",
-    val cabinDriverTempC: Float = 24.0f,
-    val cabinPassengerTempC: Float = 22.5f,
-    val rangeKm: Int = 0,
     val batteryPercent: Int = 0,
-    val driveMode: DriveMode = DriveMode.TOUR,
-    val tirePsi: List<Int> = emptyList(),
     val isLiveGpsActive: Boolean = false,
     val isLocationFallback: Boolean = false,
     val isSimulationRunning: Boolean = false,
