@@ -497,7 +497,6 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
             audioGranted = audGranted,
             notificationAccessGranted = notifGranted
         )
-        refreshDeviceBattery()
         syncExternalMediaSnapshot()
         applyGoogleMapsLiveNavigation(LiveGoogleMapsSyncBridge.activeNavigation.value)
 
