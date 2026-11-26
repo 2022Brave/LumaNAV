@@ -691,10 +691,10 @@ private fun HudMinimalTurnCard(
     modifier: Modifier = Modifier
 ) {
     Column(
-        modifier = modifier.fillMaxSize().padding(20.dp),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
+        modifier = modifier.padding(20.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
             Icon(
                 imageVector = Icons.Outlined.Navigation,
                 contentDescription = "Next turn",
