@@ -1133,7 +1133,7 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
             it.copy(
                 nextTurnDistanceLabel = "--",
                 nextTurnRoad = "No Active Route",
-                nextTurnInstruction = "Set a destination in Google Maps or via Voice",
+                nextTurnInstruction = "Set a destination in Maps or external navigation",
                 etaTimeLabel = "--:--",
                 remainingMinutes = 0,
                 remainingDistanceKm = 0f,
