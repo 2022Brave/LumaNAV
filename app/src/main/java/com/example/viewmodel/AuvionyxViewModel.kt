@@ -1065,13 +1065,16 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
                     _mapsPulse.update { it.copy(isNavigating = false, navigationSourceLabel = "Route unavailable", mapsServiceState = ServiceAvailabilityState.API_UNAVAILABLE, destinationSearchMessage = "The routing service did not return a drivable route. Check your internet connection and try again.") }
                     return@launch
                 }
+                // Valhalla may report route length in metres despite the requested kilometre units.
+                // OSRM is already converted to kilometres in DestinationSearchRepository.
+                val routeDistanceKm = if (liveRoute.distanceKm >= 1_000f) liveRoute.distanceKm / 1_000f else liveRoute.distanceKm
                 val routeItem = RouteAlternative(
                     id = "osrm_primary", name = candidate.name, viaRoad = liveRoute.nextTurnRoad,
-                    durationMin = liveRoute.durationMinutes, distanceKm = liveRoute.distanceKm,
+                    durationMin = liveRoute.durationMinutes, distanceKm = routeDistanceKm,
                     etaLabel = liveRoute.etaTimeLabel, trafficState = TrafficSeverity.CLEAR, isSelected = true
                 )
-                _mapsPulse.update { it.copy(routePolylineGeo = liveRoute.polylinePoints, routes = listOf(routeItem), isNavigating = true, mapsServiceState = ServiceAvailabilityState.LIVE, navigationSourceLabel = "LumaNav · ${liveRoute.routingProvider}", destinationSearchMessage = "Route ready · " + liveRoute.distanceKm + " km · " + liveRoute.durationMinutes + " min") }
-                _telemetry.update { it.copy(nextTurnDistanceLabel = liveRoute.nextTurnDistanceLabel, nextTurnRoad = liveRoute.nextTurnRoad, nextTurnInstruction = liveRoute.nextTurnInstruction, remainingDistanceKm = liveRoute.distanceKm, remainingMinutes = liveRoute.durationMinutes, etaTimeLabel = liveRoute.etaTimeLabel, journeyProgress = 0f) }
+                _mapsPulse.update { it.copy(routePolylineGeo = liveRoute.polylinePoints, routes = listOf(routeItem), isNavigating = true, mapsServiceState = ServiceAvailabilityState.LIVE, navigationSourceLabel = "LumaNav · ${liveRoute.routingProvider}", destinationSearchMessage = "Route ready · " + routeDistanceKm + " km · " + liveRoute.durationMinutes + " min") }
+                _telemetry.update { it.copy(nextTurnDistanceLabel = liveRoute.nextTurnDistanceLabel, nextTurnRoad = liveRoute.nextTurnRoad, nextTurnInstruction = liveRoute.nextTurnInstruction, remainingDistanceKm = routeDistanceKm, remainingMinutes = liveRoute.durationMinutes, etaTimeLabel = liveRoute.etaTimeLabel, journeyProgress = 0f) }
             } finally {
                 routeJob = null
             }
