@@ -158,7 +158,6 @@ data class VehicleTelemetry(
     val destinationLabel: String = "",
     val weatherTempC: Int? = null,
     val weatherCondition: String = "",
-    val batteryPercent: Int = 0,
     val isLiveGpsActive: Boolean = false,
     val isLocationFallback: Boolean = false,
     val isSimulationRunning: Boolean = false,
