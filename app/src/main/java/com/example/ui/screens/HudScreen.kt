@@ -1,5 +1,8 @@
 package com.example.ui.screens
 
+import android.app.Activity
+import android.view.WindowManager
+
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -30,8 +33,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -48,6 +55,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
@@ -99,13 +107,33 @@ fun HudScreen(
     modifier: Modifier = Modifier
 ) {
     var mirrorForWindshield by remember { mutableStateOf(hudConfig.mirrorFlipForWindshield) }
+    val activity = LocalContext.current as? Activity
+    val originalWindowBrightness = remember(activity) { activity?.window?.attributes?.screenBrightness ?: WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE }
+    var hudBrightness by remember { mutableFloatStateOf(if (originalWindowBrightness in 0f..1f) originalWindowBrightness else 0.75f) }
+    var glowIntensity by remember { mutableFloatStateOf(0.85f) }
+    SideEffect {
+        activity?.window?.let { window ->
+            val attributes = window.attributes
+            attributes.screenBrightness = hudBrightness.coerceIn(0.05f, 1f)
+            window.attributes = attributes
+        }
+    }
+    DisposableEffect(activity) {
+        onDispose {
+            activity?.window?.let { window ->
+                val attributes = window.attributes
+                attributes.screenBrightness = originalWindowBrightness
+                window.attributes = attributes
+            }
+        }
+    }
     var toolbarVisible by remember { mutableStateOf(true) }
     var toolbarInteraction by remember { mutableStateOf(0) }
     LaunchedEffect(toolbarInteraction) {
         delay(4_000L)
         toolbarVisible = false
     }
-    val hudAccent = ElectricCyan
+    val hudAccent = ElectricCyan.copy(alpha = glowIntensity.coerceIn(0.25f, 1f))
     val calibratedSpeedKmh = (telemetry.speedKmh *
         (1f + hudConfig.speedometerMatchPercent.coerceIn(0f, 10f) / 100f)).toInt()
     val speedDisplay = if (settings.useMetricUnits) calibratedSpeedKmh
@@ -172,6 +200,16 @@ fun HudScreen(
                         style = MaterialTheme.typography.labelSmall,
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp)
                     )
+                }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                Column(modifier = Modifier.width(132.dp)) {
+                    Text("DISPLAY", color = TextSecondary, style = MaterialTheme.typography.labelSmall)
+                    Slider(value = hudBrightness, onValueChange = { hudBrightness = it }, valueRange = 0.05f..1f)
+                }
+                Column(modifier = Modifier.width(132.dp)) {
+                    Text("ACCENT GLOW", color = TextSecondary, style = MaterialTheme.typography.labelSmall)
+                    Slider(value = glowIntensity, onValueChange = { glowIntensity = it }, valueRange = 0.25f..1f)
                 }
             }
         }
