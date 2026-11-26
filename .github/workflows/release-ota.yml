@@ -124,6 +124,7 @@ jobs:
           APK="LumaNAV-${VERSION}.apk"
           cp app/build/outputs/apk/release/app-release.apk "$APK"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "version_code=$VERSION_CODE" >> "$GITHUB_OUTPUT"
           echo "apk=$APK" >> "$GITHUB_OUTPUT"
           echo "notes<<EOF" >> "$GITHUB_OUTPUT"
           git log -1 --pretty=%s >> "$GITHUB_OUTPUT"
@@ -138,3 +139,28 @@ jobs:
           body: ${{ steps.release_meta.outputs.notes }}
           files: ${{ steps.release_meta.outputs.apk }}
           make_latest: true
+
+      - name: Update raw OTA manifest
+        shell: bash
+        env:
+          VERSION_NAME: ${{ steps.release_meta.outputs.version }}
+          VERSION_CODE: ${{ steps.release_meta.outputs.version_code }}
+          APK_NAME: ${{ steps.release_meta.outputs.apk }}
+          RELEASE_NOTES: ${{ steps.release_meta.outputs.notes }}
+        run: |
+          set -euo pipefail
+          APK_URL="https://github.com/2022Brave/LumaNAV/releases/download/v${VERSION_NAME}/${APK_NAME}"
+          jq -n \
+            --argjson versionCode "$VERSION_CODE" \
+            --arg versionName "$VERSION_NAME" \
+            --arg apkUrl "$APK_URL" \
+            --arg notes "$RELEASE_NOTES" \
+            '{versionCode:$versionCode,versionName:$versionName,apkUrl:$apkUrl,notes:$notes}' \
+            > latest.json
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add latest.json
+          if ! git diff --cached --quiet; then
+            git commit -m "Update OTA manifest for ${VERSION_NAME}"
+            git push origin HEAD:main
+          fi
