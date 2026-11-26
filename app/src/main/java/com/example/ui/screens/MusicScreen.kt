@@ -580,7 +580,7 @@ private fun MusicTransport(
         IconButton(onClick = onToggleShuffle, modifier = Modifier.size(buttonSize).background(if (large) Color(0x553B4652) else Color.Transparent, CircleShape)) {
             Icon(Icons.Outlined.Shuffle, "Shuffle", tint = if (mediaState.isShuffle) accent else TextSecondary, modifier = Modifier.size(large.let { if (it) 26.dp else 22.dp }))
         }
-        IconButton(onClick = onPrevTrack, modifier = Modifier.size(buttonSize).background(Color(0x553B4652), CircleShape)) {
+        IconButton(onClick = onPrevTrack, modifier = Modifier.size(buttonSize).background(if (large) Color(0x553B4652) else Color.Transparent, CircleShape)) {
             Icon(Icons.Rounded.SkipPrevious, "Previous", tint = GlassWhite, modifier = Modifier.size(if (large) 34.dp else 28.dp))
         }
         Surface(
