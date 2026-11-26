@@ -163,7 +163,7 @@ fun MusicScreen(
                             )
                             .padding(10.dp)
                     ) {
-                        MusicArtwork(track, mediaState, Modifier.fillMaxSize())
+                        MusicArtwork(track, mediaState, Modifier.fillMaxSize(), landscape = true)
                     }
                     Spacer(Modifier.height(12.dp))
                     Text(
@@ -416,7 +416,7 @@ fun MusicScreen(
 }
 
 @Composable
-private fun MusicArtwork(track: MediaTrack, state: MediaPlayerState, modifier: Modifier = Modifier) {
+private fun MusicArtwork(track: MediaTrack, state: MediaPlayerState, modifier: Modifier = Modifier, landscape: Boolean = false) {
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(22.dp))
@@ -437,7 +437,7 @@ private fun MusicArtwork(track: MediaTrack, state: MediaPlayerState, modifier: M
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize()
             )
-        } else if (state.isPlaying) {
+        } else if (landscape && state.isPlaying) {
             Box(
                 modifier = Modifier.fillMaxSize().background(
                     Brush.radialGradient(listOf(track.adaptiveColor.copy(alpha = 0.42f), Color(0xFF030609)))
@@ -577,7 +577,7 @@ private fun MusicTransport(
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        IconButton(onClick = onToggleShuffle, modifier = Modifier.size(buttonSize).background(Color(0x553B4652), CircleShape)) {
+        IconButton(onClick = onToggleShuffle, modifier = Modifier.size(buttonSize).background(if (large) Color(0x553B4652) else Color.Transparent, CircleShape)) {
             Icon(Icons.Outlined.Shuffle, "Shuffle", tint = if (mediaState.isShuffle) accent else TextSecondary, modifier = Modifier.size(large.let { if (it) 26.dp else 22.dp }))
         }
         IconButton(onClick = onPrevTrack, modifier = Modifier.size(buttonSize).background(Color(0x553B4652), CircleShape)) {
