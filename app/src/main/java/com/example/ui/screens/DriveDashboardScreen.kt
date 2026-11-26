@@ -705,7 +705,8 @@ private fun SmartphonePortraitDriveDashboard(
                     onPlayPause = onPlayPause,
                     onNext = onNextTrack,
                     onToggleRepeatOrFav = {},
-                    modifier = Modifier.width(240.dp)
+                    showShuffleRepeat = false,
+                    modifier = Modifier.width(160.dp)
                 )
             }
 
