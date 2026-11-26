@@ -16,6 +16,9 @@ import com.example.data.model.HudCockpitStyle
 import com.example.data.model.HudLayoutMode
 import com.example.data.model.HudPosition
 import com.example.data.model.MediaAppSource
+import com.example.data.model.SavedPlace
+import org.json.JSONArray
+import org.json.JSONObject
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
@@ -67,6 +70,29 @@ class AuvionyxPreferencesRepository(private val context: Context) {
         val SATELLITE_GRID = booleanPreferencesKey("satellite_grid")
         val CAR_LAUNCHER = booleanPreferencesKey("car_launcher")
         val DEMO_SIMULATION = booleanPreferencesKey("demo_simulation")
+        val SAVED_PLACES = stringPreferencesKey("saved_places")
+    }
+
+    val savedPlacesFlow: Flow<List<SavedPlace>> = context.auvionyxDataStore.data.map { prefs ->
+        val json = runCatching { JSONArray(prefs[Keys.SAVED_PLACES].orEmpty()) }.getOrNull() ?: JSONArray()
+        buildList {
+            for (index in 0 until json.length()) {
+                val item = json.optJSONObject(index) ?: continue
+                val lat = item.optDouble("latitude", Double.NaN)
+                val lon = item.optDouble("longitude", Double.NaN)
+                if (!lat.isFinite() || lat !in -90.0..90.0 || !lon.isFinite() || lon !in -180.0..180.0) continue
+                val name = item.optString("name").trim()
+                if (name.isBlank()) continue
+                add(SavedPlace(
+                    id = item.optString("id").ifBlank { "saved_$index" },
+                    name = name,
+                    addressSummary = item.optString("addressSummary"),
+                    latitude = lat,
+                    longitude = lon,
+                    category = item.optString("category", "Saved place")
+                ))
+            }
+        }
     }
 
     val settingsFlow: Flow<AuvionyxSettingsState> = context.auvionyxDataStore.data.map { prefs ->
@@ -178,5 +204,36 @@ class AuvionyxPreferencesRepository(private val context: Context) {
 
     suspend fun setDemoSimulation(enabled: Boolean) {
         context.auvionyxDataStore.edit { it[Keys.DEMO_SIMULATION] = enabled }
+    }
+
+    suspend fun savePlace(place: SavedPlace) {
+        context.auvionyxDataStore.edit { prefs ->
+            val current = runCatching { JSONArray(prefs[Keys.SAVED_PLACES].orEmpty()) }.getOrNull() ?: JSONArray()
+            val updated = JSONArray()
+            for (index in 0 until current.length()) {
+                val item = current.optJSONObject(index) ?: continue
+                if (item.optString("id") != place.id) updated.put(item)
+            }
+            updated.put(JSONObject()
+                .put("id", place.id)
+                .put("name", place.name)
+                .put("addressSummary", place.addressSummary)
+                .put("latitude", place.latitude)
+                .put("longitude", place.longitude)
+                .put("category", place.category))
+            prefs[Keys.SAVED_PLACES] = updated.toString()
+        }
+    }
+
+    suspend fun removeSavedPlace(id: String) {
+        context.auvionyxDataStore.edit { prefs ->
+            val current = runCatching { JSONArray(prefs[Keys.SAVED_PLACES].orEmpty()) }.getOrNull() ?: JSONArray()
+            val updated = JSONArray()
+            for (index in 0 until current.length()) {
+                val item = current.optJSONObject(index) ?: continue
+                if (item.optString("id") != id) updated.put(item)
+            }
+            prefs[Keys.SAVED_PLACES] = updated.toString()
+        }
     }
 }
