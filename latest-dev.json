@@ -1,0 +1,9 @@
+{
+  "versionCode": 179570301,
+  "versionName": "1.0.179570301",
+  "apkUrl": "https://github.com/2022Brave/LumaNAV/releases/download/dev-45838432177/LumaNAV-dev-1.0.179570301.apk",
+  "notes": "OTA: align stable releases with Android-safe version sequence",
+  "commit": "342fd528cdc42476d7406006898f29a2dc78c2ee",
+  "channel": "development",
+  "buildNumber": "299"
+}
