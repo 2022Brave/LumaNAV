@@ -90,7 +90,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.core.UpdateManager
 import com.example.core.configureAppCheck
 import com.example.data.model.AuvionyxModule
-import com.example.data.voice.VoiceVisualState
 import com.example.ui.components.GlassNavigationRail
 import com.example.ui.components.LiquidGlassLens
 import com.example.ui.components.LumaMotion
