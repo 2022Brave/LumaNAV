@@ -66,7 +66,7 @@ class ExampleUnitTest {
     assertNull("Speed limit must be null unless verified", telemetry.speedLimitKmh)
     assertNull("Weather must remain null until live weather loads", telemetry.weatherTempC)
     assertFalse("GPS should not claim live fix by default", telemetry.isLiveGpsActive)
-    assertTrue("No fake tire telemetry when CAN/OBD-II is disconnected", telemetry.tirePsi.isEmpty())
+    assertNull("GPS accuracy is unknown until a live fix arrives", telemetry.gpsAccuracyMeters)
 
     val settings = AuvionyxSettingsState()
     assertFalse("Demo simulation toggle must default to false", settings.demoSimulationEnabled)
