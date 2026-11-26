@@ -54,6 +54,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -115,6 +119,7 @@ fun MapsScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    var mapFullscreen by remember { mutableStateOf(false) }
     val accent = LocalAuvionyxPalette.current.accentPrimary
     val reducedMotion = LocalAuvionyxMotion.current.reducedMotion
     val locationLauncher = rememberLauncherForActivityResult(
@@ -487,7 +492,24 @@ fun MapsScreen(
         }
     }
 
-    if (isLandscapeWide) {
+    if (isLandscapeWide && mapFullscreen) {
+        Box(modifier = modifier.fillMaxSize()) {
+            NativeMapLibreView(
+                currentLocation = mapsPulse.currentLatLon,
+                routePoints = mapsPulse.routePolylineGeo,
+                headingDegrees = telemetry.headingDegrees,
+                accent = accent,
+                modifier = Modifier.fillMaxSize()
+            )
+            Surface(
+                onClick = { mapFullscreen = false },
+                modifier = Modifier.align(Alignment.TopEnd).padding(14.dp),
+                color = Color(0xE609111B),
+                shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(1.dp, accent.copy(alpha = 0.55f))
+            ) { Text("EXIT FULLSCREEN", color = accent, modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp), style = MaterialTheme.typography.labelSmall) }
+        }
+    } else if (isLandscapeWide) {
         Row(
             modifier = modifier.fillMaxSize(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -509,6 +531,12 @@ fun MapsScreen(
                     accent = accent,
                     modifier = Modifier.fillMaxSize()
                 )
+                Surface(
+                    onClick = { mapFullscreen = true },
+                    modifier = Modifier.align(Alignment.TopEnd).padding(14.dp),
+                    color = Color(0xE609111B), shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, accent.copy(alpha = 0.55f))
+                ) { Text("FULLSCREEN", color = accent, modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp), style = MaterialTheme.typography.labelSmall) }
                 if (mapsPulse.confirmedDestination != null) {
                     Surface(
                         modifier = Modifier.align(Alignment.TopStart).padding(14.dp),
@@ -534,6 +562,12 @@ fun MapsScreen(
                 accent = accent,
                 modifier = Modifier.fillMaxSize().zIndex(0f)
             )
+            Surface(
+                onClick = { mapFullscreen = !mapFullscreen },
+                modifier = Modifier.align(Alignment.TopEnd).padding(14.dp).zIndex(2f),
+                color = Color(0xE609111B), shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(1.dp, accent.copy(alpha = 0.55f))
+            ) { Text(if (mapFullscreen) "EXIT FULLSCREEN" else "FULLSCREEN", color = accent, modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp), style = MaterialTheme.typography.labelSmall) }
             if (mapsPulse.confirmedDestination != null) {
                 Surface(
                     modifier = Modifier.align(Alignment.TopStart).padding(14.dp).zIndex(0.5f),
@@ -548,7 +582,7 @@ fun MapsScreen(
                 }
             }
 
-            DraggableLaminarSheet(
+            if (!mapFullscreen) DraggableLaminarSheet(
                 minHeight = 250.dp,
                 maxHeight = 520.dp,
                 initialFraction = 0.42f,
