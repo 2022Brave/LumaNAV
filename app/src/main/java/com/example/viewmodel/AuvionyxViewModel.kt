@@ -1094,7 +1094,7 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
                     durationMin = liveRoute.durationMinutes, distanceKm = routeDistanceKm,
                     etaLabel = liveRoute.etaTimeLabel, trafficState = TrafficSeverity.CLEAR, isSelected = true
                 )
-                _mapsPulse.update { it.copy(routePolylineGeo = liveRoute.polylinePoints, routes = listOf(routeItem), isNavigating = true, mapsServiceState = ServiceAvailabilityState.LIVE, navigationSourceLabel = "LumaNav · ${liveRoute.routingProvider}", destinationSearchMessage = "Route ready · " + routeDistanceKm + " km · " + liveRoute.durationMinutes + " min") }
+                _mapsPulse.update { it.copy(routePolylineGeo = liveRoute.polylinePoints, routes = listOf(routeItem), isNavigating = true, mapsServiceState = ServiceAvailabilityState.LIVE, navigationSourceLabel = "LumaNAV · ${liveRoute.routingProvider}", destinationSearchMessage = "Route ready · " + routeDistanceKm + " km · " + liveRoute.durationMinutes + " min") }
                 _telemetry.update { it.copy(nextTurnDistanceLabel = liveRoute.nextTurnDistanceLabel, nextTurnRoad = liveRoute.nextTurnRoad, nextTurnInstruction = liveRoute.nextTurnInstruction, remainingDistanceKm = routeDistanceKm, remainingMinutes = liveRoute.durationMinutes, etaTimeLabel = liveRoute.etaTimeLabel, journeyProgress = 0f) }
             } finally {
                 routeJob = null
@@ -1784,7 +1784,7 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
                     category = VoiceCommandCategory.VEHICLE,
                     action = command.action,
                     recognizedPhrase = recognizedPhrase,
-                    confirmationTitle = customConfirmation ?: "Opening LumaNav HUD",
+                    confirmationTitle = customConfirmation ?: "Opening LumaNAV HUD",
                     confirmationDetail = "Minimalist HUD active.",
                     serviceState = _mapsPulse.value.gpsServiceState,
                     usedGeminiInterpreter = usedGemini
@@ -1825,7 +1825,7 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
                     category = VoiceCommandCategory.INTERFACE,
                     action = command.action,
                     recognizedPhrase = recognizedPhrase,
-                    confirmationTitle = customConfirmation ?: "Opening LumaNav Maps",
+                    confirmationTitle = customConfirmation ?: "Opening LumaNAV Maps",
                     confirmationDetail = "Navigation ready.",
                     serviceState = _mapsPulse.value.mapsServiceState,
                     usedGeminiInterpreter = usedGemini
@@ -1838,7 +1838,7 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
                     category = VoiceCommandCategory.INTERFACE,
                     action = command.action,
                     recognizedPhrase = recognizedPhrase,
-                    confirmationTitle = customConfirmation ?: "Opening LumaNav Music",
+                    confirmationTitle = customConfirmation ?: "Opening LumaNAV Music",
                     confirmationDetail = "Unified Media Hub displayed.",
                     serviceState = _mediaState.value.bridgeStatus.serviceState,
                     usedGeminiInterpreter = usedGemini
