@@ -762,6 +762,7 @@ fun MapsScreen(
                 show3DBuildings = activeMapStyle.first != "WIREFRAME",
                 wireframeMode = activeMapStyle.first == "WIREFRAME"
             )
+            if (!isLandscapeWide) {
             BoxWithConstraints(
                 modifier = Modifier.fillMaxSize().zIndex(4f)
             ) {
@@ -858,6 +859,7 @@ fun MapsScreen(
                         }
                     }
                 }
+            }
             }
 
             Surface(
