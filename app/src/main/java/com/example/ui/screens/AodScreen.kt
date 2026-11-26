@@ -194,21 +194,29 @@ fun AodScreen(
                         color = GlassWhite,
                         modifier = Modifier.padding(top = 56.dp)
                     )
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    Surface(
+                        color = Color(0xB8000810),
+                        shape = RoundedCornerShape(18.dp),
+                        border = BorderStroke(1.dp, ElectricCyan.copy(alpha = 0.26f))
                     ) {
-                        Icon(
-                            imageVector = Icons.Outlined.TurnRight,
-                            contentDescription = "Next turn",
-                            tint = ElectricCyan,
-                            modifier = Modifier.size(28.dp)
-                        )
-                        Text(
-                            text = if (isNavigating && routePoints.size >= 2) "${telemetry.nextTurnDistanceLabel} · ${telemetry.nextTurnInstruction}" else "No active route",
-                            style = MaterialTheme.typography.headlineMedium,
-                            color = GlassWhite.copy(alpha = 0.85f)
-                        )
+                        Row(
+                            modifier = Modifier.padding(horizontal = 18.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.TurnRight,
+                                contentDescription = "Next turn",
+                                tint = ElectricCyan,
+                                modifier = Modifier.size(28.dp)
+                            )
+                            Text(
+                                text = if (isNavigating && routePoints.size >= 2) "${telemetry.nextTurnDistanceLabel} · ${telemetry.nextTurnInstruction}" else "No active route",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = GlassWhite.copy(alpha = 0.92f),
+                                maxLines = 2
+                            )
+                        }
                     }
                 }
 
