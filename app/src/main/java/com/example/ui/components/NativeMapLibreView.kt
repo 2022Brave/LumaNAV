@@ -38,7 +38,11 @@ import org.maplibre.android.geometry.LatLng
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.android.maps.Style
+import org.maplibre.android.style.layers.BackgroundLayer
 import org.maplibre.android.style.layers.CircleLayer
+import org.maplibre.android.style.layers.FillLayer
+import org.maplibre.android.style.layers.RasterLayer
+import org.maplibre.android.style.layers.SymbolLayer
 import org.maplibre.android.style.layers.FillExtrusionLayer
 import org.maplibre.android.style.layers.LineLayer
 import org.maplibre.android.style.layers.Property
@@ -46,6 +50,10 @@ import org.maplibre.android.style.layers.PropertyFactory.circleColor
 import org.maplibre.android.style.layers.PropertyFactory.circleRadius
 import org.maplibre.android.style.layers.PropertyFactory.circleStrokeColor
 import org.maplibre.android.style.layers.PropertyFactory.circleStrokeWidth
+import org.maplibre.android.style.layers.PropertyFactory.backgroundColor
+import org.maplibre.android.style.layers.PropertyFactory.fillOpacity
+import org.maplibre.android.style.layers.PropertyFactory.lineOpacity
+import org.maplibre.android.style.layers.PropertyFactory.visibility
 import org.maplibre.android.style.layers.PropertyFactory.fillExtrusionBase
 import org.maplibre.android.style.layers.PropertyFactory.fillExtrusionColor
 import org.maplibre.android.style.layers.PropertyFactory.fillExtrusionHeight
@@ -81,7 +89,8 @@ fun NativeMapLibreView(
     modifier: Modifier = Modifier,
     show3DBuildings: Boolean = true,
     styleUri: String = AUVIONYX_DARK_STYLE,
-    attributionBottomMarginDp: Int = 0
+    attributionBottomMarginDp: Int = 0,
+    wireframeMode: Boolean = false
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -134,7 +143,7 @@ fun NativeMapLibreView(
     }
 
 
-    LaunchedEffect(retryToken, mapLibreMap, styleUri) {
+    LaunchedEffect(retryToken, mapLibreMap, styleUri, wireframeMode) {
         if (mapLibreMap != null && (retryToken > 0 || styleUri != lastRequestedStyle)) {
             lastRequestedStyle = styleUri
             styleLoaded = false
@@ -164,6 +173,7 @@ fun NativeMapLibreView(
                     )
                 }
                 if (show3DBuildings) addLumaNav3DBuildings(style)
+                if (wireframeMode) applyLumaNavWireframe(style)
                 loadedStyle = style
                 styleLoaded = true
             }
@@ -229,6 +239,7 @@ fun NativeMapLibreView(
             modifier = Modifier.matchParentSize(),
             factory = {
             mapView.apply {
+                setBackgroundColor(Color.Black.toArgb())
                 getMapAsync { map ->
                     mapLibreMap = map
                     map.uiSettings.isCompassEnabled = false
@@ -269,6 +280,7 @@ fun NativeMapLibreView(
                             )
                         }
                         if (show3DBuildings) addLumaNav3DBuildings(style)
+                        if (wireframeMode) applyLumaNavWireframe(style)
                         loadedStyle = style
                         styleLoaded = true
                     }
@@ -350,6 +362,26 @@ fun NativeMapLibreView(
  * OpenFreeMap exposes OSM building polygons in the "building" vector source-layer.
  * Extrusion heights are only available where OSM contributors supplied building data.
  */
+
+private fun applyLumaNavWireframe(style: Style) {
+    style.layers.forEach { layer ->
+        when (layer) {
+            is BackgroundLayer -> layer.setProperties(backgroundColor("#000000"))
+            is FillLayer -> layer.setProperties(fillOpacity(0f))
+            is RasterLayer -> layer.setProperties(visibility(Property.NONE))
+            is SymbolLayer -> layer.setProperties(visibility(Property.NONE))
+            is LineLayer -> layer.setProperties(
+                lineColor("#00D9F5"),
+                lineOpacity(0.88f),
+                lineWidth(1.15f),
+                lineCap(Property.LINE_CAP_ROUND),
+                lineJoin(Property.LINE_JOIN_ROUND)
+            )
+            is FillExtrusionLayer -> layer.setProperties(visibility(Property.NONE))
+        }
+    }
+}
+
 private fun addLumaNav3DBuildings(style: Style) {
     if (style.getLayer("lumanav-buildings-3d") != null) return
     if (style.getSource("openmaptiles") == null) return
