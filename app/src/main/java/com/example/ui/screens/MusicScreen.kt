@@ -1,6 +1,22 @@
 package com.example.ui.screens
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import kotlin.math.sin
+import com.example.ui.components.LivingFlow
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.draw.blur
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.Canvas
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -85,7 +101,7 @@ fun MusicScreen(
     val track = mediaState.currentTrack
     val duration = track.durationSec.coerceAtLeast(1)
 
-    Box(modifier = modifier.fillMaxSize()) {
+    Box(modifier = modifier.fillMaxSize().then(if (isLandscapeWide) Modifier.statusBarsPadding() else Modifier)) {
         if (isLandscapeWide) {
             val liveArtwork = mediaState.externalArtwork
             if (liveArtwork != null) {
@@ -482,7 +498,7 @@ private fun WavyMusicProgressBar(
         modifier = Modifier.fillMaxWidth().height(42.dp)
             .pointerInput(duration) {
                 detectTapGestures { point ->
-                    onSeek((point.x / size.width.coerceAtLeast(1) * duration).toInt().coerceIn(0, duration))
+                    onSeek((point.x / size.width.coerceAtLeast(1f) * duration).toInt().coerceIn(0, duration))
                 }
             }
             .pointerInput(duration) {
