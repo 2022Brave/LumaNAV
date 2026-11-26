@@ -665,7 +665,7 @@ fun TrafficPulseBadge(
 
 /**
  * Authoritative Top Branding & Status Bar matching Active & Idle Cockpit blueprints:
- * - Left: Velocity A + LumaNav wordmark
+ * - Left: Velocity A + LumaNAV wordmark
  * - Bottom center: Subtle Electric Cyan horizon shimmer hairline
  * - Right: Stacked Time/Date, Divider, Weather Icon + Temp + Locality, Signal, Wi-Fi, Bluetooth, Settings gear
  */
@@ -727,7 +727,7 @@ fun GlassTopStatusBar(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            // Left: LumaNav wordmark (tap for AOD)
+            // Left: LumaNAV wordmark (tap for AOD)
             VelocityACompactWordmark(
                 modifier = Modifier
                     .testTag("top_aod_button")
