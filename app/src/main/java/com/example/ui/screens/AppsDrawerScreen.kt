@@ -53,12 +53,12 @@ fun AppsDrawerScreen(
 ) {
     val accent = LocalAuvionyxPalette.current.accentPrimary
     val entries = listOf(
-        AppLauncherEntry("LumaNav Drive", "Split Cockpit", Icons.Outlined.Home, AuvionyxModule.DRIVE, "app_drive"),
-        AppLauncherEntry("LumaNav Maps", "Navigation & Routes", Icons.Outlined.Navigation, AuvionyxModule.MAPS, "app_maps"),
-        AppLauncherEntry("LumaNav Music", "Unified Media Hub", Icons.Outlined.MusicNote, AuvionyxModule.MUSIC, "app_music"),
-        AppLauncherEntry("LumaNav HUD", "Heads-Up & Designer", Icons.Outlined.Speed, AuvionyxModule.HUD, "app_hud"),
-        AppLauncherEntry("LumaNav AOD", "Ambient Display", Icons.Outlined.Nightlight, AuvionyxModule.AOD, "app_aod"),
-        AppLauncherEntry("LumaNav Settings", "System & Designer", Icons.Outlined.Settings, AuvionyxModule.SETTINGS, "app_settings"),
+        AppLauncherEntry("LumaNAV Drive", "Split Cockpit", Icons.Outlined.Home, AuvionyxModule.DRIVE, "app_drive"),
+        AppLauncherEntry("LumaNAV Maps", "Navigation & Routes", Icons.Outlined.Navigation, AuvionyxModule.MAPS, "app_maps"),
+        AppLauncherEntry("LumaNAV Music", "Unified Media Hub", Icons.Outlined.MusicNote, AuvionyxModule.MUSIC, "app_music"),
+        AppLauncherEntry("LumaNAV HUD", "Heads-Up & Designer", Icons.Outlined.Speed, AuvionyxModule.HUD, "app_hud"),
+        AppLauncherEntry("LumaNAV AOD", "Ambient Display", Icons.Outlined.Nightlight, AuvionyxModule.AOD, "app_aod"),
+        AppLauncherEntry("LumaNAV Settings", "System & Designer", Icons.Outlined.Settings, AuvionyxModule.SETTINGS, "app_settings"),
         AppLauncherEntry("Phone Dialer", "Android System Call", Icons.Outlined.Phone, null, "app_phone")
     )
 
@@ -66,7 +66,7 @@ fun AppsDrawerScreen(
         modifier = modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Text("LumaNav Cockpit", style = MaterialTheme.typography.headlineMedium, color = GlassWhite)
+        Text("LumaNAV Cockpit", style = MaterialTheme.typography.headlineMedium, color = GlassWhite)
         LazyVerticalGrid(
             columns = GridCells.Fixed(if (isLandscapeWide) 5 else 2),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
