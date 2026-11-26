@@ -125,7 +125,7 @@ jobs:
 
       - name: Compile debug APK
         env:
-          LUMANAV_VERSION_CODE: ${{ github.run_number }}
+          LUMANAV_VERSION_CODE: ${{ github.run_id }}
         run: ./gradlew --no-daemon :app:assembleDebug
 
       - name: Verify APK signature and certificate fingerprint
@@ -158,6 +158,64 @@ jobs:
 
       - name: Run unit tests
         run: ./gradlew --no-daemon :app:testDebugUnitTest
+
+
+      # Publish every fully tested build from the personal development branch.
+      # This is deliberately excluded from pull_request and manual runs.
+      - name: Publish development OTA release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/branding/lumanav-ui-overhaul'
+        shell: bash
+        env:
+          VERSION_CODE: ${{ github.run_id }}
+          COMMIT_SUBJECT: ${{ github.event.head_commit.message }}
+        run: |
+          set -euo pipefail
+          VERSION="1.0.${VERSION_CODE}"
+          APK="LumaNAV-dev-${VERSION}.apk"
+          cp app/build/outputs/apk/debug/app-debug.apk "${APK}"
+          echo "VERSION=${VERSION}" >> "$GITHUB_ENV"
+          echo "APK=${APK}" >> "$GITHUB_ENV"
+          echo "APK_URL=https://github.com/2022Brave/LumaNAV/releases/download/dev-${GITHUB_RUN_ID}/${APK}" >> "$GITHUB_ENV"
+          printf '%s\\n' "${COMMIT_SUBJECT}" > dev-release-notes.txt
+
+      - name: Create development GitHub Release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/branding/lumanav-ui-overhaul'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: dev-${{ github.run_id }}
+          name: LumaNAV Development ${{ github.run_id }}
+          body_path: dev-release-notes.txt
+          files: LumaNAV-dev-*.apk
+          prerelease: true
+          make_latest: false
+
+      - name: Publish development OTA manifest
+        if: github.event_name == 'push' && github.ref == 'refs/heads/branding/lumanav-ui-overhaul'
+        shell: bash
+        env:
+          VERSION_CODE: ${{ github.run_id }}
+          COMMIT_SHA: ${{ github.sha }}
+          COMMIT_SUBJECT: ${{ github.event.head_commit.message }}
+        run: |
+          set -euo pipefail
+          VERSION="1.0.${VERSION_CODE}"
+          APK="LumaNAV-dev-${VERSION}.apk"
+          APK_URL="https://github.com/2022Brave/LumaNAV/releases/download/dev-${GITHUB_RUN_ID}/${APK}"
+          jq -n \\
+            --argjson versionCode "${VERSION_CODE}" \\
+            --arg versionName "${VERSION}" \\
+            --arg apkUrl "${APK_URL}" \\
+            --arg notes "${COMMIT_SUBJECT}" \\
+            --arg commit "${COMMIT_SHA}" \\
+            --arg channel "development" \\
+            --arg buildNumber "${GITHUB_RUN_NUMBER}" \\
+            '{versionCode:$versionCode,versionName:$versionName,apkUrl:$apkUrl,notes:$notes,commit:$commit,channel:$channel,buildNumber:$buildNumber}' \\
+            > latest-dev.json
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add latest-dev.json
+          git commit -m "Update development OTA manifest for ${VERSION}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
 
       - name: Upload test reports
         if: always()
