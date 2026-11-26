@@ -223,28 +223,13 @@ fun HudScreen(
                 modifier = Modifier.fillMaxWidth().weight(1f)
             )
         } else if (isLandscapeWide) {
-            Row(
-                modifier = Modifier.fillMaxWidth().weight(1f),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    modifier = Modifier.weight(0.27f).fillMaxHeight(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    HudSpeedometerGauge(
-                        speed = speedDisplay,
-                        maxSpeed = if (settings.useMetricUnits) 160 else 100,
-                        unitLabel = unitLabel,
-                        accent = hudAccent
-                    )
-                }
+            Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
                 if (hudConfig.layoutMode == HudLayoutMode.MINIMAL) {
                     HudMinimalTurnCard(
                         distance = telemetry.nextTurnDistanceLabel,
                         instruction = telemetry.nextTurnInstruction,
                         accent = hudAccent,
-                        modifier = Modifier.weight(0.73f).fillMaxHeight()
+                        modifier = Modifier.fillMaxSize()
                     )
                 } else {
                     AuvionyxNativeMapPanel(
@@ -257,45 +242,53 @@ fun HudScreen(
                         nextTurnRoad = telemetry.nextTurnRoad,
                         nextTurnInstruction = telemetry.nextTurnInstruction,
                         telemetryDestinationLabel = telemetry.destinationLabel,
-                        modifier = Modifier.weight(0.73f).fillMaxHeight(),
-                        show3DBuildings = hudConfig.cockpitStyle != com.example.data.model.HudCockpitStyle.WIREFRAME_MAP
+                        modifier = Modifier.fillMaxSize(),
+                        show3DBuildings = hudConfig.cockpitStyle != com.example.data.model.HudCockpitStyle.WIREFRAME_MAP,
+                        wireframeMode = hudConfig.cockpitStyle == com.example.data.model.HudCockpitStyle.WIREFRAME_MAP
+                    )
+                    HudFloatingSpeedOverlay(
+                        speed = speedDisplay,
+                        maxSpeed = if (settings.useMetricUnits) 160 else 100,
+                        unitLabel = unitLabel,
+                        accent = hudAccent,
+                        landscape = true,
+                        modifier = Modifier.align(Alignment.BottomStart).padding(18.dp)
                     )
                 }
             }
         } else {
-            Box(
-                modifier = Modifier.fillMaxWidth().height(126.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                HudSpeedometerGauge(
-                    speed = speedDisplay,
-                    maxSpeed = if (settings.useMetricUnits) 160 else 100,
-                    unitLabel = unitLabel,
-                    accent = hudAccent,
-                    compact = true
-                )
-            }
-            if (hudConfig.layoutMode == HudLayoutMode.MINIMAL) {
-                HudMinimalTurnCard(
-                    distance = telemetry.nextTurnDistanceLabel,
-                    instruction = telemetry.nextTurnInstruction,
-                    accent = hudAccent,
-                    modifier = Modifier.fillMaxWidth().weight(1f)
-                )
-            } else {
-                AuvionyxNativeMapPanel(
-                    currentLocation = currentLocation,
-                    routePoints = routePoints,
-                    headingDegrees = headingDegrees,
-                    accent = ElectricCyan,
-                    isNavigating = routePoints.size >= 2,
-                    nextTurnDistance = telemetry.nextTurnDistanceLabel,
-                    nextTurnRoad = telemetry.nextTurnRoad,
-                    nextTurnInstruction = telemetry.nextTurnInstruction,
-                    telemetryDestinationLabel = telemetry.destinationLabel,
-                    modifier = Modifier.fillMaxWidth().weight(1f),
-                    show3DBuildings = hudConfig.cockpitStyle != com.example.data.model.HudCockpitStyle.WIREFRAME_MAP
-                )
+            Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                if (hudConfig.layoutMode == HudLayoutMode.MINIMAL) {
+                    HudMinimalTurnCard(
+                        distance = telemetry.nextTurnDistanceLabel,
+                        instruction = telemetry.nextTurnInstruction,
+                        accent = hudAccent,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    AuvionyxNativeMapPanel(
+                        currentLocation = currentLocation,
+                        routePoints = routePoints,
+                        headingDegrees = headingDegrees,
+                        accent = ElectricCyan,
+                        isNavigating = routePoints.size >= 2,
+                        nextTurnDistance = telemetry.nextTurnDistanceLabel,
+                        nextTurnRoad = telemetry.nextTurnRoad,
+                        nextTurnInstruction = telemetry.nextTurnInstruction,
+                        telemetryDestinationLabel = telemetry.destinationLabel,
+                        modifier = Modifier.fillMaxSize(),
+                        show3DBuildings = hudConfig.cockpitStyle != com.example.data.model.HudCockpitStyle.WIREFRAME_MAP,
+                        wireframeMode = hudConfig.cockpitStyle == com.example.data.model.HudCockpitStyle.WIREFRAME_MAP
+                    )
+                    HudFloatingSpeedOverlay(
+                        speed = speedDisplay,
+                        maxSpeed = if (settings.useMetricUnits) 160 else 100,
+                        unitLabel = unitLabel,
+                        accent = hudAccent,
+                        landscape = false,
+                        modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 18.dp)
+                    )
+                }
             }
         }
 
@@ -400,6 +393,37 @@ private fun ArcGaugeHudLayout(
     }
 }
 
+
+@Composable
+private fun HudFloatingSpeedOverlay(
+    speed: Int,
+    maxSpeed: Int,
+    unitLabel: String,
+    accent: Color,
+    landscape: Boolean,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .size(if (landscape) 252.dp else 236.dp, if (landscape) 204.dp else 188.dp)
+            .background(
+                Brush.radialGradient(
+                    colors = listOf(Color.Black.copy(alpha = 0.88f), Color.Black.copy(alpha = 0.48f), Color.Transparent)
+                ),
+                CircleShape
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        HudSpeedometerGauge(
+            speed = speed,
+            maxSpeed = maxSpeed,
+            unitLabel = unitLabel,
+            accent = accent,
+            compact = !landscape
+        )
+    }
+}
+
 @Composable
 private fun ArcGaugeMetric(
     label: String,
@@ -429,7 +453,8 @@ private fun AuvionyxNativeMapPanel(
     nextTurnInstruction: String,
     telemetryDestinationLabel: String,
     modifier: Modifier = Modifier,
-    show3DBuildings: Boolean = true
+    show3DBuildings: Boolean = true,
+    wireframeMode: Boolean = false
 ) {
     Box(
         modifier = modifier
@@ -442,7 +467,8 @@ private fun AuvionyxNativeMapPanel(
             headingDegrees = headingDegrees,
             accent = accent,
             modifier = Modifier.fillMaxSize(),
-            show3DBuildings = show3DBuildings
+            show3DBuildings = show3DBuildings,
+            wireframeMode = wireframeMode
         )
 
         Surface(
