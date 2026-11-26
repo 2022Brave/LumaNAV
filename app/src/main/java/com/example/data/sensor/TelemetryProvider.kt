@@ -76,10 +76,15 @@ class TelemetryProvider(private val context: Context) {
             ) return
 
             lastAcceptedTimestampMillis = maxOf(lastAcceptedTimestampMillis, location.time)
-            val speedKmh = if (location.hasSpeed()) {
-                (location.speed * 3.6f).roundToInt().coerceAtLeast(0)
-            } else {
+            val measuredSpeedKmh = if (location.hasSpeed()) location.speed * 3.6f else 0f
+            val speedKmh = if (
+                measuredSpeedKmh < 2.5f ||
+                accuracy == null ||
+                accuracy > 25f
+            ) {
                 0
+            } else {
+                measuredSpeedKmh.roundToInt().coerceAtLeast(0)
             }
             val hasBearing = location.hasBearing()
             trySend(
