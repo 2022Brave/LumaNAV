@@ -176,7 +176,7 @@ jobs:
           echo "VERSION=${VERSION}" >> "$GITHUB_ENV"
           echo "APK=${APK}" >> "$GITHUB_ENV"
           echo "APK_URL=https://github.com/2022Brave/LumaNAV/releases/download/dev-${GITHUB_RUN_ID}/${APK}" >> "$GITHUB_ENV"
-          printf '%s\\n' "${COMMIT_SUBJECT}" > dev-release-notes.txt
+          printf '%s\n' "${COMMIT_SUBJECT}" > dev-release-notes.txt
 
       - name: Create development GitHub Release
         if: github.event_name == 'push' && github.ref == 'refs/heads/branding/lumanav-ui-overhaul'
@@ -201,15 +201,15 @@ jobs:
           VERSION="1.0.${VERSION_CODE}"
           APK="LumaNAV-dev-${VERSION}.apk"
           APK_URL="https://github.com/2022Brave/LumaNAV/releases/download/dev-${GITHUB_RUN_ID}/${APK}"
-          jq -n \\
-            --argjson versionCode "${VERSION_CODE}" \\
-            --arg versionName "${VERSION}" \\
-            --arg apkUrl "${APK_URL}" \\
-            --arg notes "${COMMIT_SUBJECT}" \\
-            --arg commit "${COMMIT_SHA}" \\
-            --arg channel "development" \\
-            --arg buildNumber "${GITHUB_RUN_NUMBER}" \\
-            '{versionCode:$versionCode,versionName:$versionName,apkUrl:$apkUrl,notes:$notes,commit:$commit,channel:$channel,buildNumber:$buildNumber}' \\
+          jq -n \
+            --argjson versionCode "${VERSION_CODE}" \
+            --arg versionName "${VERSION}" \
+            --arg apkUrl "${APK_URL}" \
+            --arg notes "${COMMIT_SUBJECT}" \
+            --arg commit "${COMMIT_SHA}" \
+            --arg channel "development" \
+            --arg buildNumber "${GITHUB_RUN_NUMBER}" \
+            '{versionCode:$versionCode,versionName:$versionName,apkUrl:$apkUrl,notes:$notes,commit:$commit,channel:$channel,buildNumber:$buildNumber}' \
             > latest-dev.json
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
