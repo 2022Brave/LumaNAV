@@ -127,18 +127,18 @@ object UpdateManager {
         val versionName = manifest.optString("versionName").ifBlank {
             throw IllegalStateException("Updater manifest is missing versionName")
         }
-        val apkUrl = manifest.optString("apkUrl").ifBlank {
-            throw IllegalStateException("Updater manifest is missing apkUrl")
+        val apkUrl = manifest.optString("apkUrl")
+        val assets = org.json.JSONArray()
+        if (apkUrl.isNotBlank()) {
+            val assetName = Uri.parse(apkUrl).lastPathSegment?.takeIf { it.endsWith(".apk", true) }
+                ?: "LumaNAV-update.apk"
+            assets.put(JSONObject().put("name", assetName).put("browser_download_url", apkUrl))
         }
-        val assetName = Uri.parse(apkUrl).lastPathSegment?.takeIf { it.endsWith(".apk", true) }
-            ?: "LumaNAV-update.apk"
         return JSONObject()
             .put("tag_name", versionName)
             .put("version_code", manifest.optInt("versionCode", -1))
             .put("body", manifest.optString("notes", "No release notes provided."))
-            .put("assets", org.json.JSONArray().put(
-                JSONObject().put("name", assetName).put("browser_download_url", apkUrl)
-            ))
+            .put("assets", assets)
     }
 
     private fun requestGitHubJson(endpoint: String): Pair<Int, String> {
