@@ -122,11 +122,13 @@ fun MapsScreen(
     onToggleNavigation: () -> Unit,
     onToggleTraffic: () -> Unit,
     onToggleSatellite: () -> Unit,
+    onMapFullscreenChanged: (Boolean) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     var mapFullscreen by remember { mutableStateOf(false) }
     var showSavedPlaces by remember { mutableStateOf(false) }
+    LaunchedEffect(mapFullscreen) { onMapFullscreenChanged(mapFullscreen) }
     val mapStyles = listOf(
         "DARK" to "https://tiles.openfreemap.org/styles/dark",
         "WIREFRAME" to "https://tiles.openfreemap.org/styles/positron",
