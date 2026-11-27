@@ -901,7 +901,7 @@ fun MapsScreen(
                 color = Color(0xE609111B), shape = RoundedCornerShape(12.dp),
                 border = BorderStroke(1.dp, accent.copy(alpha = 0.55f))
             ) { Text(if (mapFullscreen) "EXIT FULLSCREEN" else "FULLSCREEN", color = accent, modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp), style = MaterialTheme.typography.labelSmall) }
-            if (mapsPulse.confirmedDestination != null) {
+            if (mapsPulse.confirmedDestination != null && !searchActive) {
                 Surface(
                     modifier = Modifier.align(Alignment.TopStart).statusBarsPadding().padding(14.dp).zIndex(0.5f),
                     color = Color(0xE609111B),
