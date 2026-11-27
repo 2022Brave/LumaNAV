@@ -42,8 +42,9 @@ class ExampleUnitTest {
   fun ecosystemModules_includeOnlyCurrentNavigationModules() {
     val routes = AuvionyxModule.entries.map { it.route }.toSet()
     assertTrue(
-      routes.containsAll(listOf("drive", "maps", "music", "hud", "aod", "settings", "apps"))
+      routes.containsAll(listOf("drive", "maps", "music", "hud", "aod", "settings"))
     )
+    assertFalse("Removed Apps tab must stay out of primary navigation", "apps" in routes)
     assertFalse("Retired Pulse route must stay removed", "pulse" in routes)
     assertFalse("Retired Voice route must stay removed", "voice" in routes)
     assertFalse("Retired Vehicle route must stay removed", "vehicle" in routes)
