@@ -630,19 +630,7 @@ fun CockpitMediaPlayerCard(
 
             // Middle: Sleek Cyan Progress Scrubber + Timestamps
             Column(modifier = Modifier.fillMaxWidth()) {
-                if (!compactMode) {
-                    CockpitWavyProgressBar(positionSec, track.durationSec, isPlaying, track.adaptiveColor, onSeek)
-                } else Slider(
-                    value = positionSec.coerceIn(0, track.durationSec.coerceAtLeast(1)).toFloat(),
-                    onValueChange = { onSeek(it.toInt()) },
-                    valueRange = 0f..track.durationSec.coerceAtLeast(1).toFloat(),
-                    colors = SliderDefaults.colors(
-                        thumbColor = accent,
-                        activeTrackColor = accent,
-                        inactiveTrackColor = GlassWhite.copy(alpha = 0.16f)
-                    ),
-                    modifier = Modifier.fillMaxWidth().height(48.dp)
-                )
+                CockpitWavyProgressBar(positionSec, track.durationSec, isPlaying, track.adaptiveColor, onSeek)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
@@ -787,19 +775,24 @@ private fun CockpitWavyProgressBar(
     accent: Color,
     onSeek: (Int) -> Unit
 ) {
-    val amplitude by animateFloatAsState(
-        targetValue = if (isPlaying) 1f else 0f,
+    val reducedMotion = LocalAuvionyxMotion.current.reducedMotion
+    val targetAmplitude = if (isPlaying) 1f else 0.72f
+    val animatedAmplitude by animateFloatAsState(
+        targetValue = targetAmplitude,
         animationSpec = tween(480, easing = LivingFlow.LaminarEasing),
         label = "cockpitWaveAmplitude"
     )
     val transition = rememberInfiniteTransition(label = "cockpitWavePhase")
-    val phase by transition.animateFloat(
+    val animatedPhase by transition.animateFloat(
         initialValue = 0f,
         targetValue = (2f * PI).toFloat(),
         animationSpec = infiniteRepeatable(tween(2200, easing = LinearEasing)),
         label = "cockpitWavePhaseValue"
     )
+    val amplitude = if (reducedMotion) targetAmplitude else animatedAmplitude
+    val phase = if (reducedMotion) 0f else animatedPhase
     val progress = (positionSec.toFloat() / durationSec.coerceAtLeast(1)).coerceIn(0f, 1f)
+
     Canvas(
         modifier = Modifier.fillMaxWidth().height(42.dp)
             .pointerInput(durationSec) {
@@ -816,19 +809,41 @@ private fun CockpitWavyProgressBar(
     ) {
         val centerY = size.height / 2f
         val progressX = size.width * progress
-        drawLine(GlassWhite.copy(alpha = 0.18f), Offset(0f, centerY), Offset(size.width, centerY), 3.dp.toPx(), cap = StrokeCap.Round)
-        val layers = listOf(Triple(9.dp.toPx(), 5.dp.toPx(), 0.16f), Triple(5.dp.toPx(), 3.dp.toPx(), 0.40f), Triple(2.dp.toPx(), 2.dp.toPx(), 0.96f))
+        val step = 3.dp.toPx()
+        drawLine(GlassWhite.copy(alpha = 0.16f), Offset(0f, centerY), Offset(size.width, centerY), 2.dp.toPx(), cap = StrokeCap.Round)
+
+        val layers = listOf(
+            Triple(9.dp.toPx(), 4.dp.toPx(), 0.16f),
+            Triple(5.dp.toPx(), 2.8.dp.toPx(), 0.40f),
+            Triple(2.dp.toPx(), 1.8.dp.toPx(), 0.96f)
+        )
         layers.forEachIndexed { index, layer ->
-            val path = Path()
-            var x = 0f
-            val step = 3.dp.toPx()
-            while (x <= progressX) {
+            fun waveY(x: Float): Float {
                 val angle = (x / size.width.coerceAtLeast(1f) * 5.5f * 2f * PI).toFloat() + phase + index * 0.65f
-                val y = centerY + sin(angle) * layer.first * amplitude
-                if (x == 0f) path.moveTo(x, y) else path.lineTo(x, y)
+                return centerY + sin(angle) * layer.first * amplitude
+            }
+
+            val fullWave = Path()
+            var x = 0f
+            while (x <= size.width) {
+                val y = waveY(x)
+                if (x == 0f) fullWave.moveTo(x, y) else fullWave.lineTo(x, y)
                 x += step
             }
-            drawPath(path, accent.copy(alpha = layer.third), style = Stroke(width = layer.second, cap = StrokeCap.Round))
+            fullWave.lineTo(size.width, waveY(size.width))
+            drawPath(fullWave, accent.copy(alpha = 0.22f), style = Stroke(width = layer.second, cap = StrokeCap.Round))
+
+            val activeWave = Path()
+            x = 0f
+            while (x <= progressX) {
+                val y = waveY(x)
+                if (x == 0f) activeWave.moveTo(x, y) else activeWave.lineTo(x, y)
+                x += step
+            }
+            if (progressX > 0f) activeWave.lineTo(progressX, waveY(progressX))
+            if (progressX > 0f) {
+                drawPath(activeWave, accent.copy(alpha = layer.third), style = Stroke(width = layer.second, cap = StrokeCap.Round))
+            }
         }
         drawCircle(GlassWhite, 8.dp.toPx(), Offset(progressX, centerY), style = Stroke(width = 2.dp.toPx()))
         drawCircle(accent, 5.dp.toPx(), Offset(progressX, centerY))
