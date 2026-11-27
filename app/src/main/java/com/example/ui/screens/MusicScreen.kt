@@ -57,6 +57,7 @@ import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -511,12 +512,12 @@ private fun WavyMusicProgressBar(
         modifier = Modifier.fillMaxWidth().height(42.dp)
             .pointerInput(duration) {
                 detectTapGestures { point ->
-                    onSeek((point.x / size.width.coerceAtLeast(1f) * duration).toInt().coerceIn(0, duration))
+                    onSeek((point.x / size.width.coerceAtLeast(1f) * duration.toFloat()).toInt().coerceIn(0, duration))
                 }
             }
             .pointerInput(duration) {
                 detectDragGestures { change, _ ->
-                    onSeek((change.position.x / size.width.coerceAtLeast(1f) * duration).toInt().coerceIn(0, duration))
+                    onSeek((change.position.x / size.width.coerceAtLeast(1f) * duration.toFloat()).toInt().coerceIn(0, duration))
                     change.consume()
                 }
             }
