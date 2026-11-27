@@ -1,6 +1,6 @@
 {
-  "name": "AUVIONYX",
-  "description": "Automotive infotainment ecosystem with Liquid Glass UI, navigation, HUD, media hub, Traffic Pulse, AOD, and Auvionyx AI.",
+  "name": "LumaNAV",
+  "description": "Automotive infotainment ecosystem with Liquid Glass UI, navigation, HUD, media hub, Traffic Pulse, AOD, and LumaNAV Voice.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
