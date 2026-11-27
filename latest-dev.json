@@ -1,9 +1,9 @@
 {
-  "versionCode": 179577161,
-  "versionName": "1.0.179577161",
-  "apkUrl": "https://github.com/2022Brave/LumaNAV/releases/download/dev-45973700347/LumaNAV-dev-1.0.179577161.apk",
-  "notes": "Update module navigation test for retired screens",
-  "commit": "f8b5a2b0da484d79efb81da57262ed3c008a6d79",
+  "versionCode": 179577872,
+  "versionName": "1.0.179577872",
+  "apkUrl": "https://github.com/2022Brave/LumaNAV/releases/download/dev-45990257481/LumaNAV-dev-1.0.179577872.apk",
+  "notes": "Explain automatic screen layout selection",
+  "commit": "2294f7eab1f32327481f0f441da2af8a849184dc",
   "channel": "development",
-  "buildNumber": "387"
+  "buildNumber": "390"
 }
