@@ -541,7 +541,7 @@ private fun WavyMusicProgressBar(
             val step = 3.dp.toPx()
             var x = 0f
             while (x <= progressX) {
-                val wave = sin((x / size.width.coerceAtLeast(1).toFloat() * 5.5f * 6.2831855f).toFloat() + phase + index * 0.7f)
+                val wave = sin((x / size.width.coerceAtLeast(1f) * 5.5f * 6.2831855f).toFloat() + phase + index * 0.7f)
                 val y = centerY + wave * layer.first * amplitude
                 if (x == 0f) path.moveTo(x, y) else path.lineTo(x, y)
                 x += step
