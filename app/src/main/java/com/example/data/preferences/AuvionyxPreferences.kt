@@ -38,7 +38,6 @@ data class AuvionyxSettingsState(
     val showTrafficOverlay: Boolean = true,
     val showSatelliteGrid: Boolean = false,
     val optionalCarLauncherEnabled: Boolean = false,
-    val demoSimulationEnabled: Boolean = false
 )
 
 class AuvionyxPreferencesRepository(private val context: Context) {
@@ -69,7 +68,6 @@ class AuvionyxPreferencesRepository(private val context: Context) {
         val TRAFFIC_OVERLAY = booleanPreferencesKey("traffic_overlay")
         val SATELLITE_GRID = booleanPreferencesKey("satellite_grid")
         val CAR_LAUNCHER = booleanPreferencesKey("car_launcher")
-        val DEMO_SIMULATION = booleanPreferencesKey("demo_simulation")
         val SAVED_PLACES = stringPreferencesKey("saved_places")
     }
 
@@ -138,7 +136,6 @@ class AuvionyxPreferencesRepository(private val context: Context) {
             showTrafficOverlay = prefs[Keys.TRAFFIC_OVERLAY] ?: true,
             showSatelliteGrid = prefs[Keys.SATELLITE_GRID] ?: false,
             optionalCarLauncherEnabled = prefs[Keys.CAR_LAUNCHER] ?: false,
-            demoSimulationEnabled = prefs[Keys.DEMO_SIMULATION] ?: false
         )
     }
 
@@ -200,10 +197,6 @@ class AuvionyxPreferencesRepository(private val context: Context) {
 
     suspend fun setOptionalCarLauncher(enabled: Boolean) {
         context.auvionyxDataStore.edit { it[Keys.CAR_LAUNCHER] = enabled }
-    }
-
-    suspend fun setDemoSimulation(enabled: Boolean) {
-        context.auvionyxDataStore.edit { it[Keys.DEMO_SIMULATION] = enabled }
     }
 
     suspend fun savePlace(place: SavedPlace) {

@@ -12,8 +12,7 @@ enum class AuvionyxModule(val route: String, val label: String) {
     MUSIC("music", "Music"),
     HUD("hud", "HUD"),
     AOD("aod", "AOD"),
-    SETTINGS("settings", "Settings"),
-    APPS("apps", "Apps")
+    SETTINGS("settings", "Settings")
 }
 
 enum class DashboardSplitRatio(val label: String, val mapWeight: Float, val mediaWeight: Float) {
@@ -160,18 +159,7 @@ data class VehicleTelemetry(
     val weatherCondition: String = "",
     val isLiveGpsActive: Boolean = false,
     val isLocationFallback: Boolean = false,
-    val isSimulationRunning: Boolean = false,
     val isLiveWeather: Boolean = false
-)
-
-data class SyncDeviceProfile(
-    val id: String,
-    val name: String,
-    val formFactor: String,
-    val osVersion: String,
-    val resolution: String,
-    val isCurrentTarget: Boolean,
-    val isSynced: Boolean
 )
 
 object AuvionyxSampleData {
@@ -290,33 +278,4 @@ object AuvionyxSampleData {
         MapPlaceMarker("mk_4", "Pacific Sky Lounge", "Destination", "Mussoorie Div", 12.6f, 19, 0.52f, 0.18f)
     )
 
-    val syncDevices = listOf(
-        SyncDeviceProfile(
-            id = "dev_blaupunkt",
-            name = "Blaupunkt Palm Bay 1000",
-            formFactor = "Head Unit · 1280×800 Landscape",
-            osVersion = "Android 11 · 4GB RAM",
-            resolution = "1280×800",
-            isCurrentTarget = false,
-            isSynced = false
-        ),
-        SyncDeviceProfile(
-            id = "dev_oppo",
-            name = "OPPO Find X10",
-            formFactor = "Smartphone · Portrait & Landscape",
-            osVersion = "Android 15 · Companion",
-            resolution = "1440×3168",
-            isCurrentTarget = false,
-            isSynced = true
-        ),
-        SyncDeviceProfile(
-            id = "dev_samsung",
-            name = "Samsung Galaxy S24+",
-            formFactor = "Smartphone · Portrait & Landscape",
-            osVersion = "Android 15 · Companion",
-            resolution = "1440×3120",
-            isCurrentTarget = false,
-            isSynced = false
-        )
-    )
 }

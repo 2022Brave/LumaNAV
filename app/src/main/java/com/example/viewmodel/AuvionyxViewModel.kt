@@ -3,7 +3,6 @@ package com.example.viewmodel
 import android.app.Application
 import android.content.Intent
 import android.graphics.Bitmap
-import android.os.Build
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.core.GoogleMapsLiveNavigation
@@ -29,7 +28,6 @@ import com.example.data.model.MediaTrack
 import com.example.data.model.RouteAlternative
 import com.example.data.model.SavedPlace
 import com.example.data.model.ServiceAvailabilityState
-import com.example.data.model.SyncDeviceProfile
 import com.example.data.model.TrafficIncident
 import com.example.data.model.TrafficSeverity
 import com.example.data.model.VehicleTelemetry
@@ -57,7 +55,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -66,44 +63,6 @@ import java.util.UUID
 import kotlin.math.roundToInt
 
 private const val DEFAULT_ACCENT_ARGB = -16721419 // 0xFF00D9F5 (Electric Cyan)
-
-private fun initialDeviceProfiles(application: Application): List<SyncDeviceProfile> {
-    val manufacturer = Build.MANUFACTURER.orEmpty().trim()
-    val model = Build.MODEL.orEmpty().trim()
-    val manufacturerLower = manufacturer.lowercase(Locale.ROOT)
-    val modelLower = model.lowercase(Locale.ROOT)
-    val deviceText = "$manufacturer $model".lowercase(Locale.ROOT)
-    val currentKnownId = when {
-        "blaupunkt" in deviceText || "palm bay" in deviceText -> "dev_blaupunkt"
-        "samsung" in manufacturerLower &&
-            ("s926" in modelLower || "s24+" in modelLower || "s24 plus" in modelLower) -> "dev_samsung"
-        "oppo" in manufacturerLower && "find x10" in modelLower -> "dev_oppo"
-        else -> null
-    }
-
-    val knownProfiles = AuvionyxSampleData.syncDevices.map { profile ->
-        profile.copy(
-            isCurrentTarget = profile.id == currentKnownId,
-            isSynced = profile.id == currentKnownId
-        )
-    }
-    if (currentKnownId != null) return knownProfiles
-
-    val metrics = application.resources.displayMetrics
-    val config = application.resources.configuration
-    val formFactor = if (config.smallestScreenWidthDp >= 600) "Tablet / Large display" else "Smartphone"
-    val resolution = "${metrics.widthPixels}×${metrics.heightPixels}"
-    val currentProfile = SyncDeviceProfile(
-        id = "dev_current",
-        name = listOf(manufacturer, model).filter { it.isNotBlank() }.joinToString(" ").ifBlank { "Current Android device" },
-        formFactor = "$formFactor · Current device",
-        osVersion = "Android ${Build.VERSION.RELEASE}",
-        resolution = resolution,
-        isCurrentTarget = true,
-        isSynced = true
-    )
-    return knownProfiles + currentProfile
-}
 
 data class MediaPlayerState(
     val tracks: List<MediaTrack> = AuvionyxSampleData.tracks,
@@ -284,9 +243,6 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
     private val _mapsPulse = MutableStateFlow(MapsAndPulseState())
     val mapsPulse: StateFlow<MapsAndPulseState> = _mapsPulse.asStateFlow()
 
-    private val _syncDevices = MutableStateFlow(initialDeviceProfiles(application))
-    val syncDevices: StateFlow<List<SyncDeviceProfile>> = _syncDevices.asStateFlow()
-
     private val _permissions = MutableStateFlow(
         PermissionsSnapshot(
             locationGranted = telemetryProvider.hasLocationPermission(),
@@ -359,7 +315,6 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
     init {
         observeLiveGoogleMapsNotifications()
         startMediaTicker()
-        observeDemoSimulationSetting()
         refreshPermissionsAndGps()
         viewModelScope.launch {
             prefsRepo.savedPlacesFlow.collect { saved ->
@@ -559,7 +514,6 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
                 },
                 mapsServiceState = when {
                     hasLiveMaps -> ServiceAvailabilityState.LIVE
-                    settings.value.demoSimulationEnabled -> ServiceAvailabilityState.DEMO
                     !networkOnline -> ServiceAvailabilityState.OFFLINE
                     else -> ServiceAvailabilityState.API_UNAVAILABLE
                 }
@@ -611,7 +565,6 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
                                 gpsAccuracyMeters = reading.accuracyMeters,
                                 isLiveGpsActive = isFreshLiveFix,
                                 isLocationFallback = !isFreshLiveFix,
-                                isSimulationRunning = false,
                                 currentLocationLabel = if (isFreshLiveFix) current.currentLocationLabel else "GPS pending"
                             )
                         }
@@ -706,11 +659,7 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
                         }
                         _mapsPulse.update {
                             it.copy(
-                                gpsServiceState = if (settings.value.demoSimulationEnabled) {
-                                    ServiceAvailabilityState.DEMO
-                                } else {
-                                    ServiceAvailabilityState.API_UNAVAILABLE
-                                }
+                                gpsServiceState = ServiceAvailabilityState.API_UNAVAILABLE
                             )
                         }
                     }
@@ -720,7 +669,7 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
             _telemetry.update {
                 it.copy(
                     isLiveGpsActive = false,
-                    currentLocationLabel = if (settings.value.demoSimulationEnabled) "Demo Street" else "Location Permission Required"
+                    currentLocationLabel = "Location Permission Required"
                 )
             }
         }
@@ -816,35 +765,6 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
                                 state.copy(positionSec = state.positionSec + 1)
                             }
                         }
-                    }
-                }
-            }
-        }
-    }
-
-    private fun observeDemoSimulationSetting() {
-        viewModelScope.launch {
-            var step = 0
-            while (isActive) {
-                delay(2200L)
-                val demoEnabled = settings.value.demoSimulationEnabled
-                val hasLiveFix = _telemetry.value.isLiveGpsActive
-                if (demoEnabled && !hasLiveFix) {
-                    step++
-                    val delta = listOf(0, 1, 2, 1, 0, -1, -2, -1)[step % 8]
-                    val nextSpeed = (86 + delta).coerceIn(72, 98)
-                    _telemetry.update { current ->
-                        current.copy(
-                            speedKmh = nextSpeed,
-                                isSimulationRunning = true
-                        )
-                    }
-                } else {
-                    _telemetry.update { current ->
-                        current.copy(
-                            speedKmh = if (hasLiveFix) current.speedKmh else 0,
-                            isSimulationRunning = false
-                        )
                     }
                 }
             }
@@ -1190,12 +1110,6 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    fun toggleDeviceSync(deviceId: String) {
-        _syncDevices.update { list ->
-            list.map { if (it.id == deviceId) it.copy(isSynced = !it.isSynced) else it }
-        }
-    }
-
     // Settings Persistence
     fun setAdaptiveAlbumColors(enabled: Boolean) {
         viewModelScope.launch { prefsRepo.setAdaptiveAlbumColors(enabled) }
@@ -1235,25 +1149,6 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
 
     fun setOptionalCarLauncher(enabled: Boolean) {
         viewModelScope.launch { prefsRepo.setOptionalCarLauncher(enabled) }
-    }
-
-    fun setDemoSimulation(enabled: Boolean) {
-        viewModelScope.launch {
-            prefsRepo.setDemoSimulation(enabled)
-            if (!enabled) {
-                _mapsPulse.update {
-                    if (it.confirmedDestination == null && !it.isExternalGoogleMapsSyncActive) {
-                        it.copy(
-                            routes = emptyList(),
-                            markers = emptyList(),
-                            incidents = it.incidents.filter { inc -> inc.isUserReported },
-                            navigationSourceLabel = null
-                        )
-                    } else it
-                }
-            }
-            refreshPermissionsAndGps()
-        }
     }
 
     // Auvionyx Voice Control
@@ -1840,7 +1735,7 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
                     recognizedPhrase = recognizedPhrase,
                     confirmationTitle = customConfirmation ?: "Vehicle screen retired",
                     confirmationDetail = "Live speed, GPS and route telemetry remain available in Drive and HUD.",
-                    serviceState = if (tel.isSimulationRunning) ServiceAvailabilityState.DEMO else ServiceAvailabilityState.LIVE,
+                    serviceState = if (tel.isLiveGpsActive) ServiceAvailabilityState.LIVE else ServiceAvailabilityState.API_UNAVAILABLE,
                     usedGeminiInterpreter = usedGemini
                 )
             }
