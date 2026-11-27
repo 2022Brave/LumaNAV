@@ -876,7 +876,7 @@ fun GlassNavigationRail(
 
 /**
  * Full-Width Floating Bottom Navigation Dock matching Image 3 Active Cockpit blueprint:
- * [ Phone ] [ Maps ] [ Music ] [ HUD ] [ Apps ]
+ * [ Drive ] [ Maps ] [ Music ] [ HUD ] [ AOD ] [ Settings ]
  */
 @Composable
 fun GlassBottomDock(
