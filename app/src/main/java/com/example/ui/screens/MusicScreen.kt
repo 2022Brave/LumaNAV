@@ -313,7 +313,7 @@ fun MusicScreen(
                         )
                     }
 
-                    MusicProgress(mediaState, duration, ElectricCyan, onSeek)
+                    MusicProgress(mediaState, duration, accent, onSeek, animatedWave = true)
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
