@@ -882,7 +882,6 @@ fun GlassNavigationRail(
 fun GlassBottomDock(
     activeModule: AuvionyxModule,
     onSelectModule: (AuvionyxModule) -> Unit,
-    onOpenPhoneDialer: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val palette = LocalAuvionyxPalette.current
