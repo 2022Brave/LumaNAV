@@ -804,12 +804,12 @@ private fun CockpitWavyProgressBar(
         modifier = Modifier.fillMaxWidth().height(42.dp)
             .pointerInput(durationSec) {
                 detectTapGestures { point ->
-                    onSeek((point.x / size.width.coerceAtLeast(1).toFloat() * durationSec.toFloat()).toInt().coerceIn(0, durationSec))
+                    onSeek((point.x / size.width.coerceAtLeast(1f) * durationSec.toFloat()).toInt().coerceIn(0, durationSec))
                 }
             }
             .pointerInput(durationSec) {
                 detectDragGestures { change, _ ->
-                    onSeek((change.position.x / size.width.coerceAtLeast(1).toFloat() * durationSec.toFloat()).toInt().coerceIn(0, durationSec))
+                    onSeek((change.position.x / size.width.coerceAtLeast(1f) * durationSec.toFloat()).toInt().coerceIn(0, durationSec))
                     change.consume()
                 }
             }
@@ -823,7 +823,7 @@ private fun CockpitWavyProgressBar(
             var x = 0f
             val step = 3.dp.toPx()
             while (x <= progressX) {
-                val angle = (x / size.width.coerceAtLeast(1).toFloat() * 5.5f * 2f * PI).toFloat() + phase + index * 0.65f
+                val angle = (x / size.width.coerceAtLeast(1f) * 5.5f * 2f * PI).toFloat() + phase + index * 0.65f
                 val y = centerY + sin(angle) * layer.first * amplitude
                 if (x == 0f) path.moveTo(x, y) else path.lineTo(x, y)
                 x += step
