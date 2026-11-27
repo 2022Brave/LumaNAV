@@ -39,13 +39,14 @@ class ExampleUnitTest {
   }
 
   @Test
-  fun ecosystemModules_includeAllNineCoreModules() {
+  fun ecosystemModules_includeOnlyCurrentNavigationModules() {
     val routes = AuvionyxModule.entries.map { it.route }.toSet()
     assertTrue(
-      routes.containsAll(
-        listOf("drive", "maps", "music", "hud", "pulse", "voice", "aod", "vehicle", "settings")
-      )
+      routes.containsAll(listOf("drive", "maps", "music", "hud", "aod", "settings", "apps"))
     )
+    assertFalse("Retired Pulse route must stay removed", "pulse" in routes)
+    assertFalse("Retired Voice route must stay removed", "voice" in routes)
+    assertFalse("Retired Vehicle route must stay removed", "vehicle" in routes)
   }
 
   @Test
