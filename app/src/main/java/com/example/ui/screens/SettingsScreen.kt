@@ -169,11 +169,16 @@ fun SettingsScreen(
         item {
             ExpandableGlassPanel(
                 title = "Dashboard Designer & HUD",
-                subtitle = "Adaptive phone/tablet display · ${settings.dashboardRatio.label} landscape layout · ${settings.hudConfig.layoutMode.label} HUD",
+                subtitle = "Adaptive screen layout · ${settings.dashboardRatio.label} landscape layout · ${settings.hudConfig.layoutMode.label} HUD",
                 expanded = dashboardExpanded,
                 onToggle = { dashboardExpanded = !dashboardExpanded }
             ) {
                 Text("Landscape Cockpit Map/Media Layout", style = MaterialTheme.typography.labelLarge, color = GlassWhite)
+                Text(
+                    "LumaNAV selects portrait or wide cockpit from the available screen size and orientation. This split setting applies only to the wide cockpit.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = TextSecondary
+                )
                 Spacer(Modifier.height(8.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
