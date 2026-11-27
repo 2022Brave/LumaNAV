@@ -3,6 +3,7 @@ package com.example.viewmodel
 import android.app.Application
 import android.content.Intent
 import android.graphics.Bitmap
+import android.os.Build
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.core.GoogleMapsLiveNavigation
@@ -65,6 +66,44 @@ import java.util.UUID
 import kotlin.math.roundToInt
 
 private const val DEFAULT_ACCENT_ARGB = -16721419 // 0xFF00D9F5 (Electric Cyan)
+
+private fun initialDeviceProfiles(application: Application): List<SyncDeviceProfile> {
+    val manufacturer = Build.MANUFACTURER.orEmpty().trim()
+    val model = Build.MODEL.orEmpty().trim()
+    val manufacturerLower = manufacturer.lowercase(Locale.ROOT)
+    val modelLower = model.lowercase(Locale.ROOT)
+    val deviceText = "$manufacturer $model".lowercase(Locale.ROOT)
+    val currentKnownId = when {
+        "blaupunkt" in deviceText || "palm bay" in deviceText -> "dev_blaupunkt"
+        "samsung" in manufacturerLower &&
+            ("s926" in modelLower || "s24+" in modelLower || "s24 plus" in modelLower) -> "dev_samsung"
+        "oppo" in manufacturerLower && "find x10" in modelLower -> "dev_oppo"
+        else -> null
+    }
+
+    val knownProfiles = AuvionyxSampleData.syncDevices.map { profile ->
+        profile.copy(
+            isCurrentTarget = profile.id == currentKnownId,
+            isSynced = profile.id == currentKnownId
+        )
+    }
+    if (currentKnownId != null) return knownProfiles
+
+    val metrics = application.resources.displayMetrics
+    val config = application.resources.configuration
+    val formFactor = if (config.smallestScreenWidthDp >= 600) "Tablet / Large display" else "Smartphone"
+    val resolution = "${metrics.widthPixels}×${metrics.heightPixels}"
+    val currentProfile = SyncDeviceProfile(
+        id = "dev_current",
+        name = listOf(manufacturer, model).filter { it.isNotBlank() }.joinToString(" ").ifBlank { "Current Android device" },
+        formFactor = "$formFactor · Current device",
+        osVersion = "Android ${Build.VERSION.RELEASE}",
+        resolution = resolution,
+        isCurrentTarget = true,
+        isSynced = true
+    )
+    return knownProfiles + currentProfile
+}
 
 data class MediaPlayerState(
     val tracks: List<MediaTrack> = AuvionyxSampleData.tracks,
@@ -245,7 +284,7 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
     private val _mapsPulse = MutableStateFlow(MapsAndPulseState())
     val mapsPulse: StateFlow<MapsAndPulseState> = _mapsPulse.asStateFlow()
 
-    private val _syncDevices = MutableStateFlow(AuvionyxSampleData.syncDevices)
+    private val _syncDevices = MutableStateFlow(initialDeviceProfiles(application))
     val syncDevices: StateFlow<List<SyncDeviceProfile>> = _syncDevices.asStateFlow()
 
     private val _permissions = MutableStateFlow(
