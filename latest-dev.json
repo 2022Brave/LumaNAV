@@ -1,9 +1,9 @@
 {
-  "versionCode": 179578879,
-  "versionName": "1.0.179578879",
-  "apkUrl": "https://github.com/2022Brave/LumaNAV/releases/download/dev-46013774171/LumaNAV-dev-1.0.179578879.apk",
-  "notes": "Remove hardcoded Blaupunkt current-device default",
-  "commit": "ac2bf3585e9b828894722edb71998d3f0e805878",
+  "versionCode": 179580727,
+  "versionName": "1.0.179580727",
+  "apkUrl": "https://github.com/2022Brave/LumaNAV/releases/download/dev-46056046287/LumaNAV-dev-1.0.179580727.apk",
+  "notes": "Align navigation module test with six-item dock",
+  "commit": "bc974586776eb1dfc69b1880654c147afee2dd06",
   "channel": "development",
-  "buildNumber": "394"
+  "buildNumber": "405"
 }
