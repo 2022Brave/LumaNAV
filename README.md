@@ -7,7 +7,7 @@ LumaNAV is a personal Android automotive cockpit and navigation project built wi
 ## Project snapshot
 
 - Snapshot: v1.0
-- Android application ID: `com.aistudio.auvionyx.kxvrqm`
+- Android application ID: `com.lumanav.navigation`
 - Namespace: `com.example`
 - Minimum SDK: 24
 - Target SDK: 36
