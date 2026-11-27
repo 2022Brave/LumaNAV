@@ -60,17 +60,15 @@ class ExampleUnitTest {
   }
 
   @Test
-  fun telemetryAndMapsDefaults_honestlyDiscloseDemoAndUnverifiedData() {
+  fun telemetryAndMapsDefaults_honestlyDiscloseUnverifiedData() {
     val telemetry = VehicleTelemetry()
     assertEquals(0, telemetry.speedKmh)
-    assertFalse("Demo simulation must stay off by default", telemetry.isSimulationRunning)
     assertNull("Speed limit must be null unless verified", telemetry.speedLimitKmh)
     assertNull("Weather must remain null until live weather loads", telemetry.weatherTempC)
     assertFalse("GPS should not claim live fix by default", telemetry.isLiveGpsActive)
     assertNull("GPS accuracy is unknown until a live fix arrives", telemetry.gpsAccuracyMeters)
 
     val settings = AuvionyxSettingsState()
-    assertFalse("Demo simulation toggle must default to false", settings.demoSimulationEnabled)
 
     val mapsStatus = GoogleMapsIntegrationStatus()
     assertFalse(mapsStatus.isMapsSdkConfigured)
