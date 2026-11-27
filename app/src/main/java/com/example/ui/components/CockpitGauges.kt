@@ -119,7 +119,6 @@ fun ActiveSpeedometerCard(
     speedLimitValue: Int?,
     headingCardinal: String,
     isLiveGps: Boolean,
-    isDemoPreview: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -307,7 +306,7 @@ fun ActiveSpeedometerCard(
                     )
                 }
 
-                // GPS Status Indicator (honestly distinguishes Live GPS vs Demo Placeholder)
+                // GPS status indicator
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -316,16 +315,10 @@ fun ActiveSpeedometerCard(
                         modifier = Modifier
                             .size(8.dp)
                             .clip(CircleShape)
-                            .background(
-                                when {
-                                    isLiveGps -> PulseClear
-                                    isDemoPreview -> IceBlue
-                                    else -> TextMuted
-                                }
-                            )
+                            .background(if (isLiveGps) PulseClear else TextMuted)
                     )
                     Text(
-                        text = if (isDemoPreview && !isLiveGps) "DEMO" else "GPS",
+                        text = "GPS",
                         style = MaterialTheme.typography.labelMedium,
                         color = GlassWhite
                     )
@@ -347,7 +340,6 @@ fun IdleProminentSpeedometer(
     speedValue: Int,
     maxSpeed: Int,
     unitLabel: String,
-    isDemoPreview: Boolean,
     modifier: Modifier = Modifier
 ) {
     val accent = LocalAuvionyxPalette.current.accentPrimary
@@ -489,14 +481,7 @@ fun IdleProminentSpeedometer(
                 fontSize = 16.sp,
                 color = TextSecondary
             )
-            if (isDemoPreview) {
-                Spacer(Modifier.height(2.dp))
-                Text(
-                    text = "DEMO",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = IceBlue.copy(alpha = 0.72f)
-                )
-            }
+
         }
     }
 }

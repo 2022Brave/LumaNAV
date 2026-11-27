@@ -36,12 +36,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
@@ -118,11 +115,6 @@ fun AodScreen(
     val timeLabel = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
     val speedVal = if (useMetricUnits) telemetry.speedKmh else (telemetry.speedKmh * 0.621371f).toInt()
     val unit = if (useMetricUnits) "km/h" else "mph"
-    val speedSourceTag = when {
-        telemetry.isLiveGpsActive -> ""
-        telemetry.isSimulationRunning -> " (Demo)"
-        else -> ""
-    }
 
     Box(
         modifier = modifier
@@ -157,7 +149,7 @@ fun AodScreen(
             )
 
             Text(
-                text = "$speedVal $unit$speedSourceTag",
+                text = "$speedVal $unit",
                 fontFamily = SpaceGroteskFontFamily,
                 fontWeight = FontWeight.SemiBold,
                 fontSize = if (aodStyle == AodStyle.MAP) 40.sp else 34.sp,
@@ -231,7 +223,7 @@ fun AodScreen(
                     )
                     Text(
                         text = if (telemetry.remainingMinutes > 0) {
-                            "${if (telemetry.isSimulationRunning) "Demo Route" else "Route"}: ${telemetry.remainingMinutes} min · ${formatNavigationDistance(telemetry.remainingDistanceKm)}"
+                            "Route: ${telemetry.remainingMinutes} min · ${formatNavigationDistance(telemetry.remainingDistanceKm)}"
                         } else {
                             "No active route"
                         },

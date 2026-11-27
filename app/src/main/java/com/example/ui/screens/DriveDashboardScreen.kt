@@ -145,7 +145,6 @@ private data class ResolvedCockpitDisplay(
     val remainingMinutes: Int,
     val remainingKm: Float,
     val etaLabel: String,
-    val isDemoPreview: Boolean
 )
 
 @Composable
@@ -154,7 +153,6 @@ private fun resolveCockpitDisplay(
     telemetry: VehicleTelemetry,
     mapsPulse: MapsAndPulseState
 ): ResolvedCockpitDisplay {
-    val hasLiveSession = telemetry.isLiveGpsActive || mapsPulse.isNavigating || telemetry.isSimulationRunning
     val rawSpeedKmh = (telemetry.speedKmh *
         (1f + settings.hudConfig.speedometerMatchPercent.coerceIn(0f, 10f) / 100f)).toInt()
     val speedDisplay = if (settings.useMetricUnits) {
@@ -191,7 +189,6 @@ private fun resolveCockpitDisplay(
         remainingMinutes = remMinutes,
         remainingKm = remKm,
         etaLabel = eta,
-        isDemoPreview = telemetry.isSimulationRunning || settings.demoSimulationEnabled
     )
 }
 
@@ -314,11 +311,6 @@ private fun LandscapeCockpitSurface(
     val resolved = resolveCockpitDisplay(settings = settings, telemetry = telemetry, mapsPulse = mapsPulse)
     val track = mediaState.currentTrack
     val isFavorite = track.id in mediaState.favoriteIds
-    val showPreviewPosSec = if (mediaState.positionSec == 0 && !mediaState.isPlaying && resolved.isDemoPreview) {
-        136 // 2:16 blueprint timestamp preview
-    } else {
-        mediaState.positionSec
-    }
 
     SharedTransitionLayout(modifier = modifier.fillMaxSize()) {
         AnimatedContent(
@@ -382,7 +374,6 @@ private fun LandscapeCockpitSurface(
                                 speedLimitValue = resolved.speedLimitDisplay,
                                 headingCardinal = resolved.headingCardinal,
                                 isLiveGps = telemetry.isLiveGpsActive,
-                                isDemoPreview = resolved.isDemoPreview,
                                 onClick = { onSelectModule(AuvionyxModule.HUD) },
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -401,7 +392,7 @@ private fun LandscapeCockpitSurface(
                             isPlaying = mediaState.isPlaying,
                             isShuffle = mediaState.isShuffle,
                             isFavorite = isFavorite,
-                            positionSec = showPreviewPosSec,
+                            positionSec = mediaState.positionSec,
                             compactMode = false,
                             externalArtwork = mediaState.externalArtwork,
                             onOpenMusic = { onSelectModule(AuvionyxModule.MUSIC) },
@@ -453,7 +444,6 @@ private fun LandscapeCockpitSurface(
                         speedValue = resolved.speedDisplay,
                         maxSpeed = resolved.maxSpeed,
                         unitLabel = resolved.unitLabel,
-                        isDemoPreview = resolved.isDemoPreview,
                         modifier = Modifier
                             .align(Alignment.CenterStart)
                             .padding(start = 28.dp, bottom = 12.dp)
@@ -471,7 +461,7 @@ private fun LandscapeCockpitSurface(
                         isPlaying = mediaState.isPlaying,
                         isShuffle = mediaState.isShuffle,
                         isFavorite = isFavorite,
-                        positionSec = showPreviewPosSec,
+                        positionSec = mediaState.positionSec,
                         compactMode = true,
                         externalArtwork = mediaState.externalArtwork,
                         onOpenMusic = { onSelectModule(AuvionyxModule.MUSIC) },
