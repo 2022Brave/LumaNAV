@@ -78,6 +78,7 @@ import com.example.ui.components.ServiceStateBadge
 import com.example.ui.components.formatDuration
 import com.example.ui.theme.ElectricCyan
 import com.example.ui.theme.GlassWhite
+import com.example.ui.theme.LocalAuvionyxMotion
 import com.example.ui.theme.LocalAuvionyxPalette
 import com.example.ui.theme.TextMuted
 import com.example.ui.theme.TextSecondary
@@ -495,19 +496,24 @@ private fun WavyMusicProgressBar(
     accent: Color,
     onSeek: (Int) -> Unit
 ) {
-    val amplitude by animateFloatAsState(
-        targetValue = if (state.isPlaying) 1f else 0f,
+    val reducedMotion = LocalAuvionyxMotion.current.reducedMotion
+    val targetAmplitude = if (state.isPlaying) 1f else 0.72f
+    val animatedAmplitude by animateFloatAsState(
+        targetValue = targetAmplitude,
         animationSpec = tween(480, easing = LivingFlow.LaminarEasing),
         label = "musicWaveAmplitude"
     )
     val transition = rememberInfiniteTransition(label = "musicWavePhase")
-    val phase by transition.animateFloat(
+    val animatedPhase by transition.animateFloat(
         initialValue = 0f,
         targetValue = (2f * Math.PI).toFloat(),
         animationSpec = infiniteRepeatable(tween(2200, easing = LinearEasing)),
         label = "musicWavePhaseValue"
     )
+    val amplitude = if (reducedMotion) targetAmplitude else animatedAmplitude
+    val phase = if (reducedMotion) 0f else animatedPhase
     val progress = (state.effectivePositionSec.toFloat() / duration.coerceAtLeast(1)).coerceIn(0f, 1f)
+
     Canvas(
         modifier = Modifier.fillMaxWidth().height(42.dp)
             .pointerInput(duration) {
@@ -524,39 +530,64 @@ private fun WavyMusicProgressBar(
     ) {
         val centerY = size.height / 2f
         val progressX = size.width * progress
+        val step = 3.dp.toPx()
         drawLine(
-            color = GlassWhite.copy(alpha = 0.20f),
+            color = GlassWhite.copy(alpha = 0.16f),
             start = Offset(0f, centerY),
             end = Offset(size.width, centerY),
-            strokeWidth = 3.dp.toPx(),
+            strokeWidth = 2.dp.toPx(),
             cap = StrokeCap.Round
         )
+
         val layers = listOf(
-            Triple(10.dp.toPx(), 5.dp.toPx(), 0.16f),
-            Triple(6.dp.toPx(), 3.dp.toPx(), 0.38f),
-            Triple(2.2.dp.toPx(), 2.dp.toPx(), 0.96f)
+            Triple(10.dp.toPx(), 4.dp.toPx(), 0.16f),
+            Triple(6.dp.toPx(), 2.8.dp.toPx(), 0.38f),
+            Triple(2.2.dp.toPx(), 1.8.dp.toPx(), 0.96f)
         )
         layers.forEachIndexed { index, layer ->
-            val path = Path()
-            val step = 3.dp.toPx()
+            fun waveY(x: Float): Float {
+                val angle = (x / size.width.coerceAtLeast(1f) * 5.5f * 6.2831855f) + phase + index * 0.7f
+                return centerY + sin(angle) * layer.first * amplitude
+            }
+
+            // Keep a dim waveform visible across the entire track, not just the played segment.
+            val fullWave = Path()
             var x = 0f
-            while (x <= progressX) {
-                val wave = sin((x / size.width.coerceAtLeast(1f) * 5.5f * 6.2831855f).toFloat() + phase + index * 0.7f)
-                val y = centerY + wave * layer.first * amplitude
-                if (x == 0f) path.moveTo(x, y) else path.lineTo(x, y)
+            while (x <= size.width) {
+                val y = waveY(x)
+                if (x == 0f) fullWave.moveTo(x, y) else fullWave.lineTo(x, y)
                 x += step
             }
-            if (progressX > 0f) {
-                val wave = sin(5.5f * 6.2831855f + phase + index * 0.7f)
-                path.lineTo(progressX, centerY + wave * layer.first * amplitude)
-            }
+            fullWave.lineTo(size.width, waveY(size.width))
             drawPath(
-                path = path,
-                color = accent.copy(alpha = layer.third),
+                fullWave,
+                accent.copy(alpha = 0.22f),
                 style = Stroke(width = layer.second, cap = StrokeCap.Round)
             )
+
+            // Brighten the played section while retaining the same animated wave geometry.
+            val activeWave = Path()
+            x = 0f
+            while (x <= progressX) {
+                val y = waveY(x)
+                if (x == 0f) activeWave.moveTo(x, y) else activeWave.lineTo(x, y)
+                x += step
+            }
+            if (progressX > 0f) activeWave.lineTo(progressX, waveY(progressX))
+            if (progressX > 0f) {
+                drawPath(
+                    activeWave,
+                    accent.copy(alpha = layer.third),
+                    style = Stroke(width = layer.second, cap = StrokeCap.Round)
+                )
+            }
         }
-        drawCircle(color = GlassWhite.copy(alpha = 0.95f), radius = 8.dp.toPx(), center = Offset(progressX, centerY), style = Stroke(width = 2.dp.toPx()))
+        drawCircle(
+            color = GlassWhite.copy(alpha = 0.95f),
+            radius = 8.dp.toPx(),
+            center = Offset(progressX, centerY),
+            style = Stroke(width = 2.dp.toPx())
+        )
         drawCircle(color = accent, radius = 5.dp.toPx(), center = Offset(progressX, centerY))
     }
 }
