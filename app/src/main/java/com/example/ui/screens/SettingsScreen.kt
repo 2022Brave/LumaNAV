@@ -169,11 +169,11 @@ fun SettingsScreen(
         item {
             ExpandableGlassPanel(
                 title = "Dashboard Designer & HUD",
-                subtitle = "Blaupunkt 1280×800 split (${settings.dashboardRatio.label}) · ${settings.hudConfig.layoutMode.label}",
+                subtitle = "Adaptive phone/tablet display · ${settings.dashboardRatio.label} landscape layout · ${settings.hudConfig.layoutMode.label} HUD",
                 expanded = dashboardExpanded,
                 onToggle = { dashboardExpanded = !dashboardExpanded }
             ) {
-                Text("Default Maps-to-Media Split Ratio", style = MaterialTheme.typography.labelLarge, color = GlassWhite)
+                Text("Landscape Cockpit Map/Media Layout", style = MaterialTheme.typography.labelLarge, color = GlassWhite)
                 Spacer(Modifier.height(8.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
