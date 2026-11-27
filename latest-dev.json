@@ -1,9 +1,9 @@
 {
-  "versionCode": 179570445,
-  "versionName": "1.0.179570445",
-  "apkUrl": "https://github.com/2022Brave/LumaNAV/releases/download/dev-45842450360/LumaNAV-dev-1.0.179570445.apk",
-  "notes": "Lift the portrait Drive media sheet above the floating navigation dock without shrinking it",
-  "commit": "668e2703e8060326ec8717b53ce9387eda970c13",
+  "versionCode": 179577161,
+  "versionName": "1.0.179577161",
+  "apkUrl": "https://github.com/2022Brave/LumaNAV/releases/download/dev-45973700347/LumaNAV-dev-1.0.179577161.apk",
+  "notes": "Update module navigation test for retired screens",
+  "commit": "f8b5a2b0da484d79efb81da57262ed3c008a6d79",
   "channel": "development",
-  "buildNumber": "316"
+  "buildNumber": "387"
 }
