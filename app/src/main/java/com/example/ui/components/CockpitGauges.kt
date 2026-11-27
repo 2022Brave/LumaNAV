@@ -804,12 +804,12 @@ private fun CockpitWavyProgressBar(
         modifier = Modifier.fillMaxWidth().height(42.dp)
             .pointerInput(durationSec) {
                 detectTapGestures { point ->
-                    onSeek((point.x / size.width.coerceAtLeast(1f) * durationSec).toInt().coerceIn(0, durationSec))
+                    onSeek((point.x / size.width.coerceAtLeast(1f) * durationSec.toFloat()).toInt().coerceIn(0, durationSec))
                 }
             }
             .pointerInput(durationSec) {
                 detectDragGestures { change, _ ->
-                    onSeek((change.position.x / size.width.coerceAtLeast(1f) * durationSec).toInt().coerceIn(0, durationSec))
+                    onSeek((change.position.x / size.width.coerceAtLeast(1f) * durationSec.toFloat()).toInt().coerceIn(0, durationSec))
                     change.consume()
                 }
             }
