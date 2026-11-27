@@ -24,6 +24,6 @@ dependencyResolutionManagement {
   }
 }
 
-rootProject.name = "LumaNav"
+rootProject.name = "LumaNAV"
 
 include(":app")
