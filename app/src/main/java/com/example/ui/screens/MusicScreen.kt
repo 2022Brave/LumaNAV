@@ -512,12 +512,12 @@ private fun WavyMusicProgressBar(
         modifier = Modifier.fillMaxWidth().height(42.dp)
             .pointerInput(duration) {
                 detectTapGestures { point ->
-                    onSeek((point.x / size.width.coerceAtLeast(1f) * duration.toFloat()).toInt().coerceIn(0, duration))
+                    onSeek((point.x / size.width.coerceAtLeast(1).toFloat() * duration.toFloat()).toInt().coerceIn(0, duration))
                 }
             }
             .pointerInput(duration) {
                 detectDragGestures { change, _ ->
-                    onSeek((change.position.x / size.width.coerceAtLeast(1f) * duration.toFloat()).toInt().coerceIn(0, duration))
+                    onSeek((change.position.x / size.width.coerceAtLeast(1).toFloat() * duration.toFloat()).toInt().coerceIn(0, duration))
                     change.consume()
                 }
             }
@@ -541,13 +541,13 @@ private fun WavyMusicProgressBar(
             val step = 3.dp.toPx()
             var x = 0f
             while (x <= progressX) {
-                val wave = sin((x / size.width.coerceAtLeast(1f) * 5.5f * 2f * Math.PI).toFloat() + phase + index * 0.7f)
+                val wave = sin((x / size.width.coerceAtLeast(1).toFloat() * 5.5f * 6.2831855f).toFloat() + phase + index * 0.7f)
                 val y = centerY + wave * layer.first * amplitude
                 if (x == 0f) path.moveTo(x, y) else path.lineTo(x, y)
                 x += step
             }
             if (progressX > 0f) {
-                val wave = sin(5.5f * 2f * Math.PI + phase + index * 0.7f)
+                val wave = sin(5.5f * 6.2831855f + phase + index * 0.7f)
                 path.lineTo(progressX, centerY + wave * layer.first * amplitude)
             }
             drawPath(
