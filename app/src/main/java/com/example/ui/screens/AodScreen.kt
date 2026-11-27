@@ -314,7 +314,7 @@ fun AodScreen(
                             tint = ElectricCyan,
                             modifier = Modifier.size(18.dp)
                         )
-                        Text("Wake LumaNAV", style = MaterialTheme.typography.labelLarge, color = GlassWhite)
+                        Text("Wake", style = MaterialTheme.typography.labelLarge, color = GlassWhite, maxLines = 1, softWrap = false)
                     }
                 }
             }

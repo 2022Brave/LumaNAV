@@ -264,7 +264,7 @@ fun MapsScreen(
                 ) {
                     Text("RECENT", color = GlassWhite, style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(horizontal = 14.dp, vertical = 9.dp))
                 }
-                Spacer(Modifier.width(18.dp))
+                Spacer(Modifier.width(16.dp))
             }
             Text(
                 text = "Map data © OpenStreetMap contributors · Tiles by OpenFreeMap · Search by Photon",
@@ -768,13 +768,20 @@ fun MapsScreen(
                 modifier = Modifier.fillMaxSize().zIndex(4f)
             ) {
                 val searchBarY by animateDpAsState(
-                    targetValue = if (searchActive) 0.dp else (maxHeight - 112.dp).coerceAtLeast(0.dp),
+                    targetValue = when {
+                        searchActive -> 0.dp
+                        mapsPulse.confirmedDestination != null -> (maxHeight - 318.dp).coerceAtLeast(80.dp)
+                        else -> (maxHeight - 152.dp).coerceAtLeast(0.dp)
+                    },
                     animationSpec = tween(
                         durationMillis = if (reducedMotion) 0 else LivingFlow.StandardDurationMs,
                         easing = LivingFlow.LaminarEasing
                     ),
                     label = "mapsFloatingSearchPosition"
                 )
+                LaunchedEffect(searchActive) {
+                    if (searchActive) focusRequester.requestFocus()
+                }
                 Column(
                     modifier = Modifier
                         .align(Alignment.TopCenter)
@@ -785,6 +792,24 @@ fun MapsScreen(
                         .imePadding(),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
+                    if (mapsPulse.confirmedDestination != null && !searchActive) {
+                        Surface(
+                            onClick = { searchActive = true },
+                            modifier = Modifier.align(Alignment.End),
+                            color = Color(0xF20A1019),
+                            shape = RoundedCornerShape(50),
+                            border = BorderStroke(1.dp, accent.copy(alpha = 0.48f))
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 11.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(Icons.Outlined.Search, contentDescription = null, tint = accent, modifier = Modifier.size(17.dp))
+                                Text("SEARCH DESTINATION", color = GlassWhite, style = MaterialTheme.typography.labelSmall)
+                            }
+                        }
+                    } else {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
@@ -827,6 +852,7 @@ fun MapsScreen(
                             Icon(Icons.Outlined.Search, contentDescription = "Search", tint = accent)
                         }
                     }
+                    }
                     if (searchActive && mapsPulse.destinationCandidates.isNotEmpty()) {
                         Surface(
                             modifier = Modifier.fillMaxWidth().heightIn(max = 340.dp),
@@ -863,7 +889,7 @@ fun MapsScreen(
             }
             }
 
-            Surface(
+            if (!searchActive) Surface(
                 onClick = { mapStyleIndex = (mapStyleIndex + 1) % mapStyles.size },
                 modifier = Modifier.align(Alignment.TopCenter).statusBarsPadding().padding(14.dp).zIndex(2f),
                 color = Color(0xE609111B), shape = RoundedCornerShape(12.dp),

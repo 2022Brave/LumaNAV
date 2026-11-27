@@ -371,15 +371,24 @@ private fun ArcGaugeHudLayout(
                 modifier = Modifier.weight(0.62f).fillMaxHeight(),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Row(modifier = Modifier.fillMaxWidth()) {
-                    ArcGaugeMetric("TOP SPEED", "--", unitLabel, accent, Modifier.weight(1f))
-                    ArcGaugeMetric("AVG SPEED", "--", unitLabel, accent, Modifier.weight(1f))
+                Column(
+                    modifier = Modifier.weight(2f).fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Row(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                        ArcGaugeMetric("TOP SPEED", "--", unitLabel, accent, Modifier.weight(1f).fillMaxHeight())
+                        ArcGaugeMetric("AVG SPEED", "--", unitLabel, accent, Modifier.weight(1f).fillMaxHeight())
+                    }
+                    Row(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                        ArcGaugeMetric("TRIP DIST", "--", "km", accent, Modifier.weight(1f).fillMaxHeight())
+                        ArcGaugeMetric("HEADING", "${telemetry.headingCardinal} ${headingDegrees}°", "", accent, Modifier.weight(1f).fillMaxHeight())
+                    }
                 }
-                Row(modifier = Modifier.fillMaxWidth()) {
-                    ArcGaugeMetric("TRIP DIST", "--", "km", accent, Modifier.weight(1f))
-                    ArcGaugeMetric("HEADING", "${telemetry.headingCardinal} ${headingDegrees}°", "", accent, Modifier.weight(1f))
-                }
-                Surface(color = accent.copy(alpha = 0.13f), shape = RoundedCornerShape(18.dp)) {
+                Surface(
+                    modifier = Modifier.weight(1f).fillMaxWidth(),
+                    color = accent.copy(alpha = 0.13f),
+                    shape = RoundedCornerShape(18.dp)
+                ) {
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 14.dp),
                         verticalAlignment = Alignment.CenterVertically,

@@ -9,6 +9,7 @@ import android.os.Build
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.content.res.Configuration
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.BackHandler
@@ -22,11 +23,9 @@ import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandHorizontally
-import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkHorizontally
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
@@ -50,10 +49,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Apps
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.MusicNote
 import androidx.compose.material.icons.outlined.Navigation
+import androidx.compose.material.icons.outlined.Nightlight
+import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -80,6 +80,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import androidx.lifecycle.Lifecycle
@@ -94,7 +95,6 @@ import com.example.ui.components.GlassNavigationRail
 import com.example.ui.components.LiquidGlassLens
 import com.example.ui.components.LumaMotion
 import com.example.ui.screens.AodScreen
-import com.example.ui.screens.AppsDrawerScreen
 import com.example.ui.screens.BootSplashScreen
 import com.example.ui.screens.DriveDashboardScreen
 import com.example.ui.screens.HudScreen
@@ -164,22 +164,25 @@ fun AuvionyxRootApp(viewModel: AuvionyxViewModel) {
     val mediaState by viewModel.mediaState.collectAsStateWithLifecycle()
     val telemetry by viewModel.telemetry.collectAsStateWithLifecycle()
     val mapsPulse by viewModel.mapsPulse.collectAsStateWithLifecycle()
-    val syncDevices by viewModel.syncDevices.collectAsStateWithLifecycle()
     val permissions by viewModel.permissions.collectAsStateWithLifecycle()
     val updateState by UpdateManager.state.collectAsStateWithLifecycle()
 
     val context = LocalContext.current
     val activity = context as? ComponentActivity
     val isHudMode = activeModule == AuvionyxModule.HUD
+    val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
 
     SideEffect {
         activity?.window?.let { window ->
             val controller = WindowCompat.getInsetsController(window, window.decorView)
-            if (isHudMode || showBootSplash) {
-                controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-                controller.hide(WindowInsetsCompat.Type.systemBars())
-            } else {
-                controller.show(WindowInsetsCompat.Type.systemBars())
+            controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            when {
+                isHudMode || showBootSplash -> controller.hide(WindowInsetsCompat.Type.systemBars())
+                isLandscape -> {
+                    controller.hide(WindowInsetsCompat.Type.statusBars())
+                    controller.show(WindowInsetsCompat.Type.navigationBars())
+                }
+                else -> controller.show(WindowInsetsCompat.Type.systemBars())
             }
         }
     }
@@ -352,7 +355,6 @@ fun AuvionyxRootApp(viewModel: AuvionyxViewModel) {
                 Column(modifier = Modifier.fillMaxSize()) {
                     if (isLandscapeWide) {
                         val cockpitIdleActive = isIdleCockpit && activeModule == AuvionyxModule.DRIVE
-                        var railExpanded by remember(activeModule) { mutableStateOf(false) }
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -374,13 +376,8 @@ fun AuvionyxRootApp(viewModel: AuvionyxViewModel) {
                             ) {
                                 GlassNavigationRail(
                                     activeModule = activeModule,
-                                    onSelectModule = {
-                                        railExpanded = false
-                                        viewModel.navigateTo(it)
-                                    },
-                                    modifier = Modifier.width(if (railExpanded) 148.dp else 64.dp),
-                                    expanded = railExpanded,
-                                    onToggleExpanded = { railExpanded = !railExpanded }
+                                    onSelectModule = { viewModel.navigateTo(it) },
+                                    modifier = Modifier.width(132.dp)
                                 )
                             }
 
@@ -394,7 +391,6 @@ fun AuvionyxRootApp(viewModel: AuvionyxViewModel) {
                                     isLandscapeWide = true,
                                     isIdleCockpit = cockpitIdleActive,
                                     viewModel = viewModel,
-                                    onOpenPhoneDialer = ::openPhoneDialer,
                                     onMapsFullscreenChanged = { isMapsFullscreen = it },
                                     )
                             }
@@ -412,7 +408,6 @@ fun AuvionyxRootApp(viewModel: AuvionyxViewModel) {
                                 isLandscapeWide = false,
                                 isIdleCockpit = false,
                                 viewModel = viewModel,
-                                onOpenPhoneDialer = ::openPhoneDialer,
                                 onMapsFullscreenChanged = { isMapsFullscreen = it },
                             )
                         }
@@ -438,14 +433,12 @@ private fun ModuleContentRouter(
     isLandscapeWide: Boolean,
     isIdleCockpit: Boolean,
     viewModel: AuvionyxViewModel,
-    onOpenPhoneDialer: () -> Unit,
     onMapsFullscreenChanged: (Boolean) -> Unit,
 ) {
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val mediaState by viewModel.mediaState.collectAsStateWithLifecycle()
     val telemetry by viewModel.telemetry.collectAsStateWithLifecycle()
     val mapsPulse by viewModel.mapsPulse.collectAsStateWithLifecycle()
-    val syncDevices by viewModel.syncDevices.collectAsStateWithLifecycle()
     val permissions by viewModel.permissions.collectAsStateWithLifecycle()
     val reducedMotion = LocalAuvionyxMotion.current.reducedMotion
 
@@ -540,28 +533,18 @@ private fun ModuleContentRouter(
 
             AuvionyxModule.SETTINGS -> SettingsScreen(
                 settings = settings,
-                syncDevices = syncDevices,
                 permissions = permissions,
                 onRefreshPermissions = { viewModel.refreshPermissionsAndGps() },
                 onSetAdaptiveAlbumColors = { viewModel.setAdaptiveAlbumColors(it) },
                 onSetDaylightHighContrast = { viewModel.setDaylightHighContrast(it) },
                 onSetReducedMotion = { viewModel.setReducedMotion(it) },
                 onSetDashboardRatio = { viewModel.setDashboardRatio(it) },
-                onSetHudLayout = { viewModel.updateHudConfig(settings.hudConfig.copy(layoutMode = it)) },
                 onSetHudConfig = { viewModel.updateHudConfig(it) },
                 onSetMetricUnits = { viewModel.setMetricUnits(it) },
                 onSetTrafficOverlay = { viewModel.setTrafficOverlay(it) },
                 onSetSatelliteGrid = { viewModel.setSatelliteGrid(it) },
-                onSetDemoSimulation = { viewModel.setDemoSimulation(it) },
                 onSetMediaSource = { viewModel.selectMediaSource(it) },
-                onSetOptionalLauncher = { viewModel.setOptionalCarLauncher(it) },
-                onToggleDeviceSync = { viewModel.toggleDeviceSync(it) }
-            )
-
-            AuvionyxModule.APPS -> AppsDrawerScreen(
-                isLandscapeWide = isLandscapeWide,
-                onSelectModule = { viewModel.navigateTo(it) },
-                onOpenPhoneDialer = onOpenPhoneDialer
+                onSetOptionalLauncher = { viewModel.setOptionalCarLauncher(it) }
             )
 
             AuvionyxModule.AOD -> Unit
@@ -574,112 +557,38 @@ private fun SmartphoneBottomNavBar(
     activeModule: AuvionyxModule,
     onSelectModule: (AuvionyxModule) -> Unit
 ) {
-    var expanded by remember { mutableStateOf(false) }
     val navItems = listOf(
         Triple(AuvionyxModule.DRIVE, Icons.Outlined.Home, "Drive"),
         Triple(AuvionyxModule.MAPS, Icons.Outlined.Navigation, "Maps"),
         Triple(AuvionyxModule.MUSIC, Icons.Outlined.MusicNote, "Music"),
-        Triple(AuvionyxModule.SETTINGS, Icons.Outlined.Settings, "Settings"),
-        Triple(AuvionyxModule.APPS, Icons.Outlined.Apps, "Apps")
+        Triple(AuvionyxModule.HUD, Icons.Outlined.Speed, "HUD"),
+        Triple(AuvionyxModule.AOD, Icons.Outlined.Nightlight, "AOD"),
+        Triple(AuvionyxModule.SETTINGS, Icons.Outlined.Settings, "Settings")
     )
-    val secondaryItems = listOf(
-        AuvionyxModule.HUD to "HUD",
-        AuvionyxModule.AOD to "AOD"
-    )
-
     Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .windowInsetsPadding(WindowInsets.navigationBars)
-            .padding(horizontal = 12.dp, vertical = 6.dp),
+        modifier = Modifier.fillMaxWidth().windowInsetsPadding(WindowInsets.navigationBars).padding(horizontal = 12.dp, vertical = 6.dp),
         color = Color(0xE60B0F15),
         shape = RoundedCornerShape(24.dp),
         border = BorderStroke(0.8.dp, GlassWhite.copy(alpha = 0.16f))
     ) {
-        Column(
+        Row(
             modifier = Modifier.padding(horizontal = 6.dp, vertical = 6.dp),
-            verticalArrangement = Arrangement.spacedBy(5.dp)
+            horizontalArrangement = Arrangement.spacedBy(3.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(3.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                navItems.forEach { (module, icon, label) ->
-                    val selected = activeModule == module
-                    LiquidGlassLens(
-                        selected = selected,
-                        onClick = {
-                            expanded = false
-                            onSelectModule(module)
-                        },
-                        cornerRadius = 18.dp,
-                        testTag = "phone_nav_${module.route}",
-                        modifier = Modifier.weight(1f).height(52.dp)
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center
-                        ) {
-                            Icon(
-                                imageVector = icon,
-                                contentDescription = label,
-                                tint = if (selected) GlassWhite else TextSecondary,
-                                modifier = Modifier.size(19.dp)
-                            )
-                            Spacer(Modifier.height(2.dp))
-                            Text(
-                                text = label,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = if (selected) GlassWhite else TextSecondary
-                            )
-                        }
-                    }
-                }
+            navItems.forEach { (module, icon, label) ->
+                val selected = activeModule == module
                 LiquidGlassLens(
-                    selected = expanded,
-                    onClick = { expanded = !expanded },
-                    cornerRadius = 16.dp,
-                    testTag = "phone_nav_more",
-                    modifier = Modifier.width(48.dp).height(52.dp)
+                    selected = selected,
+                    onClick = { onSelectModule(module) },
+                    cornerRadius = 18.dp,
+                    testTag = "phone_nav_${module.route}",
+                    modifier = Modifier.weight(1f).height(52.dp)
                 ) {
-                    Text(
-                        text = if (expanded) "LESS" else "MORE",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = if (expanded) GlassWhite else TextSecondary
-                    )
-                }
-            }
-
-            AnimatedVisibility(
-                visible = expanded,
-                enter = fadeIn(tween(LumaMotion.CompactDurationMs, easing = LumaMotion.LaminarEasing)) +
-                    expandVertically(tween(LumaMotion.StandardDurationMs, easing = LumaMotion.LaminarEasing)),
-                exit = fadeOut(tween(LumaMotion.CompactDurationMs, easing = LumaMotion.LaminarEasing)) +
-                    shrinkVertically(tween(LumaMotion.StandardDurationMs, easing = LumaMotion.LaminarEasing))
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    secondaryItems.forEach { (module, label) ->
-                        val selected = activeModule == module
-                        LiquidGlassLens(
-                            selected = selected,
-                            onClick = {
-                                expanded = false
-                                onSelectModule(module)
-                            },
-                            cornerRadius = 14.dp,
-                            testTag = "phone_nav_${module.route}",
-                            modifier = Modifier.weight(1f).height(40.dp)
-                        ) {
-                            Text(
-                                text = label,
-                                style = MaterialTheme.typography.labelMedium,
-                                color = if (selected) GlassWhite else TextSecondary
-                            )
-                        }
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                        Icon(imageVector = icon, contentDescription = label, tint = if (selected) GlassWhite else TextSecondary, modifier = Modifier.size(19.dp))
+                        Spacer(Modifier.height(2.dp))
+                        Text(text = label, style = MaterialTheme.typography.labelSmall, color = if (selected) GlassWhite else TextSecondary, maxLines = 1)
                     }
                 }
             }

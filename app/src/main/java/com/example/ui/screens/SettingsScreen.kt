@@ -23,7 +23,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Devices
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Security
 import androidx.compose.material3.Button
@@ -48,11 +47,9 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.example.core.UpdateManager
 import com.example.data.model.DashboardSplitRatio
-import com.example.data.model.HudLayoutMode
 import com.example.data.model.HudConfig
 import com.example.data.model.HudCockpitStyle
 import com.example.data.model.MediaAppSource
-import com.example.data.model.SyncDeviceProfile
 import com.example.data.preferences.AuvionyxSettingsState
 import com.example.ui.components.ExpandableGlassPanel
 import com.example.ui.components.GlassCard
@@ -68,22 +65,18 @@ import com.example.viewmodel.PermissionsSnapshot
 @Composable
 fun SettingsScreen(
     settings: AuvionyxSettingsState,
-    syncDevices: List<SyncDeviceProfile>,
     permissions: PermissionsSnapshot,
     onRefreshPermissions: () -> Unit,
     onSetAdaptiveAlbumColors: (Boolean) -> Unit,
     onSetDaylightHighContrast: (Boolean) -> Unit,
     onSetReducedMotion: (Boolean) -> Unit,
     onSetDashboardRatio: (DashboardSplitRatio) -> Unit,
-    onSetHudLayout: (HudLayoutMode) -> Unit,
     onSetHudConfig: (HudConfig) -> Unit,
     onSetMetricUnits: (Boolean) -> Unit,
     onSetTrafficOverlay: (Boolean) -> Unit,
     onSetSatelliteGrid: (Boolean) -> Unit,
-    onSetDemoSimulation: (Boolean) -> Unit,
     onSetMediaSource: (MediaAppSource) -> Unit,
     onSetOptionalLauncher: (Boolean) -> Unit,
-    onToggleDeviceSync: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -92,7 +85,6 @@ fun SettingsScreen(
     var appearanceExpanded by remember { mutableStateOf(true) }
     var dashboardExpanded by remember { mutableStateOf(true) }
     var mapsMediaExpanded by remember { mutableStateOf(false) }
-    var launcherSyncExpanded by remember { mutableStateOf(false) }
     var permissionsExpanded by remember { mutableStateOf(true) }
 
     val locLauncher = rememberLauncherForActivityResult(
@@ -203,52 +195,8 @@ fun SettingsScreen(
                     }
                 }
                 Spacer(Modifier.height(12.dp))
-                Text("Default HUD Layout", style = MaterialTheme.typography.labelLarge, color = GlassWhite)
+                Text("HUD Style", style = MaterialTheme.typography.labelLarge, color = GlassWhite)
                 Spacer(Modifier.height(8.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    HudLayoutMode.entries.forEach { mode ->
-                        LiquidGlassLens(
-                            selected = settings.hudConfig.layoutMode == mode,
-                            onClick = { onSetHudLayout(mode) },
-                            cornerRadius = 12.dp,
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(48.dp)
-                        ) {
-                            Text(
-                                text = mode.label.removeSuffix(" HUD"),
-                                style = MaterialTheme.typography.labelMedium,
-                                color = if (settings.hudConfig.layoutMode == mode) GlassWhite else TextSecondary
-                            )
-                        }
-                    }
-                }
-                Spacer(Modifier.height(14.dp))
-                Text("HUD Cockpit Style", style = MaterialTheme.typography.labelLarge, color = GlassWhite)
-                Spacer(Modifier.height(8.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    HudCockpitStyle.entries.forEach { style ->
-                        LiquidGlassLens(
-                            selected = settings.hudConfig.cockpitStyle == style,
-                            onClick = {
-                                val layout = when (style) {
-                                    HudCockpitStyle.DIGITAL_MINIMAL -> HudLayoutMode.MINIMAL
-                                    HudCockpitStyle.ARC_GAUGE -> HudLayoutMode.ADVANCED
-                                    HudCockpitStyle.WIREFRAME_MAP -> HudLayoutMode.NAVIGATION
-                                }
-                                onSetHudConfig(settings.hudConfig.copy(cockpitStyle = style, layoutMode = layout))
-                            },
-                            cornerRadius = 12.dp,
-                            modifier = Modifier.weight(1f).height(48.dp)
-                        ) {
-                            Text(
-                                style.label,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = if (settings.hudConfig.cockpitStyle == style) GlassWhite else TextSecondary
-                            )
-                        }
-                    }
-                }
                 Spacer(Modifier.height(14.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -316,27 +264,6 @@ fun SettingsScreen(
                     onCheckedChange = onSetSatelliteGrid
                 )
                 Spacer(Modifier.height(10.dp))
-                SettingsToggleRow(
-                    title = "Demo Sensor Simulation",
-                    subtitle = "Prototype mode: simulates speed oscillation when stationary",
-                    checked = settings.demoSimulationEnabled,
-                    onCheckedChange = onSetDemoSimulation
-                )
-                Spacer(Modifier.height(12.dp))
-                Surface(
-                    color = IceBlue.copy(alpha = 0.10f),
-                    shape = RoundedCornerShape(14.dp),
-                    border = BorderStroke(1.dp, IceBlue.copy(alpha = 0.35f)),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = "Maps Integration Status: Demo Vector Preview active. Add a Google Maps Platform API key in AndroidManifest & build configuration to enable live Google Maps tiles, Geocoding, and Routes.",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = IceBlue,
-                        modifier = Modifier.padding(10.dp)
-                    )
-                }
-                Spacer(Modifier.height(12.dp))
                 Text("Preferred Media Hub App", style = MaterialTheme.typography.labelLarge, color = GlassWhite)
                 Spacer(Modifier.height(8.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -375,7 +302,7 @@ fun SettingsScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = "Native Requirement Note: Replacing the Android Home Launcher requires declaring CATEGORY_HOME / ROLE_HOME in AndroidManifest & user selection in Android System Settings. Device Sync below is a prototype configuration profile.",
+                        text = "Native Requirement Note: Replacing the Android Home Launcher requires declaring CATEGORY_HOME / ROLE_HOME in AndroidManifest & user selection in Android System Settings. ",
                         style = MaterialTheme.typography.labelSmall,
                         color = IceBlue,
                         modifier = Modifier.padding(10.dp)
@@ -407,48 +334,7 @@ fun SettingsScreen(
                     Text("Open Android Default Home Settings")
                 }
 
-                Spacer(Modifier.height(14.dp))
-                Text("Synced Ecosystem Devices (Prototype)", style = MaterialTheme.typography.labelLarge, color = GlassWhite)
-                Spacer(Modifier.height(8.dp))
-                syncDevices.forEach { device ->
-                    Surface(
-                        color = GlassWhite.copy(alpha = 0.04f),
-                        shape = RoundedCornerShape(14.dp),
-                        border = BorderStroke(
-                            1.dp,
-                            if (device.isSynced) accent.copy(alpha = 0.55f) else GlassWhite.copy(alpha = 0.12f)
-                        ),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                Icon(Icons.Outlined.Devices, contentDescription = null, tint = accent)
-                                Spacer(Modifier.width(10.dp))
-                                Column {
-                                    Text(device.name, style = MaterialTheme.typography.titleMedium, color = GlassWhite)
-                                    Text(
-                                        "${device.formFactor} · ${device.osVersion}",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = TextSecondary
-                                    )
-                                }
-                            }
-                            LiquidGlassToggle(
-                                checked = device.isSynced,
-                                onCheckedChange = { onToggleDeviceSync(device.id) }
-                            )
-                        }
-                    }
-                }
+
             }
         }
 

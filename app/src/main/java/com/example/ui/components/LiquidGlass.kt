@@ -45,14 +45,12 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.outlined.Apps
 import androidx.compose.material.icons.outlined.Bluetooth
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.MusicNote
 import androidx.compose.material.icons.outlined.Nightlight
 import androidx.compose.material.icons.outlined.Navigation
-import androidx.compose.material.icons.outlined.Phone
 import androidx.compose.material.icons.outlined.Repeat
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Shuffle
@@ -831,9 +829,7 @@ fun GlassTopStatusBar(
 fun GlassNavigationRail(
     activeModule: AuvionyxModule,
     onSelectModule: (AuvionyxModule) -> Unit,
-    modifier: Modifier = Modifier,
-    expanded: Boolean = false,
-    onToggleExpanded: () -> Unit = {}
+    modifier: Modifier = Modifier
 ) {
     val railItems = listOf(
         Triple(AuvionyxModule.DRIVE, Icons.Outlined.Home, "Drive"),
@@ -841,10 +837,8 @@ fun GlassNavigationRail(
         Triple(AuvionyxModule.MUSIC, Icons.Outlined.MusicNote, "Music"),
         Triple(AuvionyxModule.HUD, Icons.Outlined.Speed, "HUD"),
         Triple(AuvionyxModule.AOD, Icons.Outlined.Nightlight, "AOD"),
-        Triple(AuvionyxModule.APPS, Icons.Outlined.Apps, "Apps"),
         Triple(AuvionyxModule.SETTINGS, Icons.Outlined.Settings, "Settings")
     )
-
     LiquidGlassCockpitCard(
         modifier = modifier.fillMaxHeight(),
         cornerRadius = 30.dp,
@@ -853,10 +847,7 @@ fun GlassNavigationRail(
         contentPadding = PaddingValues(vertical = 12.dp, horizontal = 6.dp)
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxHeight()
-                .heightIn(min = 328.dp)
-                .verticalScroll(rememberScrollState()),
+            modifier = Modifier.fillMaxHeight().heightIn(min = 328.dp).verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(8.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -869,47 +860,15 @@ fun GlassNavigationRail(
                     modifier = Modifier.fillMaxWidth().height(48.dp),
                     testTag = "rail_${module.route}"
                 ) {
-                    if (expanded) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            Icon(
-                                imageVector = if (module == AuvionyxModule.DRIVE && selected) Icons.Filled.Home else icon,
-                                contentDescription = label,
-                                tint = if (selected) GlassWhite else GlassWhite.copy(alpha = 0.82f),
-                                modifier = Modifier.size(21.dp)
-                            )
-                            Text(
-                                text = label,
-                                style = MaterialTheme.typography.labelMedium,
-                                color = if (selected) GlassWhite else TextSecondary,
-                                maxLines = 1
-                            )
-                        }
-                    } else {
-                        Icon(
-                            imageVector = if (module == AuvionyxModule.DRIVE && selected) Icons.Filled.Home else icon,
-                            contentDescription = label,
-                            tint = if (selected) GlassWhite else GlassWhite.copy(alpha = 0.82f),
-                            modifier = Modifier.size(22.dp)
-                        )
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Icon(imageVector = if (module == AuvionyxModule.DRIVE && selected) Icons.Filled.Home else icon, contentDescription = label, tint = if (selected) GlassWhite else GlassWhite.copy(alpha = 0.82f), modifier = Modifier.size(21.dp))
+                        Text(text = label, style = MaterialTheme.typography.labelMedium, color = if (selected) GlassWhite else TextSecondary, maxLines = 1)
                     }
                 }
-            }
-            LiquidGlassLens(
-                selected = expanded,
-                onClick = onToggleExpanded,
-                cornerRadius = 16.dp,
-                modifier = Modifier.fillMaxWidth().height(42.dp),
-                testTag = "rail_expand_toggle"
-            ) {
-                Text(
-                    text = if (expanded) "LESS" else "MORE",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = if (expanded) GlassWhite else TextSecondary
-                )
             }
         }
     }
@@ -977,11 +936,11 @@ fun GlassBottomDock(
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
             DockShortcutItem(
-                icon = Icons.Outlined.Phone,
-                label = "Phone",
-                selected = false,
-                testTag = "dock_phone",
-                onClick = onOpenPhoneDialer,
+                icon = Icons.Outlined.Home,
+                label = "Drive",
+                selected = activeModule == AuvionyxModule.DRIVE,
+                testTag = "dock_drive",
+                onClick = { onSelectModule(AuvionyxModule.DRIVE) },
                 modifier = Modifier.weight(1f)
             )
             DockShortcutItem(
@@ -1010,11 +969,11 @@ fun GlassBottomDock(
                 modifier = Modifier.weight(1f)
             )
             DockShortcutItem(
-                icon = Icons.Outlined.Apps,
-                label = "Apps",
-                selected = activeModule == AuvionyxModule.APPS,
-                testTag = "dock_apps",
-                onClick = { onSelectModule(AuvionyxModule.APPS) },
+                icon = Icons.Outlined.Nightlight,
+                label = "AOD",
+                selected = activeModule == AuvionyxModule.AOD,
+                testTag = "dock_aod",
+                onClick = { onSelectModule(AuvionyxModule.AOD) },
                 modifier = Modifier.weight(1f)
             )
             DockShortcutItem(
