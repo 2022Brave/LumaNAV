@@ -297,8 +297,8 @@ object AuvionyxSampleData {
             formFactor = "Head Unit · 1280×800 Landscape",
             osVersion = "Android 11 · 4GB RAM",
             resolution = "1280×800",
-            isCurrentTarget = true,
-            isSynced = true
+            isCurrentTarget = false,
+            isSynced = false
         ),
         SyncDeviceProfile(
             id = "dev_oppo",
