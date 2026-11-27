@@ -823,7 +823,7 @@ private fun CockpitWavyProgressBar(
             var x = 0f
             val step = 3.dp.toPx()
             while (x <= progressX) {
-                val angle = (x / size.width.coerceAtLeast(1).toFloat() * 5.5f * 2f * PI).toFloat() + phase + index * 0.65f
+                val angle = (x / size.width.coerceAtLeast(1f) * 5.5f * 2f * PI).toFloat() + phase + index * 0.65f
                 val y = centerY + sin(angle) * layer.first * amplitude
                 if (x == 0f) path.moveTo(x, y) else path.lineTo(x, y)
                 x += step
