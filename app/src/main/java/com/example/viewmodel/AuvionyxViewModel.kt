@@ -326,6 +326,7 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
                     destinationName = maps.confirmedDestination?.name
                         ?: telemetry.destinationLabel.takeIf { it.isNotBlank() }
                         ?: maps.destinationQuery,
+                    destinationLatLon = maps.destinationLatLon,
                     navigationSource = maps.navigationSourceLabel.orEmpty(),
                     currentLocation = maps.currentLatLon,
                     routePoints = maps.routePolylineGeo.toList(),
@@ -341,6 +342,28 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
                 )
             }.collect { snapshot ->
                 CarNavigationBridge.publish(snapshot)
+            }
+        }
+        viewModelScope.launch {
+            CarNavigationBridge.stopNavigationRequests.collect {
+                _mapsPulse.update { state ->
+                    state.copy(
+                        isNavigating = false,
+                        isExternalGoogleMapsSyncActive = false,
+                        navigationSourceLabel = "Navigation stopped from Android Auto"
+                    )
+                }
+                _telemetry.update { telemetry ->
+                    telemetry.copy(
+                        nextTurnDistanceLabel = "--",
+                        nextTurnRoad = "Navigation stopped",
+                        nextTurnInstruction = "Choose a destination on your phone to navigate again",
+                        remainingDistanceKm = 0f,
+                        remainingMinutes = 0,
+                        etaTimeLabel = "--:--",
+                        journeyProgress = 0f
+                    )
+                }
             }
         }
         observeLiveGoogleMapsNotifications()
