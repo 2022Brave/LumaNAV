@@ -1,9 +1,9 @@
 {
-  "versionCode": 179580727,
-  "versionName": "1.0.179580727",
-  "apkUrl": "https://github.com/2022Brave/LumaNAV/releases/download/dev-46056046287/LumaNAV-dev-1.0.179580727.apk",
-  "notes": "Align navigation module test with six-item dock",
-  "commit": "bc974586776eb1dfc69b1880654c147afee2dd06",
+  "versionCode": 179582469,
+  "versionName": "1.0.179582469",
+  "apkUrl": "https://github.com/2022Brave/LumaNAV/releases/download/dev-46086514405/LumaNAV-dev-1.0.179582469.apk",
+  "notes": "Use the LumaNAV brand artwork in adaptive launcher icons",
+  "commit": "3cda2af97145ba031e92f436cbdc1142c85fbbd4",
   "channel": "development",
-  "buildNumber": "405"
+  "buildNumber": "406"
 }
