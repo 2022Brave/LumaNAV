@@ -46,11 +46,13 @@ private class LumaNavCarHomeScreen(carContext: androidx.car.app.CarContext) : Sc
 
     override fun onGetTemplate(): Template {
         val state = CarNavigationBridge.snapshot.value
-        val status = when {
+        val baseStatus = when {
             state.isNavigating -> "Navigation active"
             state.destinationName.isNotBlank() -> "Destination selected · waiting for route"
             else -> "No active route"
         }
+        val status = state.navigationSource.takeIf { it.isNotBlank() }
+            ?.let { "$baseStatus · $it" } ?: baseStatus
         val destination = state.destinationName.ifBlank { "Choose a destination on your phone" }
         val manoeuvre = if (state.isNavigating) {
             listOf(state.nextTurnInstruction, state.nextTurnRoad)
@@ -75,11 +77,6 @@ private class LumaNavCarHomeScreen(carContext: androidx.car.app.CarContext) : Sc
             .addItem(Row.Builder().setTitle("PHONE GPS").addText(
                 if (state.gpsAvailable) "Live location · ${state.locationLabel}"
                 else "Waiting for a live phone GPS fix"
-            ).build())
-            .addItem(Row.Builder().setTitle("NAVIGATION SOURCE").addText(
-                state.navigationSource.ifBlank {
-                    if (state.isExternalNavigation) "External navigation sync" else "LumaNAV on phone"
-                }
             ).build())
             .build()
 
