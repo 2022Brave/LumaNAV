@@ -69,7 +69,7 @@ internal class CarMapSurfaceRenderer(
     }
 
     override fun onSurfaceAvailable(container: SurfaceContainer) {
-        releaseSurfaceResources(releaseHostSurface = false)
+        releaseSurfaceResources(releaseHostSurface = true)
         surfaceContainer = container
         try {
             MapLibre.getInstance(carContext.applicationContext)
@@ -214,7 +214,6 @@ internal class CarMapSurfaceRenderer(
     private fun releaseSurfaceResources(releaseHostSurface: Boolean) {
         runCatching { presentation?.dismiss() }
         presentation = null
-        map?.let { runCatching { it.removeOnCameraMoveStartedListener { } } }
         map = null
         routeSource = null
         positionSource = null
