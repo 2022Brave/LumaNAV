@@ -20,7 +20,6 @@ import androidx.car.app.navigation.model.TravelEstimate
 import androidx.car.app.navigation.model.Trip
 import androidx.car.app.validation.HostValidator
 import androidx.lifecycle.lifecycleScope
-import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.launch
 import java.util.Locale
 import java.util.TimeZone
@@ -65,9 +64,7 @@ private class LumaNavCarHomeScreen(carContext: CarContext) : Screen(carContext) 
         })
 
         lifecycleScope.launch {
-            CarNavigationBridge.snapshot
-                .distinctUntilChangedBy { it.copy(currentLocation = null, routePoints = emptyList(), headingDegrees = 0) }
-                .collect { state ->
+            CarNavigationBridge.snapshot.collect { state ->
                     mapRenderer.update(state)
                     syncNavigationManager(state)
                     invalidate()
