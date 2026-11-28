@@ -52,7 +52,7 @@ private class LumaNavCarHomeScreen(carContext: CarContext) : Screen(carContext) 
     private var hostNavigationStarted = false
 
     init {
-        navigationManager.setNavigationManagerCallback(object : NavigationManagerCallback() {
+        navigationManager.setNavigationManagerCallback(object : NavigationManagerCallback {
             override fun onStopNavigation() {
                 // The phone ViewModel remains the authority and performs the actual state change.
                 CarNavigationBridge.requestStopNavigation()
