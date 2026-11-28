@@ -80,8 +80,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.MediaAppSource
 import com.example.data.model.MediaTrack
@@ -511,6 +511,8 @@ fun CockpitMediaPlayerCard(
     onSeek: (Int) -> Unit,
     isRepeat: Boolean = false,
     onToggleRepeat: () -> Unit = {},
+    artworkSize: Dp = 66.dp,
+    showRepeat: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val accent = LocalAuvionyxPalette.current.accentPrimary
@@ -554,12 +556,12 @@ fun CockpitMediaPlayerCard(
                         contentDescription = "Current track album artwork",
                         contentScale = ContentScale.Crop,
                         modifier = Modifier
-                            .size(if (compactMode) 58.dp else 66.dp)
+                            .size(if (compactMode) 58.dp else artworkSize)
                             .clip(RoundedCornerShape(14.dp))
                     )
                 } else if (isPlaying) {
                     Box(
-                        modifier = Modifier.size(if (compactMode) 58.dp else 66.dp)
+                        modifier = Modifier.size(if (compactMode) 58.dp else artworkSize)
                             .clip(RoundedCornerShape(14.dp))
                             .background(Brush.radialGradient(listOf(track.adaptiveColor.copy(alpha = 0.48f), Color.Black))),
                         contentAlignment = Alignment.Center
@@ -571,7 +573,7 @@ fun CockpitMediaPlayerCard(
                         artVariant = track.artVariant,
                         accentColor = track.adaptiveColor,
                         cornerRadius = 14.dp,
-                        modifier = Modifier.size(if (compactMode) 58.dp else 66.dp)
+                        modifier = Modifier.size(if (compactMode) 58.dp else artworkSize)
                     )
                 }
                 Spacer(Modifier.width(14.dp))
@@ -735,7 +737,7 @@ fun CockpitMediaPlayerCard(
                             modifier = Modifier.size(26.dp)
                         )
                     }
-                    IconButton(
+                    if (showRepeat) IconButton(
                         onClick = onToggleRepeat,
                         modifier = Modifier
                             .clip(CircleShape)

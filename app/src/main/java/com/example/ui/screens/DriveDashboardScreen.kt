@@ -261,7 +261,6 @@ fun DriveDashboardScreen(
             onNextTrack = onNextTrack,
             onPrevTrack = onPrevTrack,
             onToggleShuffle = onToggleShuffle,
-            onToggleRepeat = onToggleRepeat,
             onToggleFavorite = onToggleFavorite,
             onSeek = onSeek,
             modifier = modifier
@@ -312,7 +311,6 @@ private fun LandscapeCockpitSurface(
     onNextTrack: () -> Unit,
     onPrevTrack: () -> Unit,
     onToggleShuffle: () -> Unit,
-    onToggleRepeat: () -> Unit,
     onToggleFavorite: (String) -> Unit,
     onSeek: (Int) -> Unit,
     modifier: Modifier = Modifier
@@ -401,7 +399,6 @@ private fun LandscapeCockpitSurface(
                             source = mediaState.activeSessionSource,
                             isPlaying = mediaState.isPlaying,
                             isShuffle = mediaState.isShuffle,
-                            isRepeat = mediaState.isRepeat,
                             isFavorite = isFavorite,
                             positionSec = mediaState.positionSec,
                             compactMode = false,
@@ -411,7 +408,6 @@ private fun LandscapeCockpitSurface(
                             onNextTrack = onNextTrack,
                             onPrevTrack = onPrevTrack,
                             onToggleShuffle = onToggleShuffle,
-                            onToggleRepeat = onToggleRepeat,
                             onToggleFavorite = { onToggleFavorite(track.id) },
                             onSeek = onSeek,
                             modifier = Modifier
@@ -746,6 +742,8 @@ private fun SmartphonePortraitDriveDashboard(
                         onToggleRepeat = onToggleRepeat,
                         onToggleFavorite = { onToggleFavorite(track.id) },
                         onSeek = onSeek,
+                        artworkSize = if (animatedMapFraction < 0.45f) 124.dp else 66.dp,
+                        showRepeat = true,
                         modifier = Modifier.fillMaxSize()
                     )
                 }
