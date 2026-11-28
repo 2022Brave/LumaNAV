@@ -1,6 +1,5 @@
 package com.example.car
 
-import com.example.data.model.DestinationCandidate
 import com.example.viewmodel.MapsAndPulseState
 import com.example.data.model.VehicleTelemetry
 import kotlinx.coroutines.flow.MutableStateFlow
