@@ -25,6 +25,8 @@ data class AppUpdateState(
     val downloadProgress: Int = 0,
     val currentVersion: String = BuildConfig.VERSION_NAME,
     val latestVersion: String? = null,
+    val latestDisplayVersion: String? = null,
+    val apkSizeBytes: Long? = null,
     val releaseNotes: String = "",
     val apkUrl: String? = null,
     val statusMessage: String = "Not checked yet",
@@ -70,6 +72,8 @@ object UpdateManager {
                 AppUpdateState(
                     currentVersion = BuildConfig.VERSION_NAME,
                     latestVersion = tag,
+                    latestDisplayVersion = release.optString("display_version").takeIf { it.isNotBlank() } ?: tag,
+                    apkSizeBytes = release.optLong("apk_size_bytes", -1L).takeIf { it > 0L },
                     releaseNotes = release.optString("body").ifBlank { "No release notes provided." },
                     apkUrl = apkUrl,
                     updateAvailable = latestIsNewer && apkUrl != null,
@@ -107,6 +111,8 @@ object UpdateManager {
             return JSONObject()
                 .put("tag_name", versionName)
                 .put("version_code", manifest.optInt("versionCode", -1))
+                .put("display_version", manifest.optString("displayVersion"))
+                .put("apk_size_bytes", manifest.optLong("apkSizeBytes", -1L))
                 .put("body", manifest.optString("notes", "Development build"))
                 .put("assets", assets)
         }
@@ -170,6 +176,8 @@ object UpdateManager {
         return JSONObject()
             .put("tag_name", versionName)
             .put("version_code", manifest.optInt("versionCode", -1))
+            .put("display_version", manifest.optString("displayVersion"))
+            .put("apk_size_bytes", manifest.optLong("apkSizeBytes", -1L))
             .put("body", manifest.optString("notes", "No release notes provided."))
             .put("assets", assets)
     }
