@@ -157,7 +157,7 @@ internal class CarMapSurfaceRenderer(
         )
 
         val location = latestSnapshot.currentLocation
-        if (location != null &&
+        if (location != null && latestSnapshot.gpsAvailable &&
             location.first.isFinite() && location.first in -90.0..90.0 &&
             location.second.isFinite() && location.second in -180.0..180.0
         ) {
@@ -198,6 +198,7 @@ internal class CarMapSurfaceRenderer(
     }
 
     override fun onScale(focusX: Float, focusY: Float, scaleFactor: Float) {
+        if (!scaleFactor.isFinite() || scaleFactor <= 0f) return
         val activeMap = map ?: return
         val currentZoom = activeMap.cameraPosition.zoom
         val zoomDelta = ln(scaleFactor.toDouble()) / ln(Math.PI / 2.0) * 1.5
