@@ -1,9 +1,9 @@
 {
-  "versionCode": 179585303,
-  "versionName": "1.0.179585303",
-  "apkUrl": "https://github.com/2022Brave/LumaNAV/releases/download/dev-46123995950/LumaNAV-dev-1.0.179585303.apk",
-  "notes": "Polish Maps, AOD, HUD and Drive media UI",
-  "commit": "59d455c0fdcaf9f2dd25baeecd7dd24a59f72bca",
+  "versionCode": 179588971,
+  "versionName": "1.0.179588971",
+  "apkUrl": "https://github.com/2022Brave/LumaNAV/releases/download/dev-46174792300/LumaNAV-dev-1.0.179588971.apk",
+  "notes": "# What's New in This Update\n\n- Fix Android Auto branch development OTA publishing\n\n- Avoid plotting stale GPS fallback on car map\n\n- Correct parsing of turn distance labels\n\n- Show phone turn guidance in Android Auto navigation template\n\n- Bind map surface callback to car screen lifecycle\n\n- Stream live GPS and route updates to car map\n\n- Switch Android Auto to live navigation map template\n\n- Declare Android Auto map surface access\n\n- Release replaced Android Auto surfaces safely\n\n- Add MapLibre renderer for Android Auto host surface",
+  "commit": "aa7aff045be5536f079645c4805d1a91f8f4f37b",
   "channel": "development",
-  "buildNumber": "407"
+  "buildNumber": "444"
 }
