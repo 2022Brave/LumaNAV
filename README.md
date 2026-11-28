@@ -1,13 +1,13 @@
-# LumaNav
+# LumaNAV
 
 **Find your way. Feel the drive.**
 
-LumaNav is a personal Android automotive cockpit and navigation project built with Kotlin, Jetpack Compose and Material 3.
+LumaNAV is a personal Android automotive cockpit and navigation project built with Kotlin, Jetpack Compose and Material 3.
 
 ## Project snapshot
 
 - Snapshot: v1.0
-- Android application ID: `com.aistudio.auvionyx.kxvrqm`
+- Android application ID: `com.lumanav.navigation`
 - Namespace: `com.example`
 - Minimum SDK: 24
 - Target SDK: 36

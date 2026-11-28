@@ -39,13 +39,15 @@ class ExampleUnitTest {
   }
 
   @Test
-  fun ecosystemModules_includeAllNineCoreModules() {
+  fun ecosystemModules_includeOnlyCurrentNavigationModules() {
     val routes = AuvionyxModule.entries.map { it.route }.toSet()
     assertTrue(
-      routes.containsAll(
-        listOf("drive", "maps", "music", "hud", "pulse", "voice", "aod", "vehicle", "settings")
-      )
+      routes.containsAll(listOf("drive", "maps", "music", "hud", "aod", "settings"))
     )
+    assertFalse("Removed Apps tab must stay out of primary navigation", "apps" in routes)
+    assertFalse("Retired Pulse route must stay removed", "pulse" in routes)
+    assertFalse("Retired Voice route must stay removed", "voice" in routes)
+    assertFalse("Retired Vehicle route must stay removed", "vehicle" in routes)
   }
 
   @Test
@@ -59,17 +61,15 @@ class ExampleUnitTest {
   }
 
   @Test
-  fun telemetryAndMapsDefaults_honestlyDiscloseDemoAndUnverifiedData() {
+  fun telemetryAndMapsDefaults_honestlyDiscloseUnverifiedData() {
     val telemetry = VehicleTelemetry()
     assertEquals(0, telemetry.speedKmh)
-    assertFalse("Demo simulation must stay off by default", telemetry.isSimulationRunning)
     assertNull("Speed limit must be null unless verified", telemetry.speedLimitKmh)
     assertNull("Weather must remain null until live weather loads", telemetry.weatherTempC)
     assertFalse("GPS should not claim live fix by default", telemetry.isLiveGpsActive)
-    assertTrue("No fake tire telemetry when CAN/OBD-II is disconnected", telemetry.tirePsi.isEmpty())
+    assertNull("GPS accuracy is unknown until a live fix arrives", telemetry.gpsAccuracyMeters)
 
     val settings = AuvionyxSettingsState()
-    assertFalse("Demo simulation toggle must default to false", settings.demoSimulationEnabled)
 
     val mapsStatus = GoogleMapsIntegrationStatus()
     assertFalse(mapsStatus.isMapsSdkConfigured)

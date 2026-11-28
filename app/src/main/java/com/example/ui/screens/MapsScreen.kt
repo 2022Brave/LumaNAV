@@ -1,24 +1,33 @@
 package com.example.ui.screens
 
 import android.Manifest
-import android.app.Activity
 import android.content.Intent
-import android.media.projection.MediaProjectionManager
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.tween
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,9 +38,15 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.lazy.LazyColumn
@@ -40,16 +55,17 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AltRoute
 import androidx.compose.material.icons.outlined.CheckCircle
-import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.GpsFixed
-import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.Navigation
 import androidx.compose.material.icons.outlined.Place
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Clear
+import androidx.compose.material.icons.outlined.BookmarkBorder
+import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.NotificationsActive
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.IconButton
@@ -57,13 +73,15 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -71,8 +89,6 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.zIndex
 import androidx.compose.ui.unit.dp
-import com.example.core.LiveGoogleMapsSyncBridge
-import com.example.core.NavigationCaptureService
 import com.example.data.model.DestinationCandidate
 import com.example.data.model.MapPlaceMarker
 import com.example.data.model.ServiceAvailabilityState
@@ -81,7 +97,6 @@ import com.example.data.preferences.AuvionyxSettingsState
 import com.example.ui.components.DraggableLaminarSheet
 import com.example.ui.components.GlassCard
 import com.example.ui.components.NativeMapLibreView
-import com.example.ui.components.LiquidGlassLens
 import com.example.ui.components.LivingFlow
 import com.example.ui.components.ServiceStateBadge
 import com.example.ui.components.TrafficPulseBadge
@@ -91,6 +106,7 @@ import com.example.ui.theme.GlassWhite
 import com.example.ui.theme.IceBlue
 import com.example.ui.theme.LocalAuvionyxMotion
 import com.example.ui.theme.LocalAuvionyxPalette
+import com.example.ui.components.formatNavigationDistance
 import com.example.ui.theme.ObsidianBlack
 import com.example.ui.theme.PulseClear
 import com.example.ui.theme.PulseCongestion
@@ -111,6 +127,8 @@ fun MapsScreen(
     notificationAccessGranted: Boolean,
     onPermissionUpdated: () -> Unit,
     onConfirmDestination: (DestinationCandidate) -> Unit,
+    onSaveDestination: (DestinationCandidate) -> Unit,
+    onRemoveSavedPlace: (String) -> Unit,
     onDestinationQueryChange: (String) -> Unit,
     onSearchDestination: (String) -> Unit,
     onClearDestinationSearch: () -> Unit,
@@ -119,29 +137,40 @@ fun MapsScreen(
     onToggleNavigation: () -> Unit,
     onToggleTraffic: () -> Unit,
     onToggleSatellite: () -> Unit,
+    onMapFullscreenChanged: (Boolean) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    var mapFullscreen by remember { mutableStateOf(false) }
+    var showSavedPlaces by remember { mutableStateOf(false) }
+    var searchActive by remember { mutableStateOf(false) }
+    var imeWasVisible by remember { mutableStateOf(false) }
+    val focusRequester = remember { FocusRequester() }
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val imeBottom = WindowInsets.ime.getBottom(LocalDensity.current)
+    LaunchedEffect(imeBottom) {
+        val visible = imeBottom > 0
+        if (imeWasVisible && !visible) {
+            searchActive = false
+            focusManager.clearFocus()
+        }
+        imeWasVisible = visible
+    }
+    LaunchedEffect(mapFullscreen) { onMapFullscreenChanged(mapFullscreen) }
+    val mapStyles = listOf(
+        "DARK" to "https://tiles.openfreemap.org/styles/dark",
+        "WIREFRAME" to "https://tiles.openfreemap.org/styles/dark",
+        "STREETS" to "https://tiles.openfreemap.org/styles/liberty"
+    )
+    var mapStyleIndex by remember { mutableStateOf(0) }
+    val activeMapStyle = mapStyles[mapStyleIndex]
     val accent = LocalAuvionyxPalette.current.accentPrimary
     val reducedMotion = LocalAuvionyxMotion.current.reducedMotion
     val locationLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) {
         onPermissionUpdated()
-    }
-
-    val captureActive by NavigationCaptureService.captureActive.collectAsState()
-    val latestCaptureFrame by NavigationCaptureService.latestFrame.collectAsState()
-    val captureError by NavigationCaptureService.captureError.collectAsState()
-    val externalNavigation by LiveGoogleMapsSyncBridge.activeNavigation.collectAsState()
-
-    val captureLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        val captureData = result.data
-        if (result.resultCode == Activity.RESULT_OK && captureData != null) {
-            NavigationCaptureService.start(context, result.resultCode, captureData)
-        }
     }
 
     val routeContent: @Composable (Modifier) -> Unit = { contentMod ->
@@ -151,39 +180,101 @@ fun MapsScreen(
             ),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                OutlinedTextField(
-                    value = mapsPulse.destinationQuery,
-                    onValueChange = onDestinationQueryChange,
-                    modifier = Modifier.weight(1f).testTag("maps_destination_search"),
-                    singleLine = true,
-                    placeholder = { Text("Search destination…", color = TextSecondary) },
-                    leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = "Search destination", tint = accent) },
-                    trailingIcon = {
-                        if (mapsPulse.destinationQuery.isNotBlank()) {
-                            IconButton(onClick = onClearDestinationSearch) {
-                                Icon(Icons.Outlined.Clear, contentDescription = "Clear destination", tint = TextSecondary)
-                            }
-                        }
-                    },
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                    keyboardActions = KeyboardActions(onSearch = { onSearchDestination(mapsPulse.destinationQuery) })
-                )
-                IconButton(
-                    onClick = { onSearchDestination(mapsPulse.destinationQuery) },
-                    modifier = Modifier.testTag("maps_search_submit")
+            if (isLandscapeWide) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Icon(Icons.Outlined.Search, contentDescription = "Search", tint = accent)
+                    OutlinedTextField(
+                        value = mapsPulse.destinationQuery,
+                        onValueChange = onDestinationQueryChange,
+                        modifier = Modifier.weight(1f).testTag("maps_destination_search"),
+                        singleLine = true,
+                        placeholder = { Text("Search destination…", color = TextSecondary) },
+                        leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = "Search destination", tint = accent) },
+                        trailingIcon = {
+                            if (mapsPulse.destinationQuery.isNotBlank()) {
+                                IconButton(onClick = onClearDestinationSearch) {
+                                    Icon(Icons.Outlined.Clear, contentDescription = "Clear destination", tint = TextSecondary)
+                                }
+                            }
+                        },
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                        keyboardActions = KeyboardActions(onSearch = { onSearchDestination(mapsPulse.destinationQuery) })
+                    )
+                    IconButton(
+                        onClick = { onSearchDestination(mapsPulse.destinationQuery) },
+                        modifier = Modifier.testTag("maps_search_submit")
+                    ) {
+                        Icon(Icons.Outlined.Search, contentDescription = "Search", tint = accent)
+                    }
                 }
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Spacer(Modifier.width(16.dp))
+                Surface(
+                    onClick = { showSavedPlaces = true },
+                    color = DeepBlue.copy(alpha = 0.28f),
+                    shape = RoundedCornerShape(50),
+                    border = BorderStroke(1.dp, accent.copy(alpha = 0.45f)),
+                    modifier = Modifier.testTag("maps_saved_places_chip")
+                ) {
+                    Text("SAVED · ${mapsPulse.savedPlaces.size}", color = accent, style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(horizontal = 14.dp, vertical = 9.dp))
+                }
+                listOf("HOME", "WORK").forEach { quickPlace ->
+                    Surface(
+                        onClick = {
+                            val saved = mapsPulse.savedPlaces.firstOrNull { place ->
+                                place.name.equals(quickPlace, ignoreCase = true) ||
+                                    place.category.equals(quickPlace, ignoreCase = true)
+                            }
+                            if (saved != null) {
+                                onConfirmDestination(saved.toDestinationCandidate())
+                            } else {
+                                showSavedPlaces = true
+                            }
+                        },
+                        color = Color(0xFF0E1522),
+                        shape = RoundedCornerShape(50),
+                        border = BorderStroke(1.dp, GlassWhite.copy(alpha = 0.12f))
+                    ) {
+                        Text(quickPlace, color = GlassWhite, style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(horizontal = 14.dp, vertical = 9.dp))
+                    }
+                }
+                Surface(
+                    onClick = {
+                        onDestinationQueryChange("fuel station")
+                        onSearchDestination("fuel station")
+                    },
+                    color = Color(0xFF0E1522),
+                    shape = RoundedCornerShape(50),
+                    border = BorderStroke(1.dp, GlassWhite.copy(alpha = 0.12f))
+                ) {
+                    Text("FUEL", color = GlassWhite, style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(horizontal = 14.dp, vertical = 9.dp))
+                }
+                Surface(
+                    onClick = {
+                        val recent = mapsPulse.confirmedDestination ?: mapsPulse.destinationCandidates.firstOrNull()
+                        if (recent != null) onConfirmDestination(recent) else showSavedPlaces = true
+                    },
+                    color = Color(0xFF0E1522),
+                    shape = RoundedCornerShape(50),
+                    border = BorderStroke(1.dp, GlassWhite.copy(alpha = 0.12f))
+                ) {
+                    Text("RECENT", color = GlassWhite, style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(horizontal = 14.dp, vertical = 9.dp))
+                }
+                Spacer(Modifier.width(16.dp))
             }
             Text(
                 text = "Map data © OpenStreetMap contributors · Tiles by OpenFreeMap · Search by Photon",
                 style = MaterialTheme.typography.labelSmall,
-                color = TextSecondary
+                color = TextSecondary,
+                modifier = Modifier.padding(top = 10.dp, bottom = 14.dp)
             )
             // Minimal Service Indicators + External Navigation Sync Prompt
             Row(
@@ -250,123 +341,6 @@ fun MapsScreen(
                 }
             }
 
-            // In-app mirror for user-selected Google Maps, Waze or Mappls app windows.
-            Surface(
-                color = Color(0xFF08111C),
-                shape = RoundedCornerShape(16.dp),
-                border = BorderStroke(0.8.dp, accent.copy(alpha = 0.38f)),
-                modifier = Modifier.fillMaxWidth().testTag("maps_navigation_mirror_panel")
-            ) {
-                Column(
-                    modifier = Modifier.padding(10.dp),
-                    verticalArrangement = Arrangement.spacedBy(7.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                "NAVIGATION MIRROR",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = accent
-                            )
-                            Text(
-                                when {
-                                    captureActive -> "Selected app window is being mirrored"
-                                    externalNavigation != null -> "${externalNavigation!!.providerLabel} guidance detected"
-                                    else -> "Mirror a navigation app inside LumaNav"
-                                },
-                                style = MaterialTheme.typography.labelSmall,
-                                color = TextSecondary,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                        Button(
-                            onClick = {
-                                if (captureActive) {
-                                    NavigationCaptureService.stop(context)
-                                } else {
-                                    val manager = context.getSystemService(
-                                        android.content.Context.MEDIA_PROJECTION_SERVICE
-                                    ) as MediaProjectionManager
-                                    captureLauncher.launch(manager.createScreenCaptureIntent())
-                                }
-                            },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = if (captureActive) Color(0xFF7A2632) else accent,
-                                contentColor = if (captureActive) GlassWhite else ObsidianBlack
-                            ),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                            modifier = Modifier.testTag("maps_navigation_mirror_toggle")
-                        ) {
-                            Text(if (captureActive) "Stop" else "Mirror")
-                        }
-                    }
-
-                    if (captureActive) {
-                        val frame = latestCaptureFrame
-                        if (frame != null && !frame.isRecycled) {
-                            Image(
-                                bitmap = frame.asImageBitmap(),
-                                contentDescription = "Live mirrored navigation app window",
-                                contentScale = ContentScale.Fit,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(if (isLandscapeWide) 150.dp else 112.dp)
-                                    .clip(RoundedCornerShape(10.dp))
-                                    .testTag("maps_navigation_mirror_frame")
-                            )
-                        } else {
-                            Text(
-                                "Waiting for the selected app window…",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = TextSecondary
-                            )
-                        }
-                    }
-
-                    externalNavigation?.let { navigation ->
-                        Text(
-                            "${navigation.providerLabel} · ${navigation.turnInstruction}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = GlassWhite,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Text(
-                            buildList {
-                                if (navigation.nextTurnDistanceLabel != "--") add("Next: ${navigation.nextTurnDistanceLabel}")
-                                navigation.remainingSummary.takeIf(String::isNotBlank)?.let { add(it) }
-                                navigation.etaTimeLabel?.let { add("ETA $it") }
-                            }.joinToString(" · ").ifBlank { "Live guidance notification detected" },
-                            style = MaterialTheme.typography.labelSmall,
-                            color = TextSecondary,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-
-                    captureError?.let { message ->
-                        Text(
-                            message,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color(0xFFFF8A80)
-                        )
-                    }
-
-                    if (!captureActive) {
-                        Text(
-                            "Start navigation in Maps, Waze or Mappls, tap Mirror, then choose that app's window in Android's sharing picker. Avoid Entire screen if you don't want LumaNav to mirror itself.",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = TextSecondary
-                        )
-                    }
-                }
-            }
-
             // Continuous Container Morphing between Destination Confirmation / Search Status / None
             val bannerState = when {
                 mapsPulse.isExternalGoogleMapsSyncActive -> 3
@@ -413,6 +387,11 @@ fun MapsScreen(
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis
                                         )
+                                    }
+                                    if (target.latitude != null && target.longitude != null) {
+                                        IconButton(onClick = { onSaveDestination(target) }) {
+                                            Icon(Icons.Outlined.BookmarkBorder, contentDescription = "Save destination", tint = accent)
+                                        }
                                     }
                                     ServiceStateBadge(state = ServiceAvailabilityState.LIVE)
                                 }
@@ -481,7 +460,7 @@ fun MapsScreen(
             }
 
             // Continuous Morph between Candidate Disambiguation List & Route Alternatives
-            AnimatedContent(
+            if (!searchActive) AnimatedContent(
                 targetState = mapsPulse.destinationCandidates.isNotEmpty(),
                 transitionSpec = {
                     if (reducedMotion) {
@@ -535,6 +514,11 @@ fun MapsScreen(
                                             overflow = TextOverflow.Ellipsis
                                         )
                                     }
+                                    if (candidate.latitude != null && candidate.longitude != null) {
+                                        IconButton(onClick = { onSaveDestination(candidate) }) {
+                                            Icon(Icons.Outlined.BookmarkBorder, contentDescription = "Save place", tint = accent)
+                                        }
+                                    }
                                     Text("Select", style = MaterialTheme.typography.labelMedium, color = accent)
                                 }
                             }
@@ -586,7 +570,7 @@ fun MapsScreen(
                                     }
                                     Spacer(Modifier.height(4.dp))
                                     Text(
-                                        text = "${route.viaRoad} · ${route.durationMin} min (${route.distanceKm} km)",
+                                        text = "${route.viaRoad} · ${route.durationMin} min (${formatNavigationDistance(route.distanceKm)})",
                                         style = MaterialTheme.typography.bodySmall,
                                         color = TextSecondary
                                     )
@@ -625,7 +609,101 @@ fun MapsScreen(
         }
     }
 
-    if (isLandscapeWide) {
+    if (showSavedPlaces) {
+        AlertDialog(
+            onDismissRequest = { showSavedPlaces = false },
+            title = { Text("Saved Places", color = GlassWhite) },
+            text = {
+                if (mapsPulse.savedPlaces.isEmpty()) {
+                    Text("No saved places yet. Search for a destination and tap the bookmark icon to save it.", color = TextSecondary)
+                } else {
+                    Column(
+                        modifier = Modifier.heightIn(max = 360.dp).verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        mapsPulse.savedPlaces.forEach { place ->
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Column(
+                                    modifier = Modifier.weight(1f)
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .photonLuminousTouch(pressScale = 0.97f, onClick = {
+                                            onConfirmDestination(place.toDestinationCandidate())
+                                            showSavedPlaces = false
+                                        })
+                                        .padding(10.dp)
+                                ) {
+                                    Text(place.name, color = GlassWhite, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                    Text(place.addressSummary, color = TextSecondary, style = MaterialTheme.typography.labelSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                                }
+                                Column(
+                                    horizontalAlignment = Alignment.End,
+                                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Surface(
+                                        onClick = {
+                                            onSaveDestination(place.toDestinationCandidate().copy(name = "Home", category = "Home"))
+                                            showSavedPlaces = false
+                                        },
+                                        color = DeepBlue.copy(alpha = 0.35f),
+                                        shape = RoundedCornerShape(8.dp)
+                                    ) {
+                                        Text("SET HOME", color = accent, style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp))
+                                    }
+                                    Surface(
+                                        onClick = {
+                                            onSaveDestination(place.toDestinationCandidate().copy(name = "Work", category = "Work"))
+                                            showSavedPlaces = false
+                                        },
+                                        color = DeepBlue.copy(alpha = 0.35f),
+                                        shape = RoundedCornerShape(8.dp)
+                                    ) {
+                                        Text("SET WORK", color = accent, style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp))
+                                    }
+                                    IconButton(onClick = { onRemoveSavedPlace(place.id) }) {
+                                        Icon(Icons.Outlined.DeleteOutline, contentDescription = "Remove saved place", tint = TextSecondary)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(onClick = { showSavedPlaces = false }) { Text("Close") }
+            },
+            containerColor = Color(0xFF101722),
+            titleContentColor = GlassWhite,
+            textContentColor = TextSecondary
+        )
+    }
+
+    if (isLandscapeWide && mapFullscreen) {
+        Box(modifier = modifier.fillMaxSize()) {
+            NativeMapLibreView(
+                currentLocation = mapsPulse.currentLatLon,
+                routePoints = mapsPulse.routePolylineGeo,
+                headingDegrees = telemetry.headingDegrees,
+                accent = accent,
+                modifier = Modifier.fillMaxSize(),
+                styleUri = activeMapStyle.second,
+                    show3DBuildings = activeMapStyle.first != "WIREFRAME",
+                wireframeMode = activeMapStyle.first == "WIREFRAME"
+            )
+            Surface(
+                onClick = { mapStyleIndex = (mapStyleIndex + 1) % mapStyles.size },
+                modifier = Modifier.align(Alignment.TopCenter).statusBarsPadding().padding(14.dp),
+                color = Color(0xE609111B), shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(1.dp, accent.copy(alpha = 0.55f))
+            ) { Text("MAP · ${activeMapStyle.first}", color = accent, modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp), style = MaterialTheme.typography.labelSmall) }
+            Surface(
+                onClick = { mapFullscreen = false },
+                modifier = Modifier.align(Alignment.BottomEnd).padding(14.dp),
+                color = Color(0xE609111B),
+                shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(1.dp, accent.copy(alpha = 0.55f))
+            ) { Text("EXIT FULLSCREEN", color = accent, modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp), style = MaterialTheme.typography.labelSmall) }
+        }
+    } else if (isLandscapeWide) {
         Row(
             modifier = modifier.fillMaxSize(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -645,11 +723,26 @@ fun MapsScreen(
                     routePoints = mapsPulse.routePolylineGeo,
                     headingDegrees = telemetry.headingDegrees,
                     accent = accent,
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier.fillMaxSize(),
+                    styleUri = activeMapStyle.second,
+                    show3DBuildings = activeMapStyle.first != "WIREFRAME",
+                    wireframeMode = activeMapStyle.first == "WIREFRAME"
                 )
+                Surface(
+                    onClick = { mapStyleIndex = (mapStyleIndex + 1) % mapStyles.size },
+                    modifier = Modifier.align(Alignment.TopCenter).statusBarsPadding().padding(14.dp),
+                    color = Color(0xE609111B), shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, accent.copy(alpha = 0.55f))
+                ) { Text("MAP · ${activeMapStyle.first}", color = accent, modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp), style = MaterialTheme.typography.labelSmall) }
+                Surface(
+                    onClick = { mapFullscreen = true },
+                    modifier = Modifier.align(Alignment.BottomEnd).padding(14.dp),
+                    color = Color(0xE609111B), shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, accent.copy(alpha = 0.55f))
+                ) { Text("FULLSCREEN", color = accent, modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp), style = MaterialTheme.typography.labelSmall) }
                 if (mapsPulse.confirmedDestination != null) {
                     Surface(
-                        modifier = Modifier.align(Alignment.TopStart).padding(14.dp),
+                        modifier = Modifier.align(Alignment.TopStart).statusBarsPadding().padding(14.dp),
                         color = Color(0xE609111B),
                         shape = RoundedCornerShape(14.dp),
                         border = BorderStroke(1.dp, accent.copy(alpha = 0.48f))
@@ -670,11 +763,159 @@ fun MapsScreen(
                 routePoints = mapsPulse.routePolylineGeo,
                 headingDegrees = telemetry.headingDegrees,
                 accent = accent,
-                modifier = Modifier.fillMaxSize().zIndex(0f)
+                modifier = Modifier.fillMaxSize().zIndex(0f),
+                styleUri = activeMapStyle.second,
+                show3DBuildings = activeMapStyle.first != "WIREFRAME",
+                wireframeMode = activeMapStyle.first == "WIREFRAME"
             )
-            if (mapsPulse.confirmedDestination != null) {
+            if (!isLandscapeWide) {
+            BoxWithConstraints(
+                modifier = Modifier.fillMaxSize().zIndex(4f)
+            ) {
+                val searchBarY by animateDpAsState(
+                    targetValue = when {
+                        searchActive -> 0.dp
+                        mapsPulse.confirmedDestination != null -> (maxHeight - 410.dp).coerceAtLeast(80.dp)
+                        else -> (maxHeight - 152.dp).coerceAtLeast(0.dp)
+                    },
+                    animationSpec = tween(
+                        durationMillis = if (reducedMotion) 0 else LivingFlow.StandardDurationMs,
+                        easing = LivingFlow.LaminarEasing
+                    ),
+                    label = "mapsFloatingSearchPosition"
+                )
+                LaunchedEffect(searchActive) {
+                    if (searchActive) focusRequester.requestFocus()
+                }
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .offset(y = searchBarY)
+                        .fillMaxWidth()
+                        .padding(horizontal = 14.dp)
+                        .statusBarsPadding()
+                        .padding(top = 10.dp)
+                        .imePadding()
+                        .zIndex(8f),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    if (mapsPulse.confirmedDestination != null && !searchActive) {
+                        Surface(
+                            onClick = { searchActive = true },
+                            modifier = Modifier.align(Alignment.End),
+                            color = Color(0xF20A1019),
+                            shape = RoundedCornerShape(50),
+                            border = BorderStroke(1.dp, accent.copy(alpha = 0.48f))
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 11.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(Icons.Outlined.Search, contentDescription = null, tint = accent, modifier = Modifier.size(17.dp))
+                                Text("SEARCH DESTINATION", color = GlassWhite, style = MaterialTheme.typography.labelSmall)
+                            }
+                        }
+                    } else {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedTextField(
+                            value = mapsPulse.destinationQuery,
+                            onValueChange = onDestinationQueryChange,
+                            modifier = Modifier.weight(1f)
+                                .focusRequester(focusRequester)
+                                .onFocusChanged { if (it.isFocused) searchActive = true }
+                                .testTag("maps_destination_search"),
+                            singleLine = true,
+                            placeholder = { Text("Search destination…", color = TextSecondary) },
+                            leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = "Search destination", tint = accent) },
+                            trailingIcon = {
+                                if (mapsPulse.destinationQuery.isNotBlank()) {
+                                    IconButton(onClick = onClearDestinationSearch) {
+                                        Icon(Icons.Outlined.Clear, contentDescription = "Clear destination", tint = TextSecondary)
+                                    }
+                                }
+                            },
+                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                            keyboardActions = KeyboardActions(onSearch = {
+                                onSearchDestination(mapsPulse.destinationQuery)
+                                keyboardController?.hide()
+                                searchActive = false
+                                focusManager.clearFocus()
+                            })
+                        )
+                        IconButton(
+                            onClick = {
+                                onSearchDestination(mapsPulse.destinationQuery)
+                                keyboardController?.hide()
+                                searchActive = false
+                                focusManager.clearFocus()
+                            },
+                            modifier = Modifier.testTag("maps_search_submit")
+                        ) {
+                            Icon(Icons.Outlined.Search, contentDescription = "Search", tint = accent)
+                        }
+                    }
+                    }
+                    if (searchActive && mapsPulse.destinationCandidates.isNotEmpty()) {
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(max = 340.dp)
+                                .zIndex(9f)
+                                .shadow(18.dp, RoundedCornerShape(18.dp)),
+                            color = Color(0xF20A1019),
+                            tonalElevation = 10.dp,
+                            shape = RoundedCornerShape(18.dp),
+                            border = BorderStroke(1.dp, accent.copy(alpha = 0.42f))
+                        ) {
+                            LazyColumn(
+                                modifier = Modifier.fillMaxWidth().heightIn(max = 340.dp).padding(8.dp),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                items(mapsPulse.destinationCandidates, key = { it.id }) { candidate ->
+                                    Surface(
+                                        color = Color(0xFF111B28),
+                                        shape = RoundedCornerShape(12.dp),
+                                        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
+                                            .photonLuminousTouch(pressScale = 0.97f, onClick = {
+                                                onConfirmDestination(candidate)
+                                                keyboardController?.hide()
+                                                searchActive = false
+                                                focusManager.clearFocus()
+                                            })
+                                    ) {
+                                        Column(Modifier.padding(horizontal = 14.dp, vertical = 11.dp)) {
+                                            Text(candidate.name, color = GlassWhite, style = MaterialTheme.typography.titleSmall)
+                                            Text(candidate.addressSummary, color = TextSecondary, style = MaterialTheme.typography.labelSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            }
+
+            if (!searchActive) Surface(
+                onClick = { mapStyleIndex = (mapStyleIndex + 1) % mapStyles.size },
+                modifier = Modifier.align(Alignment.TopCenter).statusBarsPadding().padding(14.dp).zIndex(2f),
+                color = Color(0xE609111B), shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(1.dp, accent.copy(alpha = 0.55f))
+            ) { Text("MAP · ${activeMapStyle.first}", color = accent, modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp), style = MaterialTheme.typography.labelSmall) }
+            Surface(
+                onClick = { mapFullscreen = !mapFullscreen },
+                modifier = Modifier.align(Alignment.BottomEnd).padding(14.dp).zIndex(2f),
+                color = Color(0xE609111B), shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(1.dp, accent.copy(alpha = 0.55f))
+            ) { Text(if (mapFullscreen) "EXIT FULLSCREEN" else "FULLSCREEN", color = accent, modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp), style = MaterialTheme.typography.labelSmall) }
+            if (mapsPulse.confirmedDestination != null && !searchActive) {
                 Surface(
-                    modifier = Modifier.align(Alignment.TopStart).padding(14.dp).zIndex(0.5f),
+                    modifier = Modifier.align(Alignment.TopStart).statusBarsPadding().padding(14.dp).zIndex(0.5f),
                     color = Color(0xE609111B),
                     shape = RoundedCornerShape(14.dp),
                     border = BorderStroke(1.dp, accent.copy(alpha = 0.48f))
@@ -686,16 +927,20 @@ fun MapsScreen(
                 }
             }
 
-            DraggableLaminarSheet(
-                minHeight = 250.dp,
-                maxHeight = 520.dp,
-                initialFraction = 0.42f,
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .testTag("maps_portrait_laminar_sheet")
-                    .zIndex(1f)
+            AnimatedVisibility(
+                visible = !mapFullscreen && !searchActive,
+                enter = fadeIn(tween(if (reducedMotion) 0 else LivingFlow.StandardDurationMs, easing = LivingFlow.LaminarEasing)),
+                exit = fadeOut(tween(if (reducedMotion) 0 else LivingFlow.CompactDurationMs, easing = LivingFlow.LaminarEasing)),
+                modifier = Modifier.align(Alignment.BottomCenter).zIndex(1f)
             ) {
-                routeContent(Modifier.fillMaxSize())
+                DraggableLaminarSheet(
+                    minHeight = 250.dp,
+                    maxHeight = 520.dp,
+                    initialFraction = 0.42f,
+                    modifier = Modifier.testTag("maps_portrait_laminar_sheet")
+                ) {
+                    routeContent(Modifier.fillMaxSize())
+                }
             }
         }
     }

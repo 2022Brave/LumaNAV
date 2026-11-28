@@ -92,7 +92,8 @@ jobs:
           set -euo pipefail
           # The first release must be newer than the already-installed CI APK
           # (whose fallback versionCode is 1).
-          VERSION_CODE="$((GITHUB_RUN_NUMBER + 1000000))"
+          # Share the same Android-safe monotonic sequence used by development CI.
+          VERSION_CODE="$(($(date -u +%s) / 10))"
           export LUMANAV_VERSION_CODE="$VERSION_CODE"
           echo "LUMANAV_VERSION_CODE=$VERSION_CODE" >> "$GITHUB_ENV"
           ./gradlew --no-daemon :app:assembleRelease
@@ -119,15 +120,22 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          VERSION_CODE="$((GITHUB_RUN_NUMBER + 1000000))"
+          VERSION_CODE="$LUMANAV_VERSION_CODE"
           VERSION="1.0.$VERSION_CODE"
           APK="LumaNAV-${VERSION}.apk"
           cp app/build/outputs/apk/release/app-release.apk "$APK"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "version_code=$VERSION_CODE" >> "$GITHUB_OUTPUT"
           echo "apk=$APK" >> "$GITHUB_OUTPUT"
-          echo "notes<<EOF" >> "$GITHUB_OUTPUT"
-          git log -1 --pretty=%s >> "$GITHUB_OUTPUT"
-          echo "EOF" >> "$GITHUB_OUTPUT"
+          PREVIOUS_TAG="$(git describe --tags --match 'v*' --abbrev=0 HEAD^ 2>/dev/null || true)"
+          if [[ -n "$PREVIOUS_TAG" ]]; then
+            CHANGE_RANGE="${PREVIOUS_TAG}..${GITHUB_SHA}"
+            git log "$CHANGE_RANGE" --no-merges --format='- %s%n%b' --invert-grep --grep='Update OTA manifest' > release-commits.md
+          else
+            git log -10 --no-merges --format='- %s%n%b' --invert-grep --grep='Update OTA manifest' > release-commits.md
+          fi
+          { echo "# What's New in This Update"; echo; cat release-commits.md; } > release-notes.md
+          if ! grep -q '^- ' release-notes.md; then echo "- Maintenance and stability improvements." >> release-notes.md; fi
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
@@ -135,6 +143,31 @@ jobs:
           tag_name: v${{ steps.release_meta.outputs.version }}
           name: LumaNAV ${{ steps.release_meta.outputs.version }}
           target_commitish: ${{ github.sha }}
-          body: ${{ steps.release_meta.outputs.notes }}
+          body_path: release-notes.md
           files: ${{ steps.release_meta.outputs.apk }}
           make_latest: true
+
+      - name: Update raw OTA manifest
+        shell: bash
+        env:
+          VERSION_NAME: ${{ steps.release_meta.outputs.version }}
+          VERSION_CODE: ${{ steps.release_meta.outputs.version_code }}
+          APK_NAME: ${{ steps.release_meta.outputs.apk }}
+        run: |
+          set -euo pipefail
+          RELEASE_NOTES="$(cat release-notes.md)"
+          APK_URL="https://github.com/2022Brave/LumaNAV/releases/download/v${VERSION_NAME}/${APK_NAME}"
+          jq -n \
+            --argjson versionCode "$VERSION_CODE" \
+            --arg versionName "$VERSION_NAME" \
+            --arg apkUrl "$APK_URL" \
+            --arg notes "$RELEASE_NOTES" \
+            '{versionCode:$versionCode,versionName:$versionName,apkUrl:$apkUrl,notes:$notes}' \
+            > latest.json
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add latest.json
+          if ! git diff --cached --quiet; then
+            git commit -m "Update OTA manifest for ${VERSION_NAME}"
+            git push origin HEAD:main
+          fi

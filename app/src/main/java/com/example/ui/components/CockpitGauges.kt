@@ -1,18 +1,31 @@
 package com.example.ui.components
 
+import android.graphics.Bitmap
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.draw.blur
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -25,7 +38,6 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -41,12 +53,12 @@ import androidx.compose.material.icons.outlined.MusicNote
 import androidx.compose.material.icons.outlined.Shuffle
 import androidx.compose.material.icons.outlined.SkipNext
 import androidx.compose.material.icons.outlined.SkipPrevious
+import androidx.compose.material.icons.outlined.Repeat
 import androidx.compose.material.icons.outlined.TurnRight
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
-import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.minimumInteractiveComponentSize
@@ -60,14 +72,16 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.MediaAppSource
 import com.example.data.model.MediaTrack
@@ -105,7 +119,6 @@ fun ActiveSpeedometerCard(
     speedLimitValue: Int?,
     headingCardinal: String,
     isLiveGps: Boolean,
-    isDemoPreview: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -293,7 +306,7 @@ fun ActiveSpeedometerCard(
                     )
                 }
 
-                // GPS Status Indicator (honestly distinguishes Live GPS vs Demo Placeholder)
+                // GPS status indicator
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -302,16 +315,10 @@ fun ActiveSpeedometerCard(
                         modifier = Modifier
                             .size(8.dp)
                             .clip(CircleShape)
-                            .background(
-                                when {
-                                    isLiveGps -> PulseClear
-                                    isDemoPreview -> IceBlue
-                                    else -> TextMuted
-                                }
-                            )
+                            .background(if (isLiveGps) PulseClear else TextMuted)
                     )
                     Text(
-                        text = if (isDemoPreview && !isLiveGps) "DEMO" else "GPS",
+                        text = "GPS",
                         style = MaterialTheme.typography.labelMedium,
                         color = GlassWhite
                     )
@@ -333,7 +340,6 @@ fun IdleProminentSpeedometer(
     speedValue: Int,
     maxSpeed: Int,
     unitLabel: String,
-    isDemoPreview: Boolean,
     modifier: Modifier = Modifier
 ) {
     val accent = LocalAuvionyxPalette.current.accentPrimary
@@ -475,14 +481,7 @@ fun IdleProminentSpeedometer(
                 fontSize = 16.sp,
                 color = TextSecondary
             )
-            if (isDemoPreview) {
-                Spacer(Modifier.height(2.dp))
-                Text(
-                    text = "DEMO",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = IceBlue.copy(alpha = 0.72f)
-                )
-            }
+
         }
     }
 }
@@ -492,6 +491,7 @@ fun IdleProminentSpeedometer(
  * - Active Cockpit mode (`compactMode = false`): Art + Title/Artist + Source Icon + Cyan Slider + 5-button row (Shuffle, Prev, Glowing Play/Pause, Next, Favorite)
  * - Idle Cockpit mode (`compactMode = true`): Floating frosted card + Art + Title/Artist + Cyan Slider + Compact 3-button row (Prev, Glowing Play/Pause, Next)
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun CockpitMediaPlayerCard(
     track: MediaTrack,
@@ -501,6 +501,7 @@ fun CockpitMediaPlayerCard(
     isFavorite: Boolean,
     positionSec: Int,
     compactMode: Boolean,
+    externalArtwork: Bitmap? = null,
     onOpenMusic: () -> Unit,
     onPlayPause: () -> Unit,
     onNextTrack: () -> Unit,
@@ -508,12 +509,30 @@ fun CockpitMediaPlayerCard(
     onToggleShuffle: () -> Unit,
     onToggleFavorite: () -> Unit,
     onSeek: (Int) -> Unit,
+    isRepeat: Boolean = false,
+    onToggleRepeat: () -> Unit = {},
+    artworkSize: Dp = 66.dp,
+    showRepeat: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val accent = LocalAuvionyxPalette.current.accentPrimary
 
+    Box(modifier = modifier) {
+        if (!compactMode) {
+            if (externalArtwork != null) {
+                Image(
+                    bitmap = externalArtwork.asImageBitmap(),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize().blur(30.dp)
+                )
+            } else {
+                Box(Modifier.fillMaxSize().background(Brush.radialGradient(listOf(track.adaptiveColor.copy(alpha = 0.34f), Color.Black))))
+            }
+            Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color(0xA8000000), Color(0xE8000000)))))
+        }
     LiquidGlassCockpitCard(
-        modifier = modifier
+        modifier = Modifier.fillMaxSize()
             .testTag(if (compactMode) "idle_media_card" else "active_media_card")
             .clip(RoundedCornerShape(24.dp))
             .photonLuminousTouch(pressScale = 0.98f, onClick = onOpenMusic),
@@ -531,12 +550,32 @@ fun CockpitMediaPlayerCard(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                AlbumArtworkArt(
-                    artVariant = track.artVariant,
-                    accentColor = track.adaptiveColor,
-                    cornerRadius = 14.dp,
-                    modifier = Modifier.size(if (compactMode) 58.dp else 66.dp)
-                )
+                if (externalArtwork != null) {
+                    Image(
+                        bitmap = externalArtwork.asImageBitmap(),
+                        contentDescription = "Current track album artwork",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(if (compactMode) 58.dp else artworkSize)
+                            .clip(RoundedCornerShape(14.dp))
+                    )
+                } else if (isPlaying) {
+                    Box(
+                        modifier = Modifier.size(if (compactMode) 58.dp else artworkSize)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(Brush.radialGradient(listOf(track.adaptiveColor.copy(alpha = 0.48f), Color.Black))),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Outlined.MusicNote, contentDescription = null, tint = track.adaptiveColor, modifier = Modifier.size(28.dp))
+                    }
+                } else {
+                    AlbumArtworkArt(
+                        artVariant = track.artVariant,
+                        accentColor = track.adaptiveColor,
+                        cornerRadius = 14.dp,
+                        modifier = Modifier.size(if (compactMode) 58.dp else artworkSize)
+                    )
+                }
                 Spacer(Modifier.width(14.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
@@ -544,7 +583,8 @@ fun CockpitMediaPlayerCard(
                         style = MaterialTheme.typography.titleLarge,
                         color = GlassWhite,
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        softWrap = false,
+                        modifier = Modifier.fillMaxWidth().basicMarquee()
                     )
                     Spacer(Modifier.height(2.dp))
                     Text(
@@ -552,7 +592,8 @@ fun CockpitMediaPlayerCard(
                         style = MaterialTheme.typography.bodyMedium,
                         color = TextSecondary,
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        softWrap = false,
+                        modifier = Modifier.fillMaxWidth().basicMarquee()
                     )
                 }
                 if (!compactMode) {
@@ -580,19 +621,7 @@ fun CockpitMediaPlayerCard(
 
             // Middle: Sleek Cyan Progress Scrubber + Timestamps
             Column(modifier = Modifier.fillMaxWidth()) {
-                Slider(
-                    value = positionSec.coerceIn(0, track.durationSec.coerceAtLeast(1)).toFloat(),
-                    onValueChange = { onSeek(it.toInt()) },
-                    valueRange = 0f..track.durationSec.coerceAtLeast(1).toFloat(),
-                    colors = SliderDefaults.colors(
-                        thumbColor = accent,
-                        activeTrackColor = accent,
-                        inactiveTrackColor = GlassWhite.copy(alpha = 0.16f)
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp)
-                )
+                CockpitWavyProgressBar(positionSec, track.durationSec, isPlaying, track.adaptiveColor, onSeek)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
@@ -708,6 +737,20 @@ fun CockpitMediaPlayerCard(
                             modifier = Modifier.size(26.dp)
                         )
                     }
+                    if (showRepeat) IconButton(
+                        onClick = onToggleRepeat,
+                        modifier = Modifier
+                            .clip(CircleShape)
+                            .photonLuminousTouch(pressScale = 0.90f)
+                            .testTag("active_media_repeat")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Repeat,
+                            contentDescription = "Repeat",
+                            tint = if (isRepeat) accent else GlassWhite.copy(alpha = 0.72f),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
                     IconButton(
                         onClick = onToggleFavorite,
                         modifier = Modifier
@@ -725,6 +768,90 @@ fun CockpitMediaPlayerCard(
                 }
             }
         }
+    }
+    }
+}
+
+@Composable
+private fun CockpitWavyProgressBar(
+    positionSec: Int,
+    durationSec: Int,
+    isPlaying: Boolean,
+    accent: Color,
+    onSeek: (Int) -> Unit
+) {
+    val reducedMotion = LocalAuvionyxMotion.current.reducedMotion
+    val targetAmplitude = if (isPlaying) 1f else 0.72f
+    val animatedAmplitude by animateFloatAsState(
+        targetValue = targetAmplitude,
+        animationSpec = tween(480, easing = LivingFlow.LaminarEasing),
+        label = "cockpitWaveAmplitude"
+    )
+    val transition = rememberInfiniteTransition(label = "cockpitWavePhase")
+    val animatedPhase by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = (2f * PI).toFloat(),
+        animationSpec = infiniteRepeatable(tween(2200, easing = LinearEasing)),
+        label = "cockpitWavePhaseValue"
+    )
+    val amplitude = if (reducedMotion) targetAmplitude else animatedAmplitude
+    val phase = if (reducedMotion) 0f else animatedPhase
+    val progress = (positionSec.toFloat() / durationSec.coerceAtLeast(1)).coerceIn(0f, 1f)
+
+    Canvas(
+        modifier = Modifier.fillMaxWidth().height(42.dp)
+            .pointerInput(durationSec) {
+                detectTapGestures { point ->
+                    onSeek((point.x / size.width.coerceAtLeast(1).toFloat() * durationSec.toFloat()).toInt().coerceIn(0, durationSec))
+                }
+            }
+            .pointerInput(durationSec) {
+                detectDragGestures { change, _ ->
+                    onSeek((change.position.x / size.width.coerceAtLeast(1).toFloat() * durationSec.toFloat()).toInt().coerceIn(0, durationSec))
+                    change.consume()
+                }
+            }
+    ) {
+        val centerY = size.height / 2f
+        val progressX = size.width * progress
+        val step = 3.dp.toPx()
+        drawLine(GlassWhite.copy(alpha = 0.16f), Offset(0f, centerY), Offset(size.width, centerY), 2.dp.toPx(), cap = StrokeCap.Round)
+
+        val layers = listOf(
+            Triple(9.dp.toPx(), 4.dp.toPx(), 0.16f),
+            Triple(5.dp.toPx(), 2.8.dp.toPx(), 0.40f),
+            Triple(2.dp.toPx(), 1.8.dp.toPx(), 0.96f)
+        )
+        layers.forEachIndexed { index, layer ->
+            fun waveY(x: Float): Float {
+                val angle = (x / size.width.coerceAtLeast(1f) * 5.5f * 2f * PI).toFloat() + phase + index * 0.65f
+                return centerY + sin(angle) * layer.first * amplitude
+            }
+
+            val fullWave = Path()
+            var x = 0f
+            while (x <= size.width) {
+                val y = waveY(x)
+                if (x == 0f) fullWave.moveTo(x, y) else fullWave.lineTo(x, y)
+                x += step
+            }
+            fullWave.lineTo(size.width, waveY(size.width))
+            drawPath(fullWave, accent.copy(alpha = 0.22f), style = Stroke(width = layer.second, cap = StrokeCap.Round))
+
+            val activeWave = Path()
+            x = 0f
+            while (x <= progressX) {
+                val y = waveY(x)
+                if (x == 0f) activeWave.moveTo(x, y) else activeWave.lineTo(x, y)
+                x += step
+            }
+            if (progressX > 0f) activeWave.lineTo(progressX, waveY(progressX))
+            if (progressX > 0f) {
+                drawPath(activeWave, accent.copy(alpha = layer.third), style = Stroke(width = layer.second, cap = StrokeCap.Round))
+            }
+        }
+        drawCircle(GlassWhite, 8.dp.toPx(), Offset(progressX, centerY), style = Stroke(width = 2.dp.toPx()))
+        drawCircle(accent, 5.dp.toPx(), Offset(progressX, centerY))
     }
 }
 

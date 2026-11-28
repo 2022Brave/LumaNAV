@@ -71,7 +71,7 @@ class NavigationCaptureService : Service() {
             .onFailure { error ->
                 releaseCaptureResources(stopProjection = true)
                 _captureError.value = error.message?.takeIf(String::isNotBlank)
-                    ?: "LumaNav could not start screen capture."
+                    ?: "LumaNAV could not start screen capture."
                 stopForeground(STOP_FOREGROUND_REMOVE)
                 stopSelf()
             }
@@ -88,7 +88,7 @@ class NavigationCaptureService : Service() {
         )
         val notification: Notification = NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_menu_view)
-            .setContentTitle("LumaNav navigation mirror")
+            .setContentTitle("LumaNAV navigation mirror")
             .setContentText("Mirroring the selected app window.")
             .setOngoing(true)
             .setCategory(NotificationCompat.CATEGORY_SERVICE)
@@ -117,7 +117,7 @@ class NavigationCaptureService : Service() {
         (getSystemService(Context.WINDOW_SERVICE) as WindowManager).defaultDisplay.getRealMetrics(metrics)
         captureDensityDpi = metrics.densityDpi
 
-        workerThread = HandlerThread("LumaNavScreenCapture").also { it.start() }
+        workerThread = HandlerThread("LumaNAVScreenCapture").also { it.start() }
         val handler = Handler(workerThread!!.looper)
         workerHandler = handler
 
@@ -140,7 +140,7 @@ class NavigationCaptureService : Service() {
         activeProjection.registerCallback(callback, handler)
 
         virtualDisplay = activeProjection.createVirtualDisplay(
-            "LumaNavNavigationMirror",
+            "LumaNAVNavigationMirror",
             width,
             height,
             captureDensityDpi,

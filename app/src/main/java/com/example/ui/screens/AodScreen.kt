@@ -36,12 +36,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.platform.LocalConfiguration
+import android.content.res.Configuration
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
@@ -86,6 +85,7 @@ fun AodScreen(
     onExitAod: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val isLandscapeWide = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
     val reducedMotion = LocalAuvionyxMotion.current.reducedMotion
     var shiftStep by remember { mutableIntStateOf(0) }
     var controlsVisible by remember { mutableStateOf(true) }
@@ -118,11 +118,6 @@ fun AodScreen(
     val timeLabel = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
     val speedVal = if (useMetricUnits) telemetry.speedKmh else (telemetry.speedKmh * 0.621371f).toInt()
     val unit = if (useMetricUnits) "km/h" else "mph"
-    val speedSourceTag = when {
-        telemetry.isLiveGpsActive -> ""
-        telemetry.isSimulationRunning -> " (Demo)"
-        else -> ""
-    }
 
     Box(
         modifier = modifier
@@ -138,7 +133,8 @@ fun AodScreen(
                 routePoints = routePoints,
                 headingDegrees = headingDegrees,
                 accent = ElectricCyan,
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.fillMaxSize(),
+                attributionBottomMarginDp = 88
             )
             Box(Modifier.fillMaxSize().background(Color(0x55000000)))
         }
@@ -156,7 +152,7 @@ fun AodScreen(
             )
 
             Text(
-                text = "$speedVal $unit$speedSourceTag",
+                text = "$speedVal $unit",
                 fontFamily = SpaceGroteskFontFamily,
                 fontWeight = FontWeight.SemiBold,
                 fontSize = if (aodStyle == AodStyle.MAP) 40.sp else 34.sp,
@@ -194,21 +190,29 @@ fun AodScreen(
                         color = GlassWhite,
                         modifier = Modifier.padding(top = 56.dp)
                     )
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    Surface(
+                        color = Color(0xB8000810),
+                        shape = RoundedCornerShape(18.dp),
+                        border = BorderStroke(1.dp, ElectricCyan.copy(alpha = 0.26f))
                     ) {
-                        Icon(
-                            imageVector = Icons.Outlined.TurnRight,
-                            contentDescription = "Next turn",
-                            tint = ElectricCyan,
-                            modifier = Modifier.size(28.dp)
-                        )
-                        Text(
-                            text = if (isNavigating && routePoints.size >= 2) "${telemetry.nextTurnDistanceLabel} · ${telemetry.nextTurnInstruction}" else "No active route",
-                            style = MaterialTheme.typography.headlineMedium,
-                            color = GlassWhite.copy(alpha = 0.85f)
-                        )
+                        Row(
+                            modifier = Modifier.padding(horizontal = 18.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.TurnRight,
+                                contentDescription = "Next turn",
+                                tint = ElectricCyan,
+                                modifier = Modifier.size(28.dp)
+                            )
+                            Text(
+                                text = if (isNavigating && routePoints.size >= 2) "${telemetry.nextTurnDistanceLabel} · ${telemetry.nextTurnInstruction}" else "No active route",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = GlassWhite.copy(alpha = 0.92f),
+                                maxLines = 2
+                            )
+                        }
                     }
                 }
 
@@ -222,7 +226,7 @@ fun AodScreen(
                     )
                     Text(
                         text = if (telemetry.remainingMinutes > 0) {
-                            "${if (telemetry.isSimulationRunning) "Demo Route" else "Route"}: ${telemetry.remainingMinutes} min · ${formatNavigationDistance(telemetry.remainingDistanceKm)}"
+                            "Route: ${telemetry.remainingMinutes} min · ${formatNavigationDistance(telemetry.remainingDistanceKm)}"
                         } else {
                             "No active route"
                         },
@@ -276,11 +280,18 @@ fun AodScreen(
                             testTag = "aod_style_${style.name}",
                             modifier = Modifier.height(42.dp)
                         ) {
+                            val pillLabel = if (isLandscapeWide) style.label else when (style) {
+                                AodStyle.MINIMAL -> "Minimal"
+                                AodStyle.MAP -> "Map"
+                                AodStyle.JOURNEY -> "Journey"
+                            }
                             Text(
-                                text = style.label,
+                                text = pillLabel,
                                 style = MaterialTheme.typography.labelMedium,
                                 color = if (aodStyle == style) GlassWhite else TextSecondary,
-                                modifier = Modifier.padding(horizontal = 12.dp)
+                                maxLines = 1,
+                                softWrap = false,
+                                modifier = Modifier.padding(horizontal = if (isLandscapeWide) 12.dp else 10.dp)
                             )
                         }
                     }
@@ -301,11 +312,11 @@ fun AodScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.PowerSettingsNew,
-                            contentDescription = "Wake LumaNav Drive",
+                            contentDescription = "Wake LumaNAV Drive",
                             tint = ElectricCyan,
                             modifier = Modifier.size(18.dp)
                         )
-                        Text("Wake LumaNav", style = MaterialTheme.typography.labelLarge, color = GlassWhite)
+                        Text("Wake", style = MaterialTheme.typography.labelLarge, color = GlassWhite, maxLines = 1, softWrap = false)
                     }
                 }
             }

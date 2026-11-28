@@ -21,8 +21,6 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -47,15 +45,12 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.outlined.Apps
 import androidx.compose.material.icons.outlined.Bluetooth
-import androidx.compose.material.icons.outlined.DirectionsCar
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.MusicNote
+import androidx.compose.material.icons.outlined.Nightlight
 import androidx.compose.material.icons.outlined.Navigation
-import androidx.compose.material.icons.outlined.Phone
 import androidx.compose.material.icons.outlined.Repeat
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Shuffle
@@ -80,12 +75,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
@@ -113,7 +106,6 @@ import com.example.ui.theme.LocalAuvionyxPalette
 import com.example.ui.theme.PulseClear
 import com.example.ui.theme.PulseCongestion
 import com.example.ui.theme.PulseSlow
-import com.example.ui.theme.TextMuted
 import com.example.ui.theme.TextSecondary
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
@@ -664,7 +656,7 @@ fun TrafficPulseBadge(
 
 /**
  * Authoritative Top Branding & Status Bar matching Active & Idle Cockpit blueprints:
- * - Left: Velocity A + LumaNav wordmark
+ * - Left: Velocity A + LumaNAV wordmark
  * - Bottom center: Subtle Electric Cyan horizon shimmer hairline
  * - Right: Stacked Time/Date, Divider, Weather Icon + Temp + Locality, Signal, Wi-Fi, Bluetooth, Settings gear
  */
@@ -726,7 +718,7 @@ fun GlassTopStatusBar(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            // Left: LumaNav wordmark (tap for AOD)
+            // Left: LumaNAV wordmark (tap for AOD)
             VelocityACompactWordmark(
                 modifier = Modifier
                     .testTag("top_aod_button")
@@ -840,14 +832,13 @@ fun GlassNavigationRail(
     modifier: Modifier = Modifier
 ) {
     val railItems = listOf(
-        Triple(AuvionyxModule.DRIVE, Icons.Outlined.Home, "Home"),
+        Triple(AuvionyxModule.DRIVE, Icons.Outlined.Home, "Drive"),
         Triple(AuvionyxModule.MAPS, Icons.Outlined.Navigation, "Maps"),
         Triple(AuvionyxModule.MUSIC, Icons.Outlined.MusicNote, "Music"),
         Triple(AuvionyxModule.HUD, Icons.Outlined.Speed, "HUD"),
-        Triple(AuvionyxModule.APPS, Icons.Outlined.Apps, "Apps"),
+        Triple(AuvionyxModule.AOD, Icons.Outlined.Nightlight, "AOD"),
         Triple(AuvionyxModule.SETTINGS, Icons.Outlined.Settings, "Settings")
     )
-
     LiquidGlassCockpitCard(
         modifier = modifier.fillMaxHeight(),
         cornerRadius = 30.dp,
@@ -856,10 +847,7 @@ fun GlassNavigationRail(
         contentPadding = PaddingValues(vertical = 12.dp, horizontal = 6.dp)
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxHeight()
-                .heightIn(min = 328.dp)
-                .verticalScroll(rememberScrollState()),
+            modifier = Modifier.fillMaxHeight().heightIn(min = 328.dp).verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(8.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -868,16 +856,18 @@ fun GlassNavigationRail(
                 LiquidGlassLens(
                     selected = selected,
                     onClick = { onSelectModule(module) },
-                    cornerRadius = 18.dp,
-                    modifier = Modifier.size(48.dp),
+                    cornerRadius = 16.dp,
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
                     testTag = "rail_${module.route}"
                 ) {
-                    Icon(
-                        imageVector = if (module == AuvionyxModule.DRIVE && selected) Icons.Filled.Home else icon,
-                        contentDescription = label,
-                        tint = if (selected) GlassWhite else GlassWhite.copy(alpha = 0.82f),
-                        modifier = Modifier.size(22.dp)
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Icon(imageVector = if (module == AuvionyxModule.DRIVE && selected) Icons.Filled.Home else icon, contentDescription = label, tint = if (selected) GlassWhite else GlassWhite.copy(alpha = 0.82f), modifier = Modifier.size(21.dp))
+                        Text(text = label, style = MaterialTheme.typography.labelMedium, color = if (selected) GlassWhite else TextSecondary, maxLines = 1)
+                    }
                 }
             }
         }
@@ -886,13 +876,12 @@ fun GlassNavigationRail(
 
 /**
  * Full-Width Floating Bottom Navigation Dock matching Image 3 Active Cockpit blueprint:
- * [ Phone ] [ Maps ] [ Music ] [ HUD ] [ Apps ]
+ * [ Drive ] [ Maps ] [ Music ] [ HUD ] [ AOD ] [ Settings ]
  */
 @Composable
 fun GlassBottomDock(
     activeModule: AuvionyxModule,
     onSelectModule: (AuvionyxModule) -> Unit,
-    onOpenPhoneDialer: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val palette = LocalAuvionyxPalette.current
@@ -946,11 +935,11 @@ fun GlassBottomDock(
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
             DockShortcutItem(
-                icon = Icons.Outlined.Phone,
-                label = "Phone",
-                selected = false,
-                testTag = "dock_phone",
-                onClick = onOpenPhoneDialer,
+                icon = Icons.Outlined.Home,
+                label = "Drive",
+                selected = activeModule == AuvionyxModule.DRIVE,
+                testTag = "dock_drive",
+                onClick = { onSelectModule(AuvionyxModule.DRIVE) },
                 modifier = Modifier.weight(1f)
             )
             DockShortcutItem(
@@ -979,11 +968,11 @@ fun GlassBottomDock(
                 modifier = Modifier.weight(1f)
             )
             DockShortcutItem(
-                icon = Icons.Outlined.Apps,
-                label = "Apps",
-                selected = activeModule == AuvionyxModule.APPS,
-                testTag = "dock_apps",
-                onClick = { onSelectModule(AuvionyxModule.APPS) },
+                icon = Icons.Outlined.Nightlight,
+                label = "AOD",
+                selected = activeModule == AuvionyxModule.AOD,
+                testTag = "dock_aod",
+                onClick = { onSelectModule(AuvionyxModule.AOD) },
                 modifier = Modifier.weight(1f)
             )
             DockShortcutItem(
@@ -1070,6 +1059,7 @@ fun MediaControlCluster(
     onNext: () -> Unit,
     onToggleRepeatOrFav: () -> Unit,
     showRepeatInsteadOfFav: Boolean = false,
+    showShuffleRepeat: Boolean = true,
     accentOverride: Color? = null,
     modifier: Modifier = Modifier
 ) {
@@ -1081,18 +1071,20 @@ fun MediaControlCluster(
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        IconButton(
-            onClick = onToggleShuffle,
-            modifier = Modifier
-                .clip(CircleShape)
-                .photonLuminousTouch()
-                .testTag("media_shuffle")
-        ) {
-            Icon(
-                imageVector = Icons.Outlined.Shuffle,
-                contentDescription = "Shuffle",
-                tint = if (isShuffle) accent else IceBlue.copy(alpha = 0.7f)
-            )
+        if (showShuffleRepeat) {
+            IconButton(
+                onClick = onToggleShuffle,
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .photonLuminousTouch()
+                    .testTag("media_shuffle")
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Shuffle,
+                    contentDescription = "Shuffle",
+                    tint = if (isShuffle) accent else IceBlue.copy(alpha = 0.7f)
+                )
+            }
         }
         IconButton(
             onClick = onPrevious,
@@ -1160,25 +1152,27 @@ fun MediaControlCluster(
                 modifier = Modifier.size(28.dp)
             )
         }
-        IconButton(
-            onClick = onToggleRepeatOrFav,
-            modifier = Modifier
-                .clip(CircleShape)
-                .photonLuminousTouch()
-                .testTag("media_fav_repeat")
-        ) {
-            if (showRepeatInsteadOfFav) {
-                Icon(
-                    imageVector = Icons.Outlined.Repeat,
-                    contentDescription = "Repeat",
-                    tint = if (isRepeat) accent else IceBlue.copy(alpha = 0.7f)
-                )
-            } else {
-                Icon(
-                    imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
-                    contentDescription = "Favorite track",
-                    tint = if (isFavorite) accent else IceBlue.copy(alpha = 0.7f)
-                )
+        if (showShuffleRepeat) {
+            IconButton(
+                onClick = onToggleRepeatOrFav,
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .photonLuminousTouch()
+                    .testTag("media_fav_repeat")
+            ) {
+                if (showRepeatInsteadOfFav) {
+                    Icon(
+                        imageVector = Icons.Outlined.Repeat,
+                        contentDescription = "Repeat",
+                        tint = if (isRepeat) accent else IceBlue.copy(alpha = 0.7f)
+                    )
+                } else {
+                    Icon(
+                        imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                        contentDescription = "Favorite track",
+                        tint = if (isFavorite) accent else IceBlue.copy(alpha = 0.7f)
+                    )
+                }
             }
         }
     }

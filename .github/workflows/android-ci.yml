@@ -1,4 +1,4 @@
-name: LumaNav Android CI
+name: LumaNAV Android CI
 
 on:
   workflow_dispatch:
@@ -124,9 +124,15 @@ jobs:
           fi
 
       - name: Compile debug APK
-        env:
-          LUMANAV_VERSION_CODE: ${{ github.run_number }}
-        run: ./gradlew --no-daemon :app:assembleDebug
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Android versionCode is limited to 2,100,000,000. Use a shared,
+          # UTC epoch-based sequence (10-second resolution) across dev/stable workflows.
+          VERSION_CODE="$(($(date -u +%s) / 10))"
+          echo "LUMANAV_VERSION_CODE=$VERSION_CODE" >> "$GITHUB_ENV"
+          export LUMANAV_VERSION_CODE="$VERSION_CODE"
+          ./gradlew --no-daemon :app:assembleDebug
 
       - name: Verify APK signature and certificate fingerprint
         shell: bash
@@ -158,6 +164,70 @@ jobs:
 
       - name: Run unit tests
         run: ./gradlew --no-daemon :app:testDebugUnitTest
+
+
+      # Publish every fully tested build from the personal development branch.
+      # This is deliberately excluded from pull_request and manual runs.
+      - name: Publish development OTA release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/branding/lumanav-ui-overhaul'
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION_CODE="$LUMANAV_VERSION_CODE"
+          VERSION="1.0.${VERSION_CODE}"
+          APK="LumaNAV-dev-${VERSION}.apk"
+          cp app/build/outputs/apk/debug/app-debug.apk "${APK}"
+          PREVIOUS_TAG="$(git describe --tags --match 'dev-*' --abbrev=0 HEAD^ 2>/dev/null || true)"
+          if [[ -n "$PREVIOUS_TAG" ]]; then
+            CHANGE_RANGE="${PREVIOUS_TAG}..${GITHUB_SHA}"
+            git log "$CHANGE_RANGE" --no-merges --format='- %s%n%b' --invert-grep --grep='Update development OTA manifest' > dev-release-commits.md
+          else
+            git log -10 --no-merges --format='- %s%n%b' --invert-grep --grep='Update development OTA manifest' > dev-release-commits.md
+          fi
+          { echo "# What's New in This Update"; echo; cat dev-release-commits.md; } > dev-release-notes.md
+          if ! grep -q '^- ' dev-release-notes.md; then echo "- Maintenance and stability improvements." >> dev-release-notes.md; fi
+          echo "VERSION=${VERSION}" >> "$GITHUB_ENV"
+          echo "APK=${APK}" >> "$GITHUB_ENV"
+          echo "APK_URL=https://github.com/2022Brave/LumaNAV/releases/download/dev-${GITHUB_RUN_ID}/${APK}" >> "$GITHUB_ENV"
+
+      - name: Create development GitHub Release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/branding/lumanav-ui-overhaul'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: dev-${{ github.run_id }}
+          name: LumaNAV Development ${{ github.run_id }}
+          body_path: dev-release-notes.md
+          files: LumaNAV-dev-*.apk
+          prerelease: true
+          make_latest: false
+
+      - name: Publish development OTA manifest
+        if: github.event_name == 'push' && github.ref == 'refs/heads/branding/lumanav-ui-overhaul'
+        shell: bash
+        env:
+          COMMIT_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          RELEASE_NOTES="$(cat dev-release-notes.md)"
+          VERSION_CODE="$LUMANAV_VERSION_CODE"
+          VERSION="1.0.${VERSION_CODE}"
+          APK="LumaNAV-dev-${VERSION}.apk"
+          APK_URL="https://github.com/2022Brave/LumaNAV/releases/download/dev-${GITHUB_RUN_ID}/${APK}"
+          jq -n \
+            --argjson versionCode "${VERSION_CODE}" \
+            --arg versionName "${VERSION}" \
+            --arg apkUrl "${APK_URL}" \
+            --arg notes "${RELEASE_NOTES}" \
+            --arg commit "${COMMIT_SHA}" \
+            --arg channel "development" \
+            --arg buildNumber "${GITHUB_RUN_NUMBER}" \
+            '{versionCode:$versionCode,versionName:$versionName,apkUrl:$apkUrl,notes:$notes,commit:$commit,channel:$channel,buildNumber:$buildNumber}' \
+            > latest-dev.json
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add latest-dev.json
+          git commit -m "Update development OTA manifest for ${VERSION}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
 
       - name: Upload test reports
         if: always()

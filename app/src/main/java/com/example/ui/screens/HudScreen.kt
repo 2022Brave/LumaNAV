@@ -1,14 +1,15 @@
 package com.example.ui.screens
 
+import android.app.Activity
+import android.graphics.Bitmap
+
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -17,7 +18,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -26,12 +29,18 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.outlined.SkipNext
 import androidx.compose.material.icons.outlined.SkipPrevious
 import androidx.compose.material.icons.outlined.Navigation
+import androidx.compose.material.icons.outlined.MusicNote
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -44,9 +53,14 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -54,6 +68,7 @@ import androidx.compose.ui.unit.sp
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
+import kotlinx.coroutines.delay
 import com.example.ui.components.NativeMapLibreView
 import com.example.ui.components.formatNavigationDistance
 import com.example.data.model.AuvionyxModule
@@ -63,7 +78,6 @@ import com.example.data.model.MediaTrack
 import com.example.data.model.VehicleTelemetry
 import com.example.data.preferences.AuvionyxSettingsState
 import com.example.ui.components.AlbumArtworkArt
-import com.example.ui.components.GlassCard
 import com.example.ui.components.photonLuminousTouch
 import com.example.ui.theme.DeepBlue
 import com.example.ui.theme.ElectricCyan
@@ -88,62 +102,142 @@ fun HudScreen(
     routePoints: List<Pair<Double, Double>>,
     headingDegrees: Int,
     onSelectModule: (AuvionyxModule) -> Unit,
+    onUpdateHudConfig: (com.example.data.model.HudConfig) -> Unit,
     onPlayPause: () -> Unit,
     onNextTrack: () -> Unit,
     onPrevTrack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var mirrorForWindshield by remember { mutableStateOf(hudConfig.mirrorFlipForWindshield) }
-    val hudAccent = ElectricCyan
-    val speedDisplay = if (settings.useMetricUnits) telemetry.speedKmh
-        else (telemetry.speedKmh * 0.621371f).toInt()
+    val activity = LocalContext.current as? Activity
+    val originalWindowBrightness = remember(activity) { activity?.window?.attributes?.screenBrightness ?: -1f }
+    var hudBrightness by remember { mutableFloatStateOf(if (originalWindowBrightness in 0f..1f) originalWindowBrightness else 0.75f) }
+    var glowIntensity by remember { mutableFloatStateOf(0.85f) }
+    SideEffect {
+        activity?.window?.let { window ->
+            val attributes = window.attributes
+            attributes.screenBrightness = hudBrightness.coerceIn(0.05f, 1f)
+            window.attributes = attributes
+        }
+    }
+    DisposableEffect(activity) {
+        onDispose {
+            activity?.window?.let { window ->
+                val attributes = window.attributes
+                attributes.screenBrightness = originalWindowBrightness
+                window.attributes = attributes
+            }
+        }
+    }
+    var toolbarVisible by remember { mutableStateOf(true) }
+    var toolbarInteraction by remember { mutableStateOf(0) }
+    LaunchedEffect(toolbarInteraction) {
+        delay(4_000L)
+        toolbarVisible = false
+    }
+    val hudAccent = ElectricCyan.copy(alpha = glowIntensity.coerceIn(0.25f, 1f))
+    val calibratedSpeedKmh = (telemetry.speedKmh *
+        (1f + hudConfig.speedometerMatchPercent.coerceIn(0f, 10f) / 100f)).toInt()
+    val speedDisplay = if (settings.useMetricUnits) calibratedSpeedKmh
+        else (calibratedSpeedKmh * 0.621371f).toInt()
     val unitLabel = if (settings.useMetricUnits) "KM/H" else "MPH"
 
     Column(
-        modifier = modifier.fillMaxSize().background(ObsidianBlack).graphicsLayer {
-            if (mirrorForWindshield) scaleX = -1f
-        },
-        verticalArrangement = Arrangement.spacedBy(if (isLandscapeWide) 8.dp else 10.dp)
-    ) {
-        Surface(
-            onClick = { mirrorForWindshield = !mirrorForWindshield },
-            color = if (mirrorForWindshield) hudAccent.copy(alpha = 0.22f) else Color(0xFF101722),
-            shape = RoundedCornerShape(12.dp),
-            border = BorderStroke(1.dp, hudAccent.copy(alpha = 0.42f))
-        ) {
-            Text(
-                text = if (mirrorForWindshield) "WINDSHIELD MIRROR · ON" else "WINDSHIELD MIRROR · OFF",
-                color = GlassWhite,
-                style = MaterialTheme.typography.labelSmall,
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp)
-            )
-        }
-        if (isLandscapeWide) {
-            Row(
-                modifier = Modifier.fillMaxWidth().weight(1f),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                GlassCard(
-                    modifier = Modifier.weight(0.27f).fillMaxHeight(),
-                    cornerRadius = 24.dp,
-                    contentPadding = PaddingValues(8.dp)
-                ) {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        HudSpeedometerGauge(
-                            speed = speedDisplay,
-                            maxSpeed = if (settings.useMetricUnits) 160 else 100,
-                            unitLabel = unitLabel,
-                            accent = hudAccent
-                        )
+        modifier = modifier
+            .fillMaxSize()
+            .background(ObsidianBlack)
+            .graphicsLayer { if (mirrorForWindshield) scaleX = -1f }
+            .pointerInput(Unit) {
+                awaitPointerEventScope {
+                    while (true) {
+                        val event = awaitPointerEvent(PointerEventPass.Initial)
+                        if (event.changes.any { it.pressed }) {
+                            toolbarVisible = true
+                            toolbarInteraction += 1
+                        }
                     }
                 }
+            },
+        verticalArrangement = Arrangement.spacedBy(if (isLandscapeWide) 8.dp else 10.dp)
+    ) {
+        if (toolbarVisible) {
+            Row(
+                modifier = Modifier.statusBarsPadding(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Surface(
+                    onClick = { mirrorForWindshield = !mirrorForWindshield },
+                    color = if (mirrorForWindshield) hudAccent.copy(alpha = 0.22f) else Color(0xFF101722),
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, hudAccent.copy(alpha = 0.42f))
+                ) {
+                    Text(
+                        text = if (mirrorForWindshield) "MIRROR · ON" else "MIRROR · OFF",
+                        color = GlassWhite,
+                        style = MaterialTheme.typography.labelSmall,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp)
+                    )
+                }
+                Surface(
+                    onClick = {
+                        val nextStyle = when (hudConfig.cockpitStyle) {
+                            com.example.data.model.HudCockpitStyle.DIGITAL_MINIMAL -> com.example.data.model.HudCockpitStyle.ARC_GAUGE
+                            com.example.data.model.HudCockpitStyle.ARC_GAUGE -> com.example.data.model.HudCockpitStyle.WIREFRAME_MAP
+                            com.example.data.model.HudCockpitStyle.WIREFRAME_MAP -> com.example.data.model.HudCockpitStyle.DIGITAL_MINIMAL
+                        }
+                        val nextLayout = when (nextStyle) {
+                            com.example.data.model.HudCockpitStyle.DIGITAL_MINIMAL -> HudLayoutMode.MINIMAL
+                            com.example.data.model.HudCockpitStyle.ARC_GAUGE -> HudLayoutMode.ADVANCED
+                            com.example.data.model.HudCockpitStyle.WIREFRAME_MAP -> HudLayoutMode.NAVIGATION
+                        }
+                        onUpdateHudConfig(hudConfig.copy(cockpitStyle = nextStyle, layoutMode = nextLayout))
+                    },
+                    color = Color(0x66101722),
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, hudAccent.copy(alpha = 0.42f))
+                ) {
+                    Text(
+                        text = "${hudConfig.cockpitStyle.label.uppercase()} · TAP TO CYCLE",
+                        color = hudAccent,
+                        style = MaterialTheme.typography.labelSmall,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp)
+                    )
+                }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                Column(modifier = Modifier.width(132.dp)) {
+                    Text("DISPLAY", color = TextSecondary, style = MaterialTheme.typography.labelSmall)
+                    Slider(value = hudBrightness, onValueChange = { hudBrightness = it }, valueRange = 0.05f..1f)
+                }
+                Column(modifier = Modifier.width(132.dp)) {
+                    Text("ACCENT GLOW", color = TextSecondary, style = MaterialTheme.typography.labelSmall)
+                    Slider(value = glowIntensity, onValueChange = { glowIntensity = it }, valueRange = 0.25f..1f)
+                }
+            }
+        }
+        if (hudConfig.cockpitStyle == com.example.data.model.HudCockpitStyle.ARC_GAUGE) {
+            ArcGaugeHudLayout(
+                speed = speedDisplay,
+                maxSpeed = if (settings.useMetricUnits) 160 else 100,
+                unitLabel = unitLabel,
+                telemetry = telemetry,
+                currentLocation = currentLocation,
+                routePoints = routePoints,
+                headingDegrees = headingDegrees,
+                accent = hudAccent,
+                modifier = Modifier.fillMaxWidth().weight(1f)
+            )
+        } else if (isLandscapeWide) {
+            Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
                 if (hudConfig.layoutMode == HudLayoutMode.MINIMAL) {
                     HudMinimalTurnCard(
+                        speed = speedDisplay,
+                        unitLabel = unitLabel,
                         distance = telemetry.nextTurnDistanceLabel,
                         instruction = telemetry.nextTurnInstruction,
                         accent = hudAccent,
-                        modifier = Modifier.weight(0.73f).fillMaxHeight()
+                        modifier = Modifier.fillMaxSize()
                     )
                 } else {
                     AuvionyxNativeMapPanel(
@@ -156,73 +250,230 @@ fun HudScreen(
                         nextTurnRoad = telemetry.nextTurnRoad,
                         nextTurnInstruction = telemetry.nextTurnInstruction,
                         telemetryDestinationLabel = telemetry.destinationLabel,
-                        modifier = Modifier.weight(0.73f).fillMaxHeight()
+                        modifier = Modifier.fillMaxSize(),
+                        show3DBuildings = hudConfig.cockpitStyle != com.example.data.model.HudCockpitStyle.WIREFRAME_MAP,
+                        wireframeMode = hudConfig.cockpitStyle == com.example.data.model.HudCockpitStyle.WIREFRAME_MAP
                     )
-                }
-            }
-        } else {
-            GlassCard(
-                modifier = Modifier.fillMaxWidth().height(126.dp),
-                cornerRadius = 22.dp,
-                contentPadding = PaddingValues(6.dp)
-            ) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    HudSpeedometerGauge(
+                    HudFloatingSpeedOverlay(
                         speed = speedDisplay,
                         maxSpeed = if (settings.useMetricUnits) 160 else 100,
                         unitLabel = unitLabel,
                         accent = hudAccent,
-                        compact = true
+                        landscape = true,
+                        modifier = Modifier.align(Alignment.BottomStart).padding(18.dp)
+                    )
+                    Surface(
+                        modifier = Modifier.align(Alignment.TopEnd).statusBarsPadding().padding(14.dp),
+                        color = Color(0xCC03070C),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text("ETA ${telemetry.etaTimeLabel} · ${formatNavigationDistance(telemetry.remainingDistanceKm)}",
+                            color = hudAccent, style = MaterialTheme.typography.labelSmall,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp))
+                    }
+                    HudBottomMusicBar(
+                        track = mediaState.currentTrack,
+                        isPlaying = mediaState.isPlaying,
+                        externalArtwork = mediaState.externalArtwork,
+                        isExternalSessionActive = mediaState.isExternalSessionActive,
+                        accent = hudAccent,
+                        onOpenMusic = { onSelectModule(AuvionyxModule.MUSIC) },
+                        onPrevious = onPrevTrack,
+                        onPlayPause = onPlayPause,
+                        onNext = onNextTrack,
+                        modifier = Modifier.align(Alignment.BottomEnd).padding(18.dp).width(280.dp)
                     )
                 }
             }
-            if (hudConfig.layoutMode == HudLayoutMode.MINIMAL) {
-                HudMinimalTurnCard(
-                    distance = telemetry.nextTurnDistanceLabel,
-                    instruction = telemetry.nextTurnInstruction,
-                    accent = hudAccent,
-                    modifier = Modifier.fillMaxWidth().weight(1f)
-                )
-            } else {
-                AuvionyxNativeMapPanel(
-                    currentLocation = currentLocation,
-                    routePoints = routePoints,
-                    headingDegrees = headingDegrees,
-                    accent = ElectricCyan,
-                    isNavigating = routePoints.size >= 2,
-                    nextTurnDistance = telemetry.nextTurnDistanceLabel,
-                    nextTurnRoad = telemetry.nextTurnRoad,
-                    nextTurnInstruction = telemetry.nextTurnInstruction,
-                    telemetryDestinationLabel = telemetry.destinationLabel,
-                    modifier = Modifier.fillMaxWidth().weight(1f)
-                )
+        } else {
+            Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                if (hudConfig.layoutMode == HudLayoutMode.MINIMAL) {
+                    HudMinimalTurnCard(
+                        speed = speedDisplay,
+                        unitLabel = unitLabel,
+                        distance = telemetry.nextTurnDistanceLabel,
+                        instruction = telemetry.nextTurnInstruction,
+                        accent = hudAccent,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    AuvionyxNativeMapPanel(
+                        currentLocation = currentLocation,
+                        routePoints = routePoints,
+                        headingDegrees = headingDegrees,
+                        accent = ElectricCyan,
+                        isNavigating = routePoints.size >= 2,
+                        nextTurnDistance = telemetry.nextTurnDistanceLabel,
+                        nextTurnRoad = telemetry.nextTurnRoad,
+                        nextTurnInstruction = telemetry.nextTurnInstruction,
+                        telemetryDestinationLabel = telemetry.destinationLabel,
+                        modifier = Modifier.fillMaxSize(),
+                        show3DBuildings = hudConfig.cockpitStyle != com.example.data.model.HudCockpitStyle.WIREFRAME_MAP,
+                        wireframeMode = hudConfig.cockpitStyle == com.example.data.model.HudCockpitStyle.WIREFRAME_MAP
+                    )
+                    HudFloatingSpeedOverlay(
+                        speed = speedDisplay,
+                        maxSpeed = if (settings.useMetricUnits) 160 else 100,
+                        unitLabel = unitLabel,
+                        accent = hudAccent,
+                        landscape = false,
+                        modifier = Modifier.align(Alignment.TopStart).padding(start = 12.dp, top = 120.dp)
+                    )
+                    Surface(
+                        modifier = Modifier.align(Alignment.TopEnd).statusBarsPadding().padding(14.dp),
+                        color = Color(0xCC03070C),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text("ETA ${telemetry.etaTimeLabel} · ${formatNavigationDistance(telemetry.remainingDistanceKm)}",
+                            color = hudAccent, style = MaterialTheme.typography.labelSmall,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp))
+                    }
+                    HudBottomMusicBar(
+                        track = mediaState.currentTrack,
+                        isPlaying = mediaState.isPlaying,
+                        externalArtwork = mediaState.externalArtwork,
+                        isExternalSessionActive = mediaState.isExternalSessionActive,
+                        accent = hudAccent,
+                        onOpenMusic = { onSelectModule(AuvionyxModule.MUSIC) },
+                        onPrevious = onPrevTrack,
+                        onPlayPause = onPlayPause,
+                        onNext = onNextTrack,
+                        modifier = Modifier.align(Alignment.BottomEnd).padding(12.dp).width(220.dp)
+                    )
+                }
             }
         }
 
-        if (hudConfig.layoutMode == HudLayoutMode.ADVANCED) {
-            Surface(
-                color = Color(0xFF0A0D12),
-                shape = RoundedCornerShape(14.dp),
-                border = BorderStroke(1.dp, hudAccent.copy(alpha = 0.32f)),
-                modifier = Modifier.fillMaxWidth()
+
+    }
+}
+
+@Composable
+private fun ArcGaugeHudLayout(
+    speed: Int,
+    maxSpeed: Int,
+    unitLabel: String,
+    telemetry: VehicleTelemetry,
+    currentLocation: Pair<Double, Double>?,
+    routePoints: List<Pair<Double, Double>>,
+    headingDegrees: Int,
+    accent: Color,
+    modifier: Modifier = Modifier
+) {
+    Box(modifier = modifier.background(Color.Black)) {
+        NativeMapLibreView(
+            currentLocation = currentLocation,
+            routePoints = routePoints,
+            headingDegrees = headingDegrees,
+            accent = accent,
+            modifier = Modifier.fillMaxSize().graphicsLayer { alpha = 0.28f }
+        )
+        Box(
+            modifier = Modifier.fillMaxSize().background(
+                Brush.radialGradient(colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.94f)))
+            )
+        )
+        Row(
+            modifier = Modifier.fillMaxSize().padding(horizontal = 22.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(20.dp)
+        ) {
+            Box(Modifier.weight(0.38f).fillMaxHeight(), contentAlignment = Alignment.Center) {
+                HudSpeedometerGauge(speed, maxSpeed, unitLabel, accent)
+            }
+            Column(
+                modifier = Modifier.weight(0.62f).fillMaxHeight(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                Column(
+                    modifier = Modifier.weight(1f).fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Text("ETA ${telemetry.etaTimeLabel}", color = GlassWhite, style = MaterialTheme.typography.labelMedium)
-                    Text(formatNavigationDistance(telemetry.remainingDistanceKm), color = hudAccent, style = MaterialTheme.typography.labelMedium)
+                    Row(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                        ArcGaugeMetric("TOP SPEED", "--", unitLabel, accent, Modifier.weight(1f).fillMaxHeight())
+                        ArcGaugeMetric("AVG SPEED", "--", unitLabel, accent, Modifier.weight(1f).fillMaxHeight())
+                    }
+                    Row(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                        ArcGaugeMetric("TRIP DIST", "--", "km", accent, Modifier.weight(1f).fillMaxHeight())
+                        ArcGaugeMetric("HEADING", "${telemetry.headingCardinal} ${headingDegrees}°", "", accent, Modifier.weight(1f).fillMaxHeight())
+                    }
+                }
+                Surface(
+                    modifier = Modifier.fillMaxWidth().wrapContentHeight(),
+                    color = accent.copy(alpha = 0.13f),
+                    shape = RoundedCornerShape(18.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        Icon(Icons.Outlined.Navigation, contentDescription = "Next turn", tint = accent, modifier = Modifier.size(34.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = if (routePoints.size >= 2) telemetry.nextTurnDistanceLabel else "READY",
+                                color = accent,
+                                style = MaterialTheme.typography.labelLarge
+                            )
+                            Text(
+                                text = if (routePoints.size >= 2) telemetry.nextTurnInstruction else "NO ACTIVE ROUTE",
+                                color = GlassWhite,
+                                style = MaterialTheme.typography.titleMedium,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
                 }
             }
-            HudBottomMusicBar(
-                track = mediaState.currentTrack,
-                isPlaying = mediaState.isPlaying,
-                accent = hudAccent,
-                onOpenMusic = { onSelectModule(AuvionyxModule.MUSIC) },
-                onPrevious = onPrevTrack,
-                onPlayPause = onPlayPause,
-                onNext = onNextTrack
-            )
+        }
+    }
+}
+
+
+@Composable
+private fun HudFloatingSpeedOverlay(
+    speed: Int,
+    maxSpeed: Int,
+    unitLabel: String,
+    accent: Color,
+    landscape: Boolean,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .size(if (landscape) 252.dp else 236.dp, if (landscape) 204.dp else 188.dp)
+            .background(
+                Brush.radialGradient(
+                    colors = listOf(Color.Black.copy(alpha = 0.88f), Color.Black.copy(alpha = 0.48f), Color.Transparent)
+                ),
+                CircleShape
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        HudSpeedometerGauge(
+            speed = speed,
+            maxSpeed = maxSpeed,
+            unitLabel = unitLabel,
+            accent = accent,
+            compact = !landscape
+        )
+    }
+}
+
+@Composable
+private fun ArcGaugeMetric(
+    label: String,
+    value: String,
+    unit: String,
+    accent: Color,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier.padding(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(label, color = TextSecondary, style = MaterialTheme.typography.labelSmall)
+        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(value, color = GlassWhite, fontWeight = FontWeight.Bold, fontSize = 26.sp, maxLines = 1)
+            if (unit.isNotBlank()) Text(unit, color = accent, style = MaterialTheme.typography.labelSmall)
         }
     }
 }
@@ -238,13 +489,13 @@ private fun AuvionyxNativeMapPanel(
     nextTurnRoad: String,
     nextTurnInstruction: String,
     telemetryDestinationLabel: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    show3DBuildings: Boolean = true,
+    wireframeMode: Boolean = false
 ) {
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(24.dp))
-            .background(Color(0xFF03070C))
-            .border(1.dp, accent.copy(alpha = 0.24f), RoundedCornerShape(24.dp))
+            .background(Color.Black)
             .testTag("hud_live_map_panel")
     ) {
         NativeMapLibreView(
@@ -252,14 +503,16 @@ private fun AuvionyxNativeMapPanel(
             routePoints = routePoints,
             headingDegrees = headingDegrees,
             accent = accent,
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier.fillMaxSize(),
+            show3DBuildings = show3DBuildings,
+            wireframeMode = wireframeMode
         )
 
         Surface(
             modifier = Modifier.align(Alignment.TopStart).padding(12.dp),
             color = Color(0xCC03070C),
             shape = RoundedCornerShape(12.dp),
-            border = BorderStroke(1.5.dp, accent.copy(alpha = 0.72f))
+            
         ) {
             Row(
                 modifier = Modifier.padding(horizontal = 18.dp, vertical = 14.dp),
@@ -353,6 +606,15 @@ private fun HudSpeedometerGauge(
                 style = Stroke(width = stroke, cap = StrokeCap.Round)
             )
             drawArc(
+                color = accent.copy(alpha = 0.24f),
+                startAngle = startAngle,
+                sweepAngle = sweepTotal * fraction,
+                useCenter = false,
+                topLeft = Offset(inset, inset),
+                size = arcSize,
+                style = Stroke(width = stroke + 8.dp.toPx(), cap = StrokeCap.Round)
+            )
+            drawArc(
                 brush = Brush.sweepGradient(listOf(DeepBlue, accent, IceBlue)),
                 startAngle = startAngle,
                 sweepAngle = sweepTotal * fraction,
@@ -390,31 +652,51 @@ private fun HudSpeedometerGauge(
 private fun HudBottomMusicBar(
     track: MediaTrack,
     isPlaying: Boolean,
+    externalArtwork: Bitmap?,
+    isExternalSessionActive: Boolean,
     accent: Color,
     onOpenMusic: () -> Unit,
     onPrevious: () -> Unit,
     onPlayPause: () -> Unit,
-    onNext: () -> Unit
+    onNext: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    GlassCard(
-        modifier = Modifier
+    Surface(
+        modifier = modifier
             .fillMaxWidth()
             .testTag("hud_bottom_music_bar")
             .clip(RoundedCornerShape(20.dp))
             .photonLuminousTouch(pressScale = 0.98f, glowColor = accent, onClick = onOpenMusic),
-        cornerRadius = 20.dp,
-        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp)
+        color = Color.Transparent,
+        shape = RoundedCornerShape(20.dp)
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            AlbumArtworkArt(
-                artVariant = track.artVariant,
-                accentColor = accent,
-                cornerRadius = 10.dp,
-                modifier = Modifier.size(44.dp)
-            )
+            when {
+                externalArtwork != null -> Image(
+                    bitmap = externalArtwork.asImageBitmap(),
+                    contentDescription = "Current track album artwork",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.size(44.dp).clip(RoundedCornerShape(10.dp))
+                )
+                isExternalSessionActive -> Surface(
+                    modifier = Modifier.size(44.dp),
+                    color = accent.copy(alpha = 0.16f),
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(Icons.Outlined.MusicNote, contentDescription = "Live media session", tint = accent)
+                    }
+                }
+                else -> AlbumArtworkArt(
+                    artVariant = track.artVariant,
+                    accentColor = accent,
+                    cornerRadius = 10.dp,
+                    modifier = Modifier.size(44.dp)
+                )
+            }
             Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
@@ -488,32 +770,46 @@ private fun HudBottomMusicBar(
 
 @Composable
 private fun HudMinimalTurnCard(
+    speed: Int,
+    unitLabel: String,
     distance: String,
     instruction: String,
     accent: Color,
     modifier: Modifier = Modifier
 ) {
-    Surface(
-        modifier = modifier,
-        color = Color(0xFF0A0D12),
-        shape = RoundedCornerShape(24.dp),
-        border = BorderStroke(1.dp, accent.copy(alpha = 0.48f))
+    Column(
+        modifier = modifier.padding(20.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Column(
-            modifier = Modifier.fillMaxSize().padding(20.dp),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
+            Row(
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.Bottom
+            ) {
+                Text(
+                    text = speed.toString(),
+                    color = accent,
+                    fontSize = 76.sp,
+                    fontWeight = FontWeight.Bold,
+                    lineHeight = 80.sp
+                )
+                Text(
+                    text = unitLabel,
+                    color = GlassWhite.copy(alpha = 0.82f),
+                    fontSize = 16.sp,
+                    modifier = Modifier.padding(start = 8.dp, bottom = 12.dp)
+                )
+            }
             Icon(
                 imageVector = Icons.Outlined.Navigation,
                 contentDescription = "Next turn",
                 tint = accent,
-                modifier = Modifier.size(64.dp)
+                modifier = Modifier.size(48.dp)
             )
             Text(
                 text = distance,
                 color = GlassWhite,
-                fontSize = 42.sp,
+                fontSize = 32.sp,
                 fontWeight = FontWeight.Bold
             )
             Text(
@@ -524,5 +820,4 @@ private fun HudMinimalTurnCard(
                 overflow = TextOverflow.Ellipsis
             )
         }
-    }
 }

@@ -11,6 +11,7 @@ import android.media.session.MediaSession
 import android.media.session.MediaSessionManager
 import android.media.session.PlaybackState
 import android.os.SystemClock
+import java.util.concurrent.ConcurrentHashMap
 import com.example.core.AuvionyxNotificationListener
 import com.example.data.model.MediaAppSource
 import com.example.data.model.MediaTrack
@@ -47,6 +48,7 @@ data class ExternalMediaSnapshot(
  */
 class MediaSessionBridge(private val context: Context) {
 
+    private val appLabelCache = ConcurrentHashMap<String, String>()
     private var localSession: MediaSession? = null
 
     init {
@@ -110,10 +112,15 @@ class MediaSessionBridge(private val context: Context) {
         val artwork = metadata?.getBitmap(MediaMetadata.METADATA_KEY_ART)
             ?: metadata?.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART)
             ?: metadata?.getBitmap(MediaMetadata.METADATA_KEY_DISPLAY_ICON)
-        val appLabel = runCatching {
-            val appInfo = context.packageManager.getApplicationInfo(controller.packageName, 0)
-            context.packageManager.getApplicationLabel(appInfo).toString()
-        }.getOrDefault(controller.packageName)
+        val appLabel = appLabelCache.getOrPut(controller.packageName) {
+            runCatching {
+                val appInfo = context.packageManager.getApplicationInfo(controller.packageName, 0)
+                context.packageManager.getApplicationLabel(appInfo).toString()
+            }.getOrElse {
+                controller.packageName.substringAfterLast('.')
+                    .replaceFirstChar { character -> character.uppercase() }
+            }
+        }
         val artworkAccentArgb = artwork?.let(::sampleArtworkAccent) ?: DEFAULT_ACCENT_ARGB
 
         val source = when {

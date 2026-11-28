@@ -9,7 +9,7 @@
       "client_info": {
         "mobilesdk_app_id": "1:YOUR_FIREBASE_PROJECT_NUMBER:android:YOUR_ANDROID_APP_ID",
         "android_client_info": {
-          "package_name": "com.aistudio.auvionyx.kxvrqm"
+          "package_name": "com.lumanav.navigation"
         }
       },
       "oauth_client": [
@@ -17,7 +17,7 @@
           "client_id": "YOUR_FIREBASE_PROJECT_NUMBER-YOUR_ANDROID_OAUTH_CLIENT.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
-            "package_name": "com.aistudio.auvionyx.kxvrqm",
+            "package_name": "com.lumanav.navigation",
             "certificate_hash": "YOUR_SHA1_CERTIFICATE_HASH"
           }
         },

@@ -7,12 +7,14 @@ import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
+import android.os.Build
 import android.os.Looper
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlin.math.roundToInt
+import java.util.ArrayDeque
 
 data class LiveGpsReading(
     val speedKmh: Int,
@@ -49,6 +51,7 @@ class TelemetryProvider(private val context: Context) {
     @SuppressLint("MissingPermission")
     fun observeGpsLocation(): Flow<LiveGpsReading?> = callbackFlow {
         var lastAcceptedTimestampMillis = 0L
+        val acceptedSpeedSamples = ArrayDeque<Float>(3)
         if (!hasLocationPermission()) {
             trySend(null)
             close()
@@ -76,10 +79,23 @@ class TelemetryProvider(private val context: Context) {
             ) return
 
             lastAcceptedTimestampMillis = maxOf(lastAcceptedTimestampMillis, location.time)
-            val speedKmh = if (location.hasSpeed()) {
-                (location.speed * 3.6f).roundToInt().coerceAtLeast(0)
-            } else {
+            val measuredSpeedKmh = if (location.hasSpeed()) location.speed * 3.6f else 0f
+            val speedAccuracyPoor = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
+                location.hasSpeedAccuracy() && location.speedAccuracyMetersPerSecond > 2.5f
+            val speedKmh = if (
+                !location.hasSpeed() ||
+                !measuredSpeedKmh.isFinite() ||
+                accuracy == null ||
+                accuracy > 20f ||
+                measuredSpeedKmh < 3.0f ||
+                speedAccuracyPoor
+            ) {
+                acceptedSpeedSamples.clear()
                 0
+            } else {
+                acceptedSpeedSamples.addLast(measuredSpeedKmh)
+                while (acceptedSpeedSamples.size > 3) acceptedSpeedSamples.removeFirst()
+                acceptedSpeedSamples.average().roundToInt().coerceAtLeast(0)
             }
             val hasBearing = location.hasBearing()
             trySend(

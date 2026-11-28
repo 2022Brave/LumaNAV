@@ -7,16 +7,12 @@ import com.example.ui.theme.GlassWhite
 import com.example.ui.theme.IceBlue
 
 enum class AuvionyxModule(val route: String, val label: String) {
-    DRIVE("drive", "Home"),
+    DRIVE("drive", "Drive"),
     MAPS("maps", "Maps"),
     MUSIC("music", "Music"),
     HUD("hud", "HUD"),
-    PULSE("pulse", "Traffic Pulse"),
-    VOICE("voice", "LumaNav Voice"),
     AOD("aod", "AOD"),
-    VEHICLE("vehicle", "Vehicle"),
-    SETTINGS("settings", "Settings"),
-    APPS("apps", "Apps")
+    SETTINGS("settings", "Settings")
 }
 
 enum class DashboardSplitRatio(val label: String, val mapWeight: Float, val mediaWeight: Float) {
@@ -31,6 +27,12 @@ enum class HudLayoutMode(val label: String) {
     MINIMAL("Minimal HUD"),
     NAVIGATION("Navigation HUD"),
     ADVANCED("Advanced HUD")
+}
+
+enum class HudCockpitStyle(val label: String) {
+    DIGITAL_MINIMAL("Digital Minimal"),
+    ARC_GAUGE("Arc Gauge"),
+    WIREFRAME_MAP("Wireframe Map")
 }
 
 enum class HudAccentChoice(val label: String, val color: Color) {
@@ -58,7 +60,10 @@ data class HudConfig(
     val showCompass: Boolean = true,
     val showJourneyProgress: Boolean = true,
     val showEta: Boolean = true,
-    val showMediaInfo: Boolean = true
+    val showMediaInfo: Boolean = true,
+    val speedometerMatchPercent: Float = 4f,
+    val layFlatToStartHud: Boolean = false,
+    val cockpitStyle: HudCockpitStyle = HudCockpitStyle.DIGITAL_MINIMAL
 )
 
 enum class AodStyle(val label: String, val description: String) {
@@ -134,12 +139,6 @@ data class GoogleMapsIntegrationStatus(
     val renderModeLabel: String = "DEMO VECTOR PREVIEW"
 )
 
-enum class DriveMode(val label: String) {
-    ECO("Eco"),
-    TOUR("Tour"),
-    SPORT("Sport")
-}
-
 data class VehicleTelemetry(
     val speedKmh: Int = 0,
     val speedLimitKmh: Int? = null, // Null unless verified road speed-limit feed is connected
@@ -149,7 +148,7 @@ data class VehicleTelemetry(
     val gpsAccuracyMeters: Float? = null,
     val nextTurnDistanceLabel: String = "--",
     val nextTurnRoad: String = "No Active Route",
-    val nextTurnInstruction: String = "Set a destination in Google Maps or via Voice",
+    val nextTurnInstruction: String = "Set a destination in Maps or external navigation",
     val etaTimeLabel: String = "--:--",
     val remainingMinutes: Int = 0,
     val remainingDistanceKm: Float = 0f,
@@ -158,26 +157,9 @@ data class VehicleTelemetry(
     val destinationLabel: String = "",
     val weatherTempC: Int? = null,
     val weatherCondition: String = "",
-    val cabinDriverTempC: Float = 24.0f,
-    val cabinPassengerTempC: Float = 22.5f,
-    val rangeKm: Int = 0,
-    val batteryPercent: Int = 0,
-    val driveMode: DriveMode = DriveMode.TOUR,
-    val tirePsi: List<Int> = emptyList(),
     val isLiveGpsActive: Boolean = false,
     val isLocationFallback: Boolean = false,
-    val isSimulationRunning: Boolean = false,
     val isLiveWeather: Boolean = false
-)
-
-data class SyncDeviceProfile(
-    val id: String,
-    val name: String,
-    val formFactor: String,
-    val osVersion: String,
-    val resolution: String,
-    val isCurrentTarget: Boolean,
-    val isSynced: Boolean
 )
 
 object AuvionyxSampleData {
@@ -296,33 +278,4 @@ object AuvionyxSampleData {
         MapPlaceMarker("mk_4", "Pacific Sky Lounge", "Destination", "Mussoorie Div", 12.6f, 19, 0.52f, 0.18f)
     )
 
-    val syncDevices = listOf(
-        SyncDeviceProfile(
-            id = "dev_blaupunkt",
-            name = "Blaupunkt Palm Bay 1000",
-            formFactor = "Head Unit · 1280×800 Landscape",
-            osVersion = "Android 11 · 4GB RAM",
-            resolution = "1280×800",
-            isCurrentTarget = true,
-            isSynced = true
-        ),
-        SyncDeviceProfile(
-            id = "dev_oppo",
-            name = "OPPO Find X10",
-            formFactor = "Smartphone · Portrait & Landscape",
-            osVersion = "Android 15 · Companion",
-            resolution = "1440×3168",
-            isCurrentTarget = false,
-            isSynced = true
-        ),
-        SyncDeviceProfile(
-            id = "dev_samsung",
-            name = "Samsung Galaxy S24+",
-            formFactor = "Smartphone · Portrait & Landscape",
-            osVersion = "Android 15 · Companion",
-            resolution = "1440×3120",
-            isCurrentTarget = false,
-            isSynced = false
-        )
-    )
 }

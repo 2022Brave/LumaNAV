@@ -12,9 +12,13 @@ import com.example.data.model.AodStyle
 import com.example.data.model.DashboardSplitRatio
 import com.example.data.model.HudAccentChoice
 import com.example.data.model.HudConfig
+import com.example.data.model.HudCockpitStyle
 import com.example.data.model.HudLayoutMode
 import com.example.data.model.HudPosition
 import com.example.data.model.MediaAppSource
+import com.example.data.model.SavedPlace
+import org.json.JSONArray
+import org.json.JSONObject
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
@@ -34,7 +38,6 @@ data class AuvionyxSettingsState(
     val showTrafficOverlay: Boolean = true,
     val showSatelliteGrid: Boolean = false,
     val optionalCarLauncherEnabled: Boolean = false,
-    val demoSimulationEnabled: Boolean = false
 )
 
 class AuvionyxPreferencesRepository(private val context: Context) {
@@ -56,13 +59,38 @@ class AuvionyxPreferencesRepository(private val context: Context) {
         val HUD_SHOW_PROGRESS = booleanPreferencesKey("hud_show_progress")
         val HUD_SHOW_ETA = booleanPreferencesKey("hud_show_eta")
         val HUD_SHOW_MEDIA = booleanPreferencesKey("hud_show_media")
+        val HUD_SPEED_CALIBRATION = floatPreferencesKey("hud_speed_calibration")
+        val HUD_LAY_FLAT_START = booleanPreferencesKey("hud_lay_flat_start")
+        val HUD_COCKPIT_STYLE = stringPreferencesKey("hud_cockpit_style")
         val AOD_STYLE = stringPreferencesKey("aod_style")
         val MEDIA_SOURCE = stringPreferencesKey("media_source")
         val METRIC_UNITS = booleanPreferencesKey("metric_units")
         val TRAFFIC_OVERLAY = booleanPreferencesKey("traffic_overlay")
         val SATELLITE_GRID = booleanPreferencesKey("satellite_grid")
         val CAR_LAUNCHER = booleanPreferencesKey("car_launcher")
-        val DEMO_SIMULATION = booleanPreferencesKey("demo_simulation")
+        val SAVED_PLACES = stringPreferencesKey("saved_places")
+    }
+
+    val savedPlacesFlow: Flow<List<SavedPlace>> = context.auvionyxDataStore.data.map { prefs ->
+        val json = runCatching { JSONArray(prefs[Keys.SAVED_PLACES].orEmpty()) }.getOrNull() ?: JSONArray()
+        buildList {
+            for (index in 0 until json.length()) {
+                val item = json.optJSONObject(index) ?: continue
+                val lat = item.optDouble("latitude", Double.NaN)
+                val lon = item.optDouble("longitude", Double.NaN)
+                if (!lat.isFinite() || lat !in -90.0..90.0 || !lon.isFinite() || lon !in -180.0..180.0) continue
+                val name = item.optString("name").trim()
+                if (name.isBlank()) continue
+                add(SavedPlace(
+                    id = item.optString("id").ifBlank { "saved_$index" },
+                    name = name,
+                    addressSummary = item.optString("addressSummary"),
+                    latitude = lat,
+                    longitude = lon,
+                    category = item.optString("category", "Saved place")
+                ))
+            }
+        }
     }
 
     val settingsFlow: Flow<AuvionyxSettingsState> = context.auvionyxDataStore.data.map { prefs ->
@@ -91,7 +119,12 @@ class AuvionyxPreferencesRepository(private val context: Context) {
                 showCompass = prefs[Keys.HUD_SHOW_COMPASS] ?: true,
                 showJourneyProgress = prefs[Keys.HUD_SHOW_PROGRESS] ?: true,
                 showEta = prefs[Keys.HUD_SHOW_ETA] ?: true,
-                showMediaInfo = prefs[Keys.HUD_SHOW_MEDIA] ?: true
+                showMediaInfo = prefs[Keys.HUD_SHOW_MEDIA] ?: true,
+                speedometerMatchPercent = (prefs[Keys.HUD_SPEED_CALIBRATION] ?: 4f).coerceIn(0f, 10f),
+                layFlatToStartHud = prefs[Keys.HUD_LAY_FLAT_START] ?: false,
+                cockpitStyle = prefs[Keys.HUD_COCKPIT_STYLE]?.let {
+                    runCatching { HudCockpitStyle.valueOf(it) }.getOrNull()
+                } ?: HudCockpitStyle.DIGITAL_MINIMAL
             ),
             aodStyle = prefs[Keys.AOD_STYLE]?.let {
                 runCatching { AodStyle.valueOf(it) }.getOrNull()
@@ -103,7 +136,6 @@ class AuvionyxPreferencesRepository(private val context: Context) {
             showTrafficOverlay = prefs[Keys.TRAFFIC_OVERLAY] ?: true,
             showSatelliteGrid = prefs[Keys.SATELLITE_GRID] ?: false,
             optionalCarLauncherEnabled = prefs[Keys.CAR_LAUNCHER] ?: false,
-            demoSimulationEnabled = prefs[Keys.DEMO_SIMULATION] ?: false
         )
     }
 
@@ -137,6 +169,9 @@ class AuvionyxPreferencesRepository(private val context: Context) {
             prefs[Keys.HUD_SHOW_PROGRESS] = config.showJourneyProgress
             prefs[Keys.HUD_SHOW_ETA] = config.showEta
             prefs[Keys.HUD_SHOW_MEDIA] = config.showMediaInfo
+            prefs[Keys.HUD_SPEED_CALIBRATION] = config.speedometerMatchPercent.coerceIn(0f, 10f)
+            prefs[Keys.HUD_LAY_FLAT_START] = config.layFlatToStartHud
+            prefs[Keys.HUD_COCKPIT_STYLE] = config.cockpitStyle.name
         }
     }
 
@@ -164,7 +199,34 @@ class AuvionyxPreferencesRepository(private val context: Context) {
         context.auvionyxDataStore.edit { it[Keys.CAR_LAUNCHER] = enabled }
     }
 
-    suspend fun setDemoSimulation(enabled: Boolean) {
-        context.auvionyxDataStore.edit { it[Keys.DEMO_SIMULATION] = enabled }
+    suspend fun savePlace(place: SavedPlace) {
+        context.auvionyxDataStore.edit { prefs ->
+            val current = runCatching { JSONArray(prefs[Keys.SAVED_PLACES].orEmpty()) }.getOrNull() ?: JSONArray()
+            val updated = JSONArray()
+            for (index in 0 until current.length()) {
+                val item = current.optJSONObject(index) ?: continue
+                if (item.optString("id") != place.id) updated.put(item)
+            }
+            updated.put(JSONObject()
+                .put("id", place.id)
+                .put("name", place.name)
+                .put("addressSummary", place.addressSummary)
+                .put("latitude", place.latitude)
+                .put("longitude", place.longitude)
+                .put("category", place.category))
+            prefs[Keys.SAVED_PLACES] = updated.toString()
+        }
+    }
+
+    suspend fun removeSavedPlace(id: String) {
+        context.auvionyxDataStore.edit { prefs ->
+            val current = runCatching { JSONArray(prefs[Keys.SAVED_PLACES].orEmpty()) }.getOrNull() ?: JSONArray()
+            val updated = JSONArray()
+            for (index in 0 until current.length()) {
+                val item = current.optJSONObject(index) ?: continue
+                if (item.optString("id") != id) updated.put(item)
+            }
+            prefs[Keys.SAVED_PLACES] = updated.toString()
+        }
     }
 }

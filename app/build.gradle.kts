@@ -13,7 +13,7 @@ android {
   compileSdk { version = release(36) { minorApiLevel = 1 } }
 
   defaultConfig {
-    applicationId = "com.aistudio.auvionyx.kxvrqm"
+    applicationId = "com.lumanav.navigation"
     minSdk = 24
     targetSdk = 36
     val otaVersionCode = providers.environmentVariable("LUMANAV_VERSION_CODE").orNull?.toIntOrNull() ?: 1

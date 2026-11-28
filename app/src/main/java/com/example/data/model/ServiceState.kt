@@ -12,6 +12,25 @@ enum class ServiceAvailabilityState(val label: String) {
     API_UNAVAILABLE("API Unavailable")
 }
 
+data class SavedPlace(
+    val id: String,
+    val name: String,
+    val addressSummary: String,
+    val latitude: Double,
+    val longitude: Double,
+    val category: String = "Saved place"
+) {
+    fun toDestinationCandidate() = DestinationCandidate(
+        id = id,
+        name = name,
+        addressSummary = addressSummary,
+        latitude = latitude,
+        longitude = longitude,
+        category = category,
+        isDemo = false
+    )
+}
+
 data class DestinationCandidate(
     val id: String,
     val name: String,

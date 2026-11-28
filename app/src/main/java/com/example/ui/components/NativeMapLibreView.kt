@@ -38,7 +38,11 @@ import org.maplibre.android.geometry.LatLng
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.android.maps.Style
+import org.maplibre.android.style.layers.BackgroundLayer
 import org.maplibre.android.style.layers.CircleLayer
+import org.maplibre.android.style.layers.FillLayer
+import org.maplibre.android.style.layers.RasterLayer
+import org.maplibre.android.style.layers.SymbolLayer
 import org.maplibre.android.style.layers.FillExtrusionLayer
 import org.maplibre.android.style.layers.LineLayer
 import org.maplibre.android.style.layers.Property
@@ -46,10 +50,15 @@ import org.maplibre.android.style.layers.PropertyFactory.circleColor
 import org.maplibre.android.style.layers.PropertyFactory.circleRadius
 import org.maplibre.android.style.layers.PropertyFactory.circleStrokeColor
 import org.maplibre.android.style.layers.PropertyFactory.circleStrokeWidth
+import org.maplibre.android.style.layers.PropertyFactory.backgroundColor
+import org.maplibre.android.style.layers.PropertyFactory.fillOpacity
+import org.maplibre.android.style.layers.PropertyFactory.lineOpacity
+import org.maplibre.android.style.layers.PropertyFactory.visibility
 import org.maplibre.android.style.layers.PropertyFactory.fillExtrusionBase
 import org.maplibre.android.style.layers.PropertyFactory.fillExtrusionColor
 import org.maplibre.android.style.layers.PropertyFactory.fillExtrusionHeight
 import org.maplibre.android.style.layers.PropertyFactory.fillExtrusionOpacity
+import org.maplibre.android.style.layers.PropertyFactory.lineBlur
 import org.maplibre.android.style.layers.PropertyFactory.lineCap
 import org.maplibre.android.style.layers.PropertyFactory.lineColor
 import org.maplibre.android.style.layers.PropertyFactory.lineJoin
@@ -78,7 +87,11 @@ fun NativeMapLibreView(
     routePoints: List<Pair<Double, Double>>,
     headingDegrees: Int,
     accent: Color,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    show3DBuildings: Boolean = true,
+    styleUri: String = AUVIONYX_DARK_STYLE,
+    attributionBottomMarginDp: Int = 0,
+    wireframeMode: Boolean = false
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -89,6 +102,8 @@ fun NativeMapLibreView(
     var cameraFollowEnabled by remember { mutableStateOf(true) }
     var retryToken by remember { mutableStateOf(0) }
     var hasCenteredOnFix by remember { mutableStateOf(false) }
+    var lastRequestedStyle by remember { mutableStateOf(AUVIONYX_DARK_STYLE) }
+    var lastRequestedWireframe by remember { mutableStateOf(false) }
 
     val mapView = remember(context) {
         MapLibre.getInstance(context.applicationContext)
@@ -130,12 +145,14 @@ fun NativeMapLibreView(
     }
 
 
-    LaunchedEffect(retryToken, mapLibreMap) {
-        if (retryToken > 0 && mapLibreMap != null) {
+    LaunchedEffect(retryToken, mapLibreMap, styleUri, wireframeMode) {
+        if (mapLibreMap != null && (retryToken > 0 || styleUri != lastRequestedStyle || wireframeMode != lastRequestedWireframe)) {
+            lastRequestedStyle = styleUri
+            lastRequestedWireframe = wireframeMode
             styleLoaded = false
             styleError = null
             loadedStyle = null
-            mapLibreMap?.setStyle(Style.Builder().fromUri(AUVIONYX_DARK_STYLE)) { style ->
+            mapLibreMap?.setStyle(Style.Builder().fromUri(styleUri)) { style ->
                 if (style.getSource(ROUTE_SOURCE_ID) == null) {
                     style.addSource(GeoJsonSource(ROUTE_SOURCE_ID, emptyFeatureCollection()))
                     style.addLayer(
@@ -158,7 +175,9 @@ fun NativeMapLibreView(
                         )
                     )
                 }
-                addLumaNav3DBuildings(style)
+                if (show3DBuildings) addLumaNav3DBuildings(style)
+                if (wireframeMode) applyLumaNavWireframe(style)
+                lastRequestedWireframe = wireframeMode
                 loadedStyle = style
                 styleLoaded = true
             }
@@ -224,9 +243,15 @@ fun NativeMapLibreView(
             modifier = Modifier.matchParentSize(),
             factory = {
             mapView.apply {
+                setBackgroundColor(Color.Black.toArgb())
                 getMapAsync { map ->
                     mapLibreMap = map
                     map.uiSettings.isCompassEnabled = false
+                    if (attributionBottomMarginDp > 0) {
+                        val bottomMarginPx = (attributionBottomMarginDp * context.resources.displayMetrics.density).toInt()
+                        map.uiSettings.setLogoMargins(12, 0, 0, bottomMarginPx)
+                        map.uiSettings.setAttributionMargins(12, 0, 0, bottomMarginPx)
+                    }
                     map.uiSettings.isRotateGesturesEnabled = true
                     map.uiSettings.isTiltGesturesEnabled = true
                     map.addOnCameraMoveStartedListener(cameraGestureListener)
@@ -240,7 +265,7 @@ fun NativeMapLibreView(
                             style.addSource(GeoJsonSource(ROUTE_SOURCE_ID, emptyFeatureCollection()))
                             style.addLayer(
                                 LineLayer(ROUTE_LAYER_ID, ROUTE_SOURCE_ID).withProperties(
-                                    lineColor(accent.toHexColor()),
+                                    lineColor("#00D9F5"),
                                     lineWidth(5.5f),
                                     lineCap(Property.LINE_CAP_ROUND),
                                     lineJoin(Property.LINE_JOIN_ROUND)
@@ -258,7 +283,9 @@ fun NativeMapLibreView(
                                 )
                             )
                         }
-                        addLumaNav3DBuildings(style)
+                        if (show3DBuildings) addLumaNav3DBuildings(style)
+                        if (wireframeMode) applyLumaNavWireframe(style)
+                        lastRequestedWireframe = wireframeMode
                         loadedStyle = style
                         styleLoaded = true
                     }
@@ -340,6 +367,34 @@ fun NativeMapLibreView(
  * OpenFreeMap exposes OSM building polygons in the "building" vector source-layer.
  * Extrusion heights are only available where OSM contributors supplied building data.
  */
+
+private fun applyLumaNavWireframe(style: Style) {
+    val hasBackgroundLayer = style.layers.any { it is BackgroundLayer }
+    if (!hasBackgroundLayer) {
+        style.addLayerAt(
+            BackgroundLayer("lumanav-wireframe-background").withProperties(backgroundColor("#000000")),
+            0
+        )
+    }
+    style.layers.forEach { layer ->
+        when (layer) {
+            is BackgroundLayer -> layer.setProperties(backgroundColor("#000000"))
+            is FillLayer -> layer.setProperties(fillOpacity(0f))
+            is RasterLayer -> layer.setProperties(visibility(Property.NONE))
+            is SymbolLayer -> layer.setProperties(visibility(Property.NONE))
+            is LineLayer -> if (layer.id != ROUTE_LAYER_ID) layer.setProperties(
+                lineColor("#00D9F5"),
+                lineOpacity(0.92f),
+                lineWidth(1.15f),
+                lineBlur(1.3f),
+                lineCap(Property.LINE_CAP_ROUND),
+                lineJoin(Property.LINE_JOIN_ROUND)
+            )
+            is FillExtrusionLayer -> layer.setProperties(visibility(Property.NONE))
+        }
+    }
+}
+
 private fun addLumaNav3DBuildings(style: Style) {
     if (style.getLayer("lumanav-buildings-3d") != null) return
     if (style.getSource("openmaptiles") == null) return
