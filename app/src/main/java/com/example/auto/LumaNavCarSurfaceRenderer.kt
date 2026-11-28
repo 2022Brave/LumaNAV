@@ -57,6 +57,8 @@ internal class LumaNavCarSurfaceRenderer(
     private var hostSurface: Surface? = null
     private var visibleArea = Rect()
     private var stableArea = Rect()
+    private var surfaceWidth = 0
+    private var surfaceHeight = 0
     private var stateJob: Job? = null
 
     override fun onSurfaceAvailable(surfaceContainer: SurfaceContainer) {
@@ -64,6 +66,8 @@ internal class LumaNavCarSurfaceRenderer(
         val surface = surfaceContainer.surface ?: return
         if (!surface.isValid || surfaceContainer.width <= 0 || surfaceContainer.height <= 0) return
         hostSurface = surface
+        surfaceWidth = surfaceContainer.width
+        surfaceHeight = surfaceContainer.height
         val manager = context.getSystemService(Context.DISPLAY_SERVICE) as DisplayManager
         virtualDisplay = manager.createVirtualDisplay(
             "LumaNAV-AndroidAuto-Map",
@@ -104,7 +108,7 @@ internal class LumaNavCarSurfaceRenderer(
             when {
                 !stableArea.isEmpty -> stableArea
                 !visibleArea.isEmpty -> visibleArea
-                else -> Rect(0, 0, rootWidth(), rootHeight())
+                else -> Rect(0, 0, surfaceWidth, surfaceHeight)
             }
         )
     }
@@ -115,7 +119,7 @@ internal class LumaNavCarSurfaceRenderer(
             when {
                 !stableArea.isEmpty -> stableArea
                 !visibleArea.isEmpty -> visibleArea
-                else -> Rect(0, 0, rootWidth(), rootHeight())
+                else -> Rect(0, 0, surfaceWidth, surfaceHeight)
             }
         )
     }
@@ -153,6 +157,8 @@ internal class LumaNavCarSurfaceRenderer(
         virtualDisplay = null
         hostSurface?.release()
         hostSurface = null
+        surfaceWidth = 0
+        surfaceHeight = 0
     }
 }
 
@@ -300,7 +306,6 @@ private class LumaNavMapPresentation(
         runCatching { mapView.onDestroy() }
         map = null
         style = null
-        dismiss()
     }
 
     private var wireframeApplied = false
@@ -400,10 +405,6 @@ private class LumaNavMapPresentation(
         } ?: emptyCollection()
         puckSource?.setGeoJson(puck)
     }
-
-    private fun rootWidth(): Int = if (::root.isInitialized) root.width else 0
-
-    private fun rootHeight(): Int = if (::root.isInitialized) root.height else 0
 
     private fun configureSpeedPill() {
         val density = resources.displayMetrics.density

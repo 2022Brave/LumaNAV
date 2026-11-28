@@ -19,7 +19,6 @@ import androidx.car.app.model.MessageTemplate
 import androidx.car.app.model.Row
 import androidx.car.app.model.SearchTemplate
 import androidx.car.app.model.Template
-import androidx.car.app.navigation.NavigationManager
 import androidx.car.app.navigation.model.Maneuver
 import androidx.car.app.navigation.model.NavigationTemplate
 import androidx.car.app.navigation.model.RoutingInfo
@@ -40,7 +39,6 @@ internal class LumaNavNavigationScreen(
     carContext: CarContext,
     private val runtime: LumaNavCarRuntime
 ) : Screen(carContext) {
-    private val navigationManager = carContext.getCarService(NavigationManager::class.java)
     private var panMode = false
 
     init {
@@ -113,7 +111,7 @@ internal class LumaNavNavigationScreen(
         if (carContext.carAppApiLevel >= 2) {
             builder.setMapActionStrip(
                 ActionStrip.Builder()
-                    .addAction(Action.Builder(Action.PAN).setIcon(icon(android.R.drawable.ic_menu_crop)).build())
+                    .addAction(Action.Builder(Action.PAN).setIcon(icon(android.R.drawable.ic_menu_crop, panMode)).build())
                     .addAction(
                         Action.Builder()
                             .setIcon(icon(android.R.drawable.ic_menu_mylocation))
@@ -168,9 +166,9 @@ internal class LumaNavNavigationScreen(
         return builder.build()
     }
 
-    private fun icon(resource: Int): CarIcon = CarIcon.Builder(
+    private fun icon(resource: Int, active: Boolean = false): CarIcon = CarIcon.Builder(
         IconCompat.createWithResource(carContext, resource)
-    ).setTint(CYAN).build()
+    ).setTint(if (active) CarColor.createCustom(0xFFB8F6FF.toInt()) else CYAN).build()
 
     private fun maneuverType(instruction: String): Int = when {
         instruction.contains("left", true) -> Maneuver.TYPE_TURN_LEFT
@@ -194,7 +192,6 @@ internal class LumaNavSearchScreen(
     private val runtime: LumaNavCarRuntime,
     initialQuery: String = ""
 ) : Screen(carContext) {
-    private var query = initialQuery
     private var results: List<DestinationCandidate> = emptyList()
     private var loading = false
     private var message = "Search for a destination."
@@ -234,12 +231,10 @@ internal class LumaNavSearchScreen(
         val searchBuilder = SearchTemplate.Builder(
             object : SearchTemplate.SearchCallback {
                 override fun onSearchTextChanged(searchText: String) {
-                    query = searchText
                     search(searchText)
                 }
 
                 override fun onSearchSubmitted(searchText: String) {
-                    query = searchText
                     search(searchText, immediate = true)
                 }
             }

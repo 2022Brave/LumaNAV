@@ -1,7 +1,6 @@
 package com.example.auto
 
 import android.content.Context
-import android.location.Location
 import androidx.car.app.navigation.NavigationManager
 import androidx.car.app.model.DateTimeWithZone
 import androidx.car.app.model.Distance
@@ -22,7 +21,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -118,9 +116,11 @@ internal class LumaNavCarRuntime private constructor(context: Context) {
         val longitude = candidate.longitude ?: return false
         var origin = mutableState.value.location
         if (origin == null) {
-            origin = withTimeoutOrNull(12_000L) {
-                telemetry.observeGpsLocation().filterNotNull().first()
-            }
+            origin = runCatching {
+                withTimeoutOrNull(12_000L) {
+                    telemetry.observeGpsLocation().filterNotNull().first()
+                }
+            }.getOrNull()
         }
         if (origin == null) return false
 
@@ -179,7 +179,7 @@ internal class LumaNavCarRuntime private constructor(context: Context) {
     suspend fun recentPlaces(): List<SavedPlace> = withContext(Dispatchers.IO) {
         val json = appContext.getSharedPreferences("lumanav_car_recent", Context.MODE_PRIVATE)
             .getString("places", "[]")
-        val array = runCatching { JSONArray(json) }.getOrNull() ?: JSONArray()
+        val array = runCatching { JSONArray(json.orEmpty()) }.getOrNull() ?: JSONArray()
         buildList {
             for (index in 0 until array.length()) {
                 val item = array.optJSONObject(index) ?: continue
@@ -204,7 +204,7 @@ internal class LumaNavCarRuntime private constructor(context: Context) {
         val latitude = candidate.latitude ?: return
         val longitude = candidate.longitude ?: return
         val prefs = appContext.getSharedPreferences("lumanav_car_recent", Context.MODE_PRIVATE)
-        val current = runCatching { JSONArray(prefs.getString("places", "[]")) }.getOrNull() ?: JSONArray()
+        val current = runCatching { JSONArray(prefs.getString("places", "[]").orEmpty()) }.getOrNull() ?: JSONArray()
         val updated = JSONArray()
         updated.put(
             JSONObject()
