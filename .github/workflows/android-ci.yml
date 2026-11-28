@@ -177,6 +177,7 @@ jobs:
           VERSION="1.0.${VERSION_CODE}"
           APK="LumaNAV-dev-${VERSION}.apk"
           cp app/build/outputs/apk/debug/app-debug.apk "${APK}"
+          APK_SIZE_BYTES="$(stat -c%s "${APK}")"
           PREVIOUS_TAG="$(git describe --tags --match 'dev-*' --abbrev=0 HEAD^ 2>/dev/null || true)"
           if [[ -n "$PREVIOUS_TAG" ]]; then
             CHANGE_RANGE="${PREVIOUS_TAG}..${GITHUB_SHA}"
@@ -216,12 +217,14 @@ jobs:
           jq -n \
             --argjson versionCode "${VERSION_CODE}" \
             --arg versionName "${VERSION}" \
+            --arg displayVersion "1.0 · Build #${GITHUB_RUN_NUMBER}" \
+            --argjson apkSizeBytes "${APK_SIZE_BYTES}" \
             --arg apkUrl "${APK_URL}" \
             --arg notes "${RELEASE_NOTES}" \
             --arg commit "${COMMIT_SHA}" \
             --arg channel "development" \
             --arg buildNumber "${GITHUB_RUN_NUMBER}" \
-            '{versionCode:$versionCode,versionName:$versionName,apkUrl:$apkUrl,notes:$notes,commit:$commit,channel:$channel,buildNumber:$buildNumber}' \
+            '{versionCode:$versionCode,versionName:$versionName,displayVersion:$displayVersion,apkSizeBytes:$apkSizeBytes,apkUrl:$apkUrl,notes:$notes,commit:$commit,channel:$channel,buildNumber:$buildNumber}' \
             > latest-dev.json
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
