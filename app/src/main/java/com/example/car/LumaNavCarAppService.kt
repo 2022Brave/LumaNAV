@@ -12,6 +12,7 @@ import androidx.car.app.model.Row
 import androidx.car.app.model.Template
 import androidx.car.app.validation.HostValidator
 import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.launch
 import java.util.Locale
 
@@ -40,7 +41,9 @@ private class LumaNavCarSession : Session() {
 private class LumaNavCarHomeScreen(carContext: androidx.car.app.CarContext) : Screen(carContext) {
     init {
         lifecycleScope.launch {
-            CarNavigationBridge.snapshot.collect { invalidate() }
+            CarNavigationBridge.snapshot
+                .distinctUntilChangedBy { it.copy(currentLocation = null, routePoints = emptyList(), headingDegrees = 0) }
+                .collect { invalidate() }
         }
     }
 
