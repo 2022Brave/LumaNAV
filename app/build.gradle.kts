@@ -111,6 +111,8 @@ dependencies {
   implementation(libs.androidx.lifecycle.viewmodel.compose)
   implementation(libs.androidx.navigation.compose)
   implementation(libs.maplibre.android)
+  implementation(libs.androidx.car.app)
+  implementation(libs.androidx.car.app.projected)
   // implementation(libs.androidx.room.ktx)
   // implementation(libs.androidx.room.runtime)
   // implementation(libs.coil.compose)
