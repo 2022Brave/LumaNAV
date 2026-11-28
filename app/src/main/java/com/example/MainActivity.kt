@@ -401,7 +401,10 @@ fun AuvionyxRootApp(viewModel: AuvionyxViewModel) {
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .weight(1f)
-                                .padding(horizontal = 14.dp, vertical = 4.dp)
+                                .padding(
+                                    horizontal = if (activeModule == AuvionyxModule.DRIVE) 0.dp else 14.dp,
+                                    vertical = if (activeModule == AuvionyxModule.DRIVE) 0.dp else 4.dp
+                                )
                         ) {
                             ModuleContentRouter(
                                 activeModule = activeModule,

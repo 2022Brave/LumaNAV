@@ -537,7 +537,7 @@ private fun SoftwareUpdatesCard() {
                         ) {
                             update.releaseNotes.lineSequence().map { it.trim() }
                                 .filter { it.isNotBlank() && it.removePrefix("#").trim() != "What's New in This Update" }
-                                .take(40).forEach { line ->
+                                .forEach { line ->
                                     val cleanLine = line.removePrefix("#").trim()
                                     val isBullet = cleanLine.startsWith("- ") || cleanLine.startsWith("* ") || cleanLine.startsWith("• ")
                                     Text(

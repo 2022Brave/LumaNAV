@@ -77,6 +77,7 @@ import com.example.data.model.VehicleTelemetry
 import com.example.data.preferences.AuvionyxSettingsState
 import com.example.ui.components.ActiveSpeedometerCard
 import com.example.ui.components.CockpitMediaPlayerCard
+import com.example.ui.components.AlbumArtworkArt
 import com.example.ui.components.GlassCard
 import com.example.ui.components.IdleNextTurnPill
 import com.example.ui.components.IdleProminentSpeedometer
@@ -556,7 +557,7 @@ private fun SmartphonePortraitDriveDashboard(
     val density = LocalDensity.current
 
     BoxWithConstraints(
-        modifier = modifier.fillMaxSize().navigationBarsPadding().padding(bottom = 72.dp)
+        modifier = modifier.fillMaxSize().navigationBarsPadding()
     ) {
         val totalHeightPx = with(density) { maxHeight.toPx() }
         Column(Modifier.fillMaxSize()) {
@@ -594,10 +595,11 @@ private fun SmartphonePortraitDriveDashboard(
                         border = BorderStroke(1.dp, accent.copy(alpha = 0.30f))
                     ) {
                         Text(
-                            if (mapsPulse.isNavigating) "NAV · ${telemetry.nextTurnDistanceLabel}" else "NAV READY",
+                            if (mapsPulse.isNavigating) "NAV · ${telemetry.nextTurnDistanceLabel} · ${telemetry.nextTurnRoad}" else "NAV READY",
                             color = if (mapsPulse.isNavigating) accent else TextSecondary,
                             style = MaterialTheme.typography.labelSmall,
                             maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
                             modifier = Modifier.padding(horizontal = 11.dp, vertical = 8.dp)
                         )
                     }
@@ -665,7 +667,7 @@ private fun SmartphonePortraitDriveDashboard(
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier.size(40.dp).clip(RoundedCornerShape(9.dp))
                             )
-                            else -> Surface(
+                            mediaState.isExternalSessionActive -> Surface(
                                 modifier = Modifier.size(40.dp),
                                 color = track.adaptiveColor.copy(alpha = 0.18f),
                                 shape = RoundedCornerShape(9.dp)
@@ -674,6 +676,12 @@ private fun SmartphonePortraitDriveDashboard(
                                     Icon(Icons.Outlined.MusicNote, contentDescription = null, tint = track.adaptiveColor)
                                 }
                             }
+                            else -> AlbumArtworkArt(
+                                artVariant = track.artVariant,
+                                accentColor = track.adaptiveColor,
+                                cornerRadius = 9.dp,
+                                modifier = Modifier.size(40.dp)
+                            )
                         }
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.Center) {
                             Text(

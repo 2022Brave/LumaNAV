@@ -84,6 +84,7 @@ class TelemetryProvider(private val context: Context) {
                 location.hasSpeedAccuracy() && location.speedAccuracyMetersPerSecond > 2.5f
             val speedKmh = if (
                 !location.hasSpeed() ||
+                !measuredSpeedKmh.isFinite() ||
                 accuracy == null ||
                 accuracy > 20f ||
                 measuredSpeedKmh < 3.0f ||
