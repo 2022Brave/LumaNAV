@@ -156,7 +156,7 @@ private class LumaNavCarHomeScreen(carContext: CarContext) : Screen(carContext) 
     }
 
     private fun parseTurnDistance(label: String): Distance? {
-        val amount = Regex("""\\d+(?:[.,]\\d+)?""")
+        val amount = Regex("""\d+(?:[.,]\d+)?""")
             .find(label)?.value?.replace(',', '.')?.toDoubleOrNull() ?: return null
         val unit = if (label.contains("km", ignoreCase = true)) {
             Distance.UNIT_KILOMETERS_P1
