@@ -7,11 +7,11 @@ import androidx.car.app.CarContext
 import androidx.car.app.Screen
 import androidx.car.app.Session
 import androidx.car.app.SessionInfo
+import androidx.car.app.model.Action
+import androidx.car.app.model.ActionStrip
 import androidx.car.app.model.DateTimeWithZone
 import androidx.car.app.model.Distance
-import androidx.car.app.model.ItemList
-import androidx.car.app.model.ListTemplate
-import androidx.car.app.model.Row
+import androidx.car.app.navigation.model.NavigationTemplate
 import androidx.car.app.model.Template
 import androidx.car.app.navigation.NavigationManager
 import androidx.car.app.navigation.NavigationManagerCallback
@@ -49,6 +49,7 @@ private class LumaNavCarSession : Session() {
 /** Live phone-navigation status plus Android Auto cluster/HUD trip synchronization. */
 private class LumaNavCarHomeScreen(carContext: CarContext) : Screen(carContext) {
     private val navigationManager = carContext.getCarService(NavigationManager::class.java)
+    private val mapRenderer = CarMapSurfaceRenderer(carContext, lifecycle)
     private var hostNavigationStarted = false
 
     init {
@@ -67,6 +68,7 @@ private class LumaNavCarHomeScreen(carContext: CarContext) : Screen(carContext) 
             CarNavigationBridge.snapshot
                 .distinctUntilChangedBy { it.copy(currentLocation = null, routePoints = emptyList(), headingDegrees = 0) }
                 .collect { state ->
+                    mapRenderer.update(state)
                     syncNavigationManager(state)
                     invalidate()
                 }
@@ -109,40 +111,35 @@ private class LumaNavCarHomeScreen(carContext: CarContext) : Screen(carContext) 
 
     override fun onGetTemplate(): Template {
         val state = CarNavigationBridge.snapshot.value
-        val baseStatus = when {
-            state.isNavigating -> "Navigation active"
-            state.destinationName.isNotBlank() -> "Destination selected · waiting for route"
-            else -> "No active route"
-        }
-        val status = state.navigationSource.takeIf { it.isNotBlank() }
-            ?.let { "$baseStatus · $it" } ?: baseStatus
-        val destination = state.destinationName.ifBlank { "Choose a destination on your phone" }
-        val manoeuvre = if (state.isNavigating) {
-            listOf(state.nextTurnInstruction, state.nextTurnRoad)
-                .filter { it.isNotBlank() }.distinct().joinToString(" · ")
-                .ifBlank { "Follow the highlighted route" }
-        } else {
-            "Turn-by-turn guidance will appear when a route is active"
-        }
-        val remaining = if (state.remainingDistanceKm > 0f)
-            String.format(Locale.getDefault(), "%.1f km", state.remainingDistanceKm)
-        else "Not available"
-        val duration = if (state.remainingMinutes > 0) "${state.remainingMinutes} min" else "Not available"
-        val eta = state.etaTimeLabel.takeIf { state.isNavigating && it.isNotBlank() && it != "--:--" }
-            ?: "Not available"
-
-        val items = ItemList.Builder()
-            .addItem(Row.Builder().setTitle("STATUS").addText(status).build())
-            .addItem(Row.Builder().setTitle("DESTINATION").addText(destination).build())
-            .addItem(Row.Builder().setTitle("NEXT MANOEUVRE").addText(manoeuvre).build())
-            .addItem(Row.Builder().setTitle("DISTANCE REMAINING").addText(remaining).build())
-            .addItem(Row.Builder().setTitle("TIME · ETA").addText("$duration · $eta").build())
-            .addItem(Row.Builder().setTitle("PHONE GPS").addText(
-                if (state.gpsAvailable) "Live location · ${state.locationLabel}"
-                else "Waiting for a live phone GPS fix"
-            ).build())
+        val actionStrip = ActionStrip.Builder()
+            .addAction(
+                Action.Builder()
+                    .setTitle("Stop")
+                    .setOnClickListener { CarNavigationBridge.requestStopNavigation() }
+                    .build()
+            )
             .build()
 
-        return ListTemplate.Builder().setTitle("LumaNAV").setSingleList(items).build()
+        val builder = NavigationTemplate.Builder()
+            .setActionStrip(actionStrip)
+
+        if (carContext.carAppApiLevel >= 2) {
+            builder.setMapActionStrip(
+                ActionStrip.Builder().addAction(Action.PAN).build()
+            )
+        }
+
+        if (state.isNavigating && state.remainingDistanceKm > 0f && state.remainingMinutes > 0) {
+            val arrivalTimeMillis = System.currentTimeMillis() + state.remainingMinutes * 60_000L
+            val estimate = TravelEstimate.Builder(
+                Distance.create(state.remainingDistanceKm.toDouble(), Distance.UNIT_KILOMETERS_P1),
+                DateTimeWithZone.create(arrivalTimeMillis, TimeZone.getDefault())
+            )
+                .setRemainingTimeSeconds(state.remainingMinutes * 60L)
+                .build()
+            builder.setDestinationTravelEstimate(estimate)
+        }
+
+        return builder.build()
     }
 }
