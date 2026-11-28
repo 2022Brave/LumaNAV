@@ -1,9 +1,9 @@
 {
-  "versionCode": 179582469,
-  "versionName": "1.0.179582469",
-  "apkUrl": "https://github.com/2022Brave/LumaNAV/releases/download/dev-46086514405/LumaNAV-dev-1.0.179582469.apk",
-  "notes": "Use the LumaNAV brand artwork in adaptive launcher icons",
-  "commit": "3cda2af97145ba031e92f436cbdc1142c85fbbd4",
+  "versionCode": 179585303,
+  "versionName": "1.0.179585303",
+  "apkUrl": "https://github.com/2022Brave/LumaNAV/releases/download/dev-46123995950/LumaNAV-dev-1.0.179585303.apk",
+  "notes": "Polish Maps, AOD, HUD and Drive media UI",
+  "commit": "59d455c0fdcaf9f2dd25baeecd7dd24a59f72bca",
   "channel": "development",
-  "buildNumber": "406"
+  "buildNumber": "407"
 }
