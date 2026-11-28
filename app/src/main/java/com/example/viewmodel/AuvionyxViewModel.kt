@@ -5,6 +5,8 @@ import android.content.Intent
 import android.graphics.Bitmap
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.car.CarNavigationBridge
+import com.example.car.CarNavigationSnapshot
 import com.example.core.GoogleMapsLiveNavigation
 import com.example.core.LiveGoogleMapsSyncBridge
 import com.example.data.ai.AuvionyxAiRepository
@@ -54,6 +56,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -314,6 +317,14 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
     private var lastWeatherFetchMs: Long = 0L
 
     init {
+        // Android Auto observes this projection; all navigation ownership stays in this ViewModel.
+        viewModelScope.launch {
+            combine(_mapsPulse, _telemetry) { maps, telemetry ->
+                CarNavigationSnapshot.from(maps, telemetry)
+            }.collect { snapshot ->
+                CarNavigationBridge.publish(snapshot)
+            }
+        }
         observeLiveGoogleMapsNotifications()
         startMediaTicker()
         refreshPermissionsAndGps()
