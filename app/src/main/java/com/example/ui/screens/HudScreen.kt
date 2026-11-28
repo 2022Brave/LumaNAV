@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -231,6 +232,8 @@ fun HudScreen(
             Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
                 if (hudConfig.layoutMode == HudLayoutMode.MINIMAL) {
                     HudMinimalTurnCard(
+                        speed = speedDisplay,
+                        unitLabel = unitLabel,
                         distance = telemetry.nextTurnDistanceLabel,
                         instruction = telemetry.nextTurnInstruction,
                         accent = hudAccent,
@@ -286,6 +289,8 @@ fun HudScreen(
             Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
                 if (hudConfig.layoutMode == HudLayoutMode.MINIMAL) {
                     HudMinimalTurnCard(
+                        speed = speedDisplay,
+                        unitLabel = unitLabel,
                         distance = telemetry.nextTurnDistanceLabel,
                         instruction = telemetry.nextTurnInstruction,
                         accent = hudAccent,
@@ -381,7 +386,7 @@ private fun ArcGaugeHudLayout(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Column(
-                    modifier = Modifier.weight(2f).fillMaxWidth(),
+                    modifier = Modifier.weight(1f).fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Row(modifier = Modifier.weight(1f).fillMaxWidth()) {
@@ -394,7 +399,7 @@ private fun ArcGaugeHudLayout(
                     }
                 }
                 Surface(
-                    modifier = Modifier.weight(1f).fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().wrapContentHeight(),
                     color = accent.copy(alpha = 0.13f),
                     shape = RoundedCornerShape(18.dp)
                 ) {
@@ -765,6 +770,8 @@ private fun HudBottomMusicBar(
 
 @Composable
 private fun HudMinimalTurnCard(
+    speed: Int,
+    unitLabel: String,
     distance: String,
     instruction: String,
     accent: Color,
@@ -775,16 +782,34 @@ private fun HudMinimalTurnCard(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+            Row(
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.Bottom
+            ) {
+                Text(
+                    text = speed.toString(),
+                    color = accent,
+                    fontSize = 76.sp,
+                    fontWeight = FontWeight.Bold,
+                    lineHeight = 80.sp
+                )
+                Text(
+                    text = unitLabel,
+                    color = GlassWhite.copy(alpha = 0.82f),
+                    fontSize = 16.sp,
+                    modifier = Modifier.padding(start = 8.dp, bottom = 12.dp)
+                )
+            }
             Icon(
                 imageVector = Icons.Outlined.Navigation,
                 contentDescription = "Next turn",
                 tint = accent,
-                modifier = Modifier.size(64.dp)
+                modifier = Modifier.size(48.dp)
             )
             Text(
                 text = distance,
                 color = GlassWhite,
-                fontSize = 42.sp,
+                fontSize = 32.sp,
                 fontWeight = FontWeight.Bold
             )
             Text(

@@ -53,6 +53,7 @@ import androidx.compose.material.icons.outlined.MusicNote
 import androidx.compose.material.icons.outlined.Shuffle
 import androidx.compose.material.icons.outlined.SkipNext
 import androidx.compose.material.icons.outlined.SkipPrevious
+import androidx.compose.material.icons.outlined.Repeat
 import androidx.compose.material.icons.outlined.TurnRight
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -508,6 +509,8 @@ fun CockpitMediaPlayerCard(
     onToggleShuffle: () -> Unit,
     onToggleFavorite: () -> Unit,
     onSeek: (Int) -> Unit,
+    isRepeat: Boolean = false,
+    onToggleRepeat: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val accent = LocalAuvionyxPalette.current.accentPrimary
@@ -730,6 +733,20 @@ fun CockpitMediaPlayerCard(
                             contentDescription = "Next track",
                             tint = GlassWhite,
                             modifier = Modifier.size(26.dp)
+                        )
+                    }
+                    IconButton(
+                        onClick = onToggleRepeat,
+                        modifier = Modifier
+                            .clip(CircleShape)
+                            .photonLuminousTouch(pressScale = 0.90f)
+                            .testTag("active_media_repeat")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Repeat,
+                            contentDescription = "Repeat",
+                            tint = if (isRepeat) accent else GlassWhite.copy(alpha = 0.72f),
+                            modifier = Modifier.size(20.dp)
                         )
                     }
                     IconButton(

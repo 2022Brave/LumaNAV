@@ -6,6 +6,7 @@ import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.animateContentSize
@@ -272,7 +273,8 @@ fun MapsScreen(
             Text(
                 text = "Map data © OpenStreetMap contributors · Tiles by OpenFreeMap · Search by Photon",
                 style = MaterialTheme.typography.labelSmall,
-                color = TextSecondary
+                color = TextSecondary,
+                modifier = Modifier.padding(top = 10.dp, bottom = 14.dp)
             )
             // Minimal Service Indicators + External Navigation Sync Prompt
             Row(
@@ -773,7 +775,7 @@ fun MapsScreen(
                 val searchBarY by animateDpAsState(
                     targetValue = when {
                         searchActive -> 0.dp
-                        mapsPulse.confirmedDestination != null -> (maxHeight - 318.dp).coerceAtLeast(80.dp)
+                        mapsPulse.confirmedDestination != null -> (maxHeight - 410.dp).coerceAtLeast(80.dp)
                         else -> (maxHeight - 152.dp).coerceAtLeast(0.dp)
                     },
                     animationSpec = tween(
@@ -792,6 +794,7 @@ fun MapsScreen(
                         .fillMaxWidth()
                         .padding(horizontal = 14.dp)
                         .statusBarsPadding()
+                        .padding(top = 10.dp)
                         .imePadding()
                         .zIndex(8f),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -924,16 +927,20 @@ fun MapsScreen(
                 }
             }
 
-            if (!mapFullscreen) DraggableLaminarSheet(
-                minHeight = 250.dp,
-                maxHeight = 520.dp,
-                initialFraction = 0.42f,
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .testTag("maps_portrait_laminar_sheet")
-                    .zIndex(1f)
+            AnimatedVisibility(
+                visible = !mapFullscreen && !searchActive,
+                enter = fadeIn(tween(if (reducedMotion) 0 else LivingFlow.StandardDurationMs, easing = LivingFlow.LaminarEasing)),
+                exit = fadeOut(tween(if (reducedMotion) 0 else LivingFlow.CompactDurationMs, easing = LivingFlow.LaminarEasing)),
+                modifier = Modifier.align(Alignment.BottomCenter).zIndex(1f)
             ) {
-                routeContent(Modifier.fillMaxSize())
+                DraggableLaminarSheet(
+                    minHeight = 250.dp,
+                    maxHeight = 520.dp,
+                    initialFraction = 0.42f,
+                    modifier = Modifier.testTag("maps_portrait_laminar_sheet")
+                ) {
+                    routeContent(Modifier.fillMaxSize())
+                }
             }
         }
     }

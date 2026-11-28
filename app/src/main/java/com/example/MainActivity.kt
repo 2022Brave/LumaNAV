@@ -474,6 +474,7 @@ private fun ModuleContentRouter(
                 onNextTrack = { viewModel.nextTrack() },
                 onPrevTrack = { viewModel.previousTrack() },
                 onToggleShuffle = { viewModel.toggleShuffle() },
+                onToggleRepeat = { viewModel.toggleRepeat() },
                 onToggleFavorite = { viewModel.toggleFavorite(it) },
                 onSeek = { viewModel.seekTo(it) }
             )

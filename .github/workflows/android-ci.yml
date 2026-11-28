@@ -171,18 +171,24 @@ jobs:
       - name: Publish development OTA release
         if: github.event_name == 'push' && github.ref == 'refs/heads/branding/lumanav-ui-overhaul'
         shell: bash
-        env:
-          COMMIT_SUBJECT: ${{ github.event.head_commit.message }}
         run: |
           set -euo pipefail
           VERSION_CODE="$LUMANAV_VERSION_CODE"
           VERSION="1.0.${VERSION_CODE}"
           APK="LumaNAV-dev-${VERSION}.apk"
           cp app/build/outputs/apk/debug/app-debug.apk "${APK}"
+          PREVIOUS_TAG="$(git describe --tags --match 'dev-*' --abbrev=0 HEAD^ 2>/dev/null || true)"
+          if [[ -n "$PREVIOUS_TAG" ]]; then
+            CHANGE_RANGE="${PREVIOUS_TAG}..${GITHUB_SHA}"
+            git log "$CHANGE_RANGE" --no-merges --format='- %s%n%b' --invert-grep --grep='Update development OTA manifest' > dev-release-commits.md
+          else
+            git log -10 --no-merges --format='- %s%n%b' --invert-grep --grep='Update development OTA manifest' > dev-release-commits.md
+          fi
+          { echo "# What's New in This Update"; echo; cat dev-release-commits.md; } > dev-release-notes.md
+          if ! grep -q '^- ' dev-release-notes.md; then echo "- Maintenance and stability improvements." >> dev-release-notes.md; fi
           echo "VERSION=${VERSION}" >> "$GITHUB_ENV"
           echo "APK=${APK}" >> "$GITHUB_ENV"
           echo "APK_URL=https://github.com/2022Brave/LumaNAV/releases/download/dev-${GITHUB_RUN_ID}/${APK}" >> "$GITHUB_ENV"
-          printf '%s\n' "${COMMIT_SUBJECT}" > dev-release-notes.txt
 
       - name: Create development GitHub Release
         if: github.event_name == 'push' && github.ref == 'refs/heads/branding/lumanav-ui-overhaul'
@@ -190,7 +196,7 @@ jobs:
         with:
           tag_name: dev-${{ github.run_id }}
           name: LumaNAV Development ${{ github.run_id }}
-          body_path: dev-release-notes.txt
+          body_path: dev-release-notes.md
           files: LumaNAV-dev-*.apk
           prerelease: true
           make_latest: false
@@ -200,9 +206,9 @@ jobs:
         shell: bash
         env:
           COMMIT_SHA: ${{ github.sha }}
-          COMMIT_SUBJECT: ${{ github.event.head_commit.message }}
         run: |
           set -euo pipefail
+          RELEASE_NOTES="$(cat dev-release-notes.md)"
           VERSION_CODE="$LUMANAV_VERSION_CODE"
           VERSION="1.0.${VERSION_CODE}"
           APK="LumaNAV-dev-${VERSION}.apk"
@@ -211,7 +217,7 @@ jobs:
             --argjson versionCode "${VERSION_CODE}" \
             --arg versionName "${VERSION}" \
             --arg apkUrl "${APK_URL}" \
-            --arg notes "${COMMIT_SUBJECT}" \
+            --arg notes "${RELEASE_NOTES}" \
             --arg commit "${COMMIT_SHA}" \
             --arg channel "development" \
             --arg buildNumber "${GITHUB_RUN_NUMBER}" \

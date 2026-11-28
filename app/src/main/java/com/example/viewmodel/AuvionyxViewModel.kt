@@ -734,7 +734,10 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
                             externalArtist = externalSnap.artist,
                             externalAlbum = externalSnap.album,
                             externalDurationSec = externalSnap.durationSec,
-                            externalPositionSec = externalSnap.positionSec
+                            externalPositionSec = externalSnap.positionSec,
+                            externalAppLabel = externalSnap.appLabel,
+                            externalArtwork = externalSnap.artwork,
+                            externalAccentArgb = externalSnap.artworkAccentArgb
                         )
                     }
                 } else {
