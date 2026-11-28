@@ -37,7 +37,10 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import org.json.JSONArray
 import org.json.JSONObject
+import java.util.Locale
 import java.util.TimeZone
+import kotlin.math.ceil
+import kotlin.math.roundToInt
 
 internal data class LumaNavCarState(
     val location: LiveGpsReading? = null,
@@ -64,6 +67,7 @@ internal class LumaNavCarRuntime private constructor(context: Context) {
     private var navigationManager: NavigationManager? = null
     private var navigationStarted = false
     private var foregroundServiceStarted = false
+    private var furthestRouteProgress = 0.0
 
     companion object {
         @Volatile private var instance: LumaNavCarRuntime? = null
@@ -150,6 +154,7 @@ internal class LumaNavCarRuntime private constructor(context: Context) {
 
         if (!startForegroundNavigation(candidate.name)) return false
         foregroundServiceStarted = true
+        furthestRouteProgress = 0.0
         mutableState.value = mutableState.value.copy(
             destination = candidate,
             route = route,
@@ -172,7 +177,79 @@ internal class LumaNavCarRuntime private constructor(context: Context) {
             runCatching { navigationManager?.navigationEnded() }
         }
         navigationStarted = false
+        furthestRouteProgress = 0.0
         stopForegroundNavigation()
+    }
+
+    fun distanceLabel(candidate: DestinationCandidate): String {
+        val origin = mutableState.value.location ?: return ""
+        val latitude = candidate.latitude ?: return ""
+        val longitude = candidate.longitude ?: return ""
+        val distance = distanceKm(origin.latitude, origin.longitude, latitude, longitude)
+        return if (distance < 1.0) {
+            "${(distance * 1000.0).roundToInt()} m"
+        } else {
+            String.format(Locale.getDefault(), "%.1f km", distance)
+        }
+    }
+
+    fun remainingDistanceKm(route: LiveDrivingRoute): Double =
+        route.distanceKm.toDouble() * remainingRouteFraction(route)
+
+    fun remainingDurationMinutes(route: LiveDrivingRoute): Int =
+        ceil(route.durationMinutes * remainingRouteFraction(route))
+            .toInt()
+            .coerceAtLeast(1)
+
+    private fun remainingRouteFraction(route: LiveDrivingRoute): Double {
+        val location = mutableState.value.location ?: return 1.0
+        val points = route.polylinePoints
+        if (points.size < 2) return 1.0
+
+        val cumulativeDistance = DoubleArray(points.size)
+        var totalDistance = 0.0
+        for (index in 1 until points.size) {
+            val previous = points[index - 1]
+            val current = points[index]
+            totalDistance += distanceKm(previous.first, previous.second, current.first, current.second)
+            cumulativeDistance[index] = totalDistance
+        }
+        if (totalDistance <= 0.0) return 1.0
+
+        var closestIndex = 0
+        var closestDistance = Double.MAX_VALUE
+        points.forEachIndexed { index, point ->
+            val distance = distanceKm(
+                location.latitude,
+                location.longitude,
+                point.first,
+                point.second
+            )
+            if (distance < closestDistance) {
+                closestDistance = distance
+                closestIndex = index
+            }
+        }
+        val progress = (cumulativeDistance[closestIndex] / totalDistance).coerceIn(0.0, 1.0)
+        furthestRouteProgress = maxOf(furthestRouteProgress, progress)
+        return (1.0 - furthestRouteProgress).coerceIn(0.01, 1.0)
+    }
+
+    private fun distanceKm(
+        latitudeA: Double,
+        longitudeA: Double,
+        latitudeB: Double,
+        longitudeB: Double
+    ): Double {
+        val earthRadiusKm = 6371.0088
+        val latitudeDelta = Math.toRadians(latitudeB - latitudeA)
+        val longitudeDelta = Math.toRadians(longitudeB - longitudeA)
+        val startLatitude = Math.toRadians(latitudeA)
+        val endLatitude = Math.toRadians(latitudeB)
+        val haversine = kotlin.math.sin(latitudeDelta / 2.0) * kotlin.math.sin(latitudeDelta / 2.0) +
+            kotlin.math.cos(startLatitude) * kotlin.math.cos(endLatitude) *
+            kotlin.math.sin(longitudeDelta / 2.0) * kotlin.math.sin(longitudeDelta / 2.0)
+        return 2.0 * earthRadiusKm * kotlin.math.asin(kotlin.math.sqrt(haversine.coerceIn(0.0, 1.0)))
     }
 
     fun toggleMapStyle() {
@@ -267,12 +344,14 @@ internal class LumaNavCarRuntime private constructor(context: Context) {
         val destinationCandidate = current.destination ?: return
         if (!navigationStarted) return
 
-        val arrivalMillis = System.currentTimeMillis() + route.durationMinutes * 60_000L
+        val remainingDistance = remainingDistanceKm(route)
+        val remainingMinutes = remainingDurationMinutes(route)
+        val arrivalMillis = System.currentTimeMillis() + remainingMinutes * 60_000L
         val arrival = DateTimeWithZone.create(arrivalMillis, TimeZone.getDefault())
         val destinationEstimate = TravelEstimate.Builder(
-            Distance.create(route.distanceKm.toDouble(), Distance.UNIT_KILOMETERS),
+            Distance.create(remainingDistance, Distance.UNIT_KILOMETERS),
             arrival
-        ).setRemainingTimeSeconds(route.durationMinutes * 60L).build()
+        ).setRemainingTimeSeconds(remainingMinutes * 60L).build()
 
         val stepDistanceMeters = route.nextTurnDistanceLabel
             .replace(",", "")
@@ -284,7 +363,7 @@ internal class LumaNavCarRuntime private constructor(context: Context) {
         val stepEstimate = TravelEstimate.Builder(
             Distance.create(stepDistanceMeters.coerceAtLeast(1.0), Distance.UNIT_METERS),
             arrival
-        ).setRemainingTimeSeconds(route.durationMinutes * 60L).build()
+        ).setRemainingTimeSeconds(remainingMinutes * 60L).build()
 
         val maneuverType = when {
             route.nextTurnInstruction.contains("left", ignoreCase = true) -> Maneuver.TYPE_TURN_NORMAL_LEFT

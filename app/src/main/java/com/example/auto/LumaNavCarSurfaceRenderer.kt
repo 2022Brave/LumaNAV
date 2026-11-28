@@ -62,10 +62,16 @@ internal class LumaNavCarSurfaceRenderer(
     private var stateJob: Job? = null
 
     override fun onSurfaceAvailable(surfaceContainer: SurfaceContainer) {
-        releaseDisplay()
         val surface = surfaceContainer.surface ?: return
-        if (!surface.isValid || surfaceContainer.width <= 0 || surfaceContainer.height <= 0) return
+        if (!surface.isValid || surfaceContainer.width <= 0 || surfaceContainer.height <= 0) {
+            surface.release()
+            return
+        }
+        val reusingSurface = hostSurface === surface
+        releaseDisplay(releaseSurface = !reusingSurface)
         hostSurface = surface
+        visibleArea = Rect()
+        stableArea = Rect()
         surfaceWidth = surfaceContainer.width
         surfaceHeight = surfaceContainer.height
         val manager = context.getSystemService(Context.DISPLAY_SERVICE) as DisplayManager
@@ -150,12 +156,13 @@ internal class LumaNavCarSurfaceRenderer(
         releaseDisplay()
     }
 
-    private fun releaseDisplay() {
+    private fun releaseDisplay(releaseSurface: Boolean = true) {
+        val previousSurface = hostSurface
         presentation?.dispose()
         presentation = null
         virtualDisplay?.release()
         virtualDisplay = null
-        hostSurface?.release()
+        if (releaseSurface) previousSurface?.release()
         hostSurface = null
         surfaceWidth = 0
         surfaceHeight = 0
@@ -175,6 +182,7 @@ private class LumaNavMapPresentation(
     private var styleLoading = false
     private var latestState: LumaNavCarState = runtime.state.value
     private var safeArea = Rect()
+    private var cameraPadding = doubleArrayOf(0.0, 0.0, 0.0, 0.0)
     private var lastCenteredLocation: Pair<Double, Double>? = null
     private var disposed = false
 
@@ -202,6 +210,14 @@ private class LumaNavMapPresentation(
             mapLibreMap.uiSettings.isCompassEnabled = false
             mapLibreMap.uiSettings.isLogoEnabled = false
             mapLibreMap.uiSettings.isAttributionEnabled = true
+            mapLibreMap.moveCamera(
+                CameraUpdateFactory.paddingTo(
+                    cameraPadding[0],
+                    cameraPadding[1],
+                    cameraPadding[2],
+                    cameraPadding[3]
+                )
+            )
             loadStyle(latestState.wireframeMode)
         }
     }
@@ -220,7 +236,8 @@ private class LumaNavMapPresentation(
 
     fun renderState(state: LumaNavCarState) {
         latestState = state
-        speedPill.text = "${state.location?.speedKmh ?: 0}  km/h"
+        val liveSpeed = state.location?.takeUnless { it.isLastKnown }?.speedKmh ?: 0
+        speedPill.text = "$liveSpeed  km/h"
         if (map != null && !styleLoading &&
             (style == null || state.wireframeMode != wireframeApplied)
         ) {
@@ -262,6 +279,20 @@ private class LumaNavMapPresentation(
             (root.height - safeArea.bottom).coerceAtLeast(0) + margin
         )
         speedPill.layoutParams = params
+        cameraPadding = doubleArrayOf(
+            safeArea.left.toDouble(),
+            safeArea.top.toDouble(),
+            (root.width - safeArea.right).coerceAtLeast(0).toDouble(),
+            (root.height - safeArea.bottom).coerceAtLeast(0).toDouble()
+        )
+        map?.moveCamera(
+            CameraUpdateFactory.paddingTo(
+                cameraPadding[0],
+                cameraPadding[1],
+                cameraPadding[2],
+                cameraPadding[3]
+            )
+        )
     }
 
     fun pan(dx: Float, dy: Float) {

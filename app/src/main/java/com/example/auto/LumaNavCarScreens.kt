@@ -25,6 +25,8 @@ import androidx.car.app.navigation.model.RoutingInfo
 import androidx.car.app.navigation.model.Step
 import androidx.car.app.navigation.model.TravelEstimate
 import androidx.core.graphics.drawable.IconCompat
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import com.example.data.model.DestinationCandidate
 import com.example.data.model.DestinationSearchOutcome
@@ -151,15 +153,17 @@ internal class LumaNavNavigationScreen(
                         .setCurrentStep(step, Distance.create(distanceMeters, Distance.UNIT_METERS))
                         .build()
                 )
+                val remainingDistance = runtime.remainingDistanceKm(route)
+                val remainingMinutes = runtime.remainingDurationMinutes(route)
                 val arrival = DateTimeWithZone.create(
-                    System.currentTimeMillis() + route.durationMinutes * 60_000L,
+                    System.currentTimeMillis() + remainingMinutes * 60_000L,
                     TimeZone.getDefault()
                 )
                 builder.setDestinationTravelEstimate(
                     TravelEstimate.Builder(
-                        Distance.create(route.distanceKm.toDouble(), Distance.UNIT_KILOMETERS),
+                        Distance.create(remainingDistance, Distance.UNIT_KILOMETERS),
                         arrival
-                    ).setRemainingTimeSeconds(route.durationMinutes * 60L).build()
+                    ).setRemainingTimeSeconds(remainingMinutes * 60L).build()
                 )
             }
         }
@@ -198,8 +202,14 @@ internal class LumaNavSearchScreen(
     private var loading = false
     private var message = "Search for a destination."
     private var searchJob: Job? = null
+    private var initialQueryPending = initialQuery.isNotBlank()
 
     init {
+        lifecycle.addObserver(object : DefaultLifecycleObserver {
+            override fun onDestroy(owner: LifecycleOwner) {
+                searchJob?.cancel()
+            }
+        })
         if (initialQuery.isNotBlank()) search(initialQuery, immediate = true)
     }
 
@@ -210,7 +220,11 @@ internal class LumaNavSearchScreen(
                 Row.Builder()
                     .setTitle(candidate.name)
                     .addText(candidate.addressSummary)
-                    .addText(candidate.category)
+                    .addText(
+                        listOf(candidate.category, runtime.distanceLabel(candidate))
+                            .filter { it.isNotBlank() }
+                            .joinToString(" · ")
+                    )
                     .setOnClickListener {
                         runtime.scope.launch {
                             val started = runtime.startRoute(candidate)
@@ -243,7 +257,10 @@ internal class LumaNavSearchScreen(
         )
             .setSearchHint("Search places")
             .setHeaderAction(Action.BACK)
-        if (initialQuery.isNotBlank()) searchBuilder.setInitialSearchText(initialQuery)
+        if (initialQueryPending) {
+            searchBuilder.setInitialSearchText(initialQuery)
+            initialQueryPending = false
+        }
         if (loading) {
             searchBuilder.setLoading(true)
         } else {
@@ -320,13 +337,21 @@ internal class LumaNavSavedPlacesScreen(
                     .build()
             )
 
-            if (recentPlaces.isNotEmpty()) {
+            recentPlaces.forEach { place ->
                 list.addItem(
                     Row.Builder()
-                        .setTitle("Recent destinations")
-                        .addText("Your recently selected places")
+                        .setTitle("Recent · ${place.name}")
+                        .addText(place.addressSummary)
                         .setOnClickListener {
-                            screenManager.push(LumaNavRecentPlacesScreen(carContext, runtime, recentPlaces))
+                            runtime.scope.launch {
+                                val started = runtime.startRoute(place.toDestinationCandidate())
+                                if (started) screenManager.popToRoot()
+                                else CarToast.makeText(
+                                    carContext,
+                                    "Unable to calculate route. Check GPS and network.",
+                                    CarToast.LENGTH_LONG
+                                ).show()
+                            }
                         }
                         .build()
                 )
