@@ -12,6 +12,8 @@ import androidx.car.app.model.ActionStrip
 import androidx.car.app.model.DateTimeWithZone
 import androidx.car.app.model.Distance
 import androidx.car.app.navigation.model.NavigationTemplate
+import androidx.car.app.navigation.model.RoutingInfo
+import androidx.car.app.navigation.model.Step
 import androidx.car.app.model.Template
 import androidx.car.app.navigation.NavigationManager
 import androidx.car.app.navigation.NavigationManagerCallback
@@ -126,6 +128,19 @@ private class LumaNavCarHomeScreen(carContext: CarContext) : Screen(carContext) 
             )
         }
 
+        if (state.isNavigating) {
+            val turnDistance = parseTurnDistance(state.nextTurnDistance)
+            if (turnDistance != null && state.nextTurnInstruction.isNotBlank()) {
+                val stepBuilder = Step.Builder(state.nextTurnInstruction)
+                if (state.nextTurnRoad.isNotBlank()) stepBuilder.setRoad(state.nextTurnRoad)
+                builder.setNavigationInfo(
+                    RoutingInfo.Builder()
+                        .setCurrentStep(stepBuilder.build(), turnDistance)
+                        .build()
+                )
+            }
+        }
+
         if (state.isNavigating && state.remainingDistanceKm > 0f && state.remainingMinutes > 0) {
             val arrivalTimeMillis = System.currentTimeMillis() + state.remainingMinutes * 60_000L
             val estimate = TravelEstimate.Builder(
@@ -138,5 +153,16 @@ private class LumaNavCarHomeScreen(carContext: CarContext) : Screen(carContext) 
         }
 
         return builder.build()
+    }
+
+    private fun parseTurnDistance(label: String): Distance? {
+        val amount = Regex("""\\d+(?:[.,]\\d+)?""")
+            .find(label)?.value?.replace(',', '.')?.toDoubleOrNull() ?: return null
+        val unit = if (label.contains("km", ignoreCase = true)) {
+            Distance.UNIT_KILOMETERS_P1
+        } else {
+            Distance.UNIT_METERS
+        }
+        return Distance.create(amount, unit)
     }
 }
