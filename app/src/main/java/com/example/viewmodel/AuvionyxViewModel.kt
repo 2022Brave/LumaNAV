@@ -320,7 +320,25 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
         // Android Auto observes this projection; all navigation ownership stays in this ViewModel.
         viewModelScope.launch {
             combine(_mapsPulse, _telemetry) { maps, telemetry ->
-                CarNavigationSnapshot.from(maps, telemetry)
+                CarNavigationSnapshot(
+                    isNavigating = maps.isNavigating,
+                    isExternalNavigation = maps.isExternalGoogleMapsSyncActive,
+                    destinationName = maps.confirmedDestination?.name
+                        ?: telemetry.destinationLabel.takeIf { it.isNotBlank() }
+                        ?: maps.destinationQuery,
+                    navigationSource = maps.navigationSourceLabel.orEmpty(),
+                    currentLocation = maps.currentLatLon,
+                    routePoints = maps.routePolylineGeo.toList(),
+                    headingDegrees = telemetry.headingDegrees,
+                    nextTurnInstruction = telemetry.nextTurnInstruction,
+                    nextTurnRoad = telemetry.nextTurnRoad,
+                    nextTurnDistance = telemetry.nextTurnDistanceLabel,
+                    remainingDistanceKm = telemetry.remainingDistanceKm,
+                    remainingMinutes = telemetry.remainingMinutes,
+                    etaTimeLabel = telemetry.etaTimeLabel,
+                    gpsAvailable = telemetry.isLiveGpsActive && !telemetry.isLocationFallback,
+                    locationLabel = telemetry.currentLocationLabel
+                )
             }.collect { snapshot ->
                 CarNavigationBridge.publish(snapshot)
             }
