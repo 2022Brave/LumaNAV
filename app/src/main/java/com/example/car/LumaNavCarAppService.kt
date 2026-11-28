@@ -48,7 +48,7 @@ private class LumaNavCarSession : Session() {
 
 /** Live phone-navigation status plus Android Auto cluster/HUD trip synchronization. */
 private class LumaNavCarHomeScreen(carContext: CarContext) : Screen(carContext) {
-    private val navigationManager = carContext.getCarService(CarContext.NAVIGATION_SERVICE)
+    private val navigationManager = carContext.getCarService(NavigationManager::class.java)
     private var hostNavigationStarted = false
 
     init {
