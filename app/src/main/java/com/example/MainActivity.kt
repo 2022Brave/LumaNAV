@@ -249,9 +249,12 @@ fun AuvionyxRootApp(viewModel: AuvionyxViewModel) {
                 containerColor = Color(0xFF0A0D12),
                 titleContentColor = GlassWhite,
                 textContentColor = TextSecondary,
-                title = { Text("LumaNAV update available · ${updateState.latestVersion}") },
+                title = { Text("LumaNAV update available · ${updateState.latestDisplayVersion ?: "New version"}") },
                 text = {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        updateState.apkSizeBytes?.let { bytes ->
+                            Text("Download size · ${"%.1f".format(bytes / (1024.0 * 1024.0))} MB", style = MaterialTheme.typography.labelMedium)
+                        }
                         Text(updateState.releaseNotes, style = MaterialTheme.typography.bodySmall)
                         if (updateState.downloading) {
                             LinearProgressIndicator(
