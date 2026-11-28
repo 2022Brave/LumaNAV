@@ -166,11 +166,11 @@ internal class LumaNavNavigationScreen(
         return builder.build()
     }
 
-    private fun icon(resource: Int, active: Boolean = false): CarIcon =
-        CarIcon.createTintedIcon(
-            IconCompat.createWithResource(carContext, resource),
-            if (active) CarColor.createCustom(0xFFB8F6FF.toInt(), 0xFFB8F6FF.toInt()) else CYAN
-        )
+    private fun icon(resource: Int, active: Boolean = false): CarIcon = CarIcon.Builder(
+        IconCompat.createWithResource(carContext, resource)
+    ).setTint(
+        if (active) CarColor.createCustom(0xFFB8F6FF.toInt(), 0xFFB8F6FF.toInt()) else CYAN
+    ).build()
 
     private fun maneuverType(instruction: String): Int = when {
         instruction.contains("left", true) -> Maneuver.TYPE_TURN_NORMAL_LEFT

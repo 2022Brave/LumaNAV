@@ -1,7 +1,7 @@
 package com.example.auto
 
 import android.content.Context
-import android.graphics.Point
+import android.graphics.Point as ScreenPoint
 import android.graphics.Rect
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
@@ -45,7 +45,7 @@ import org.maplibre.android.style.sources.GeoJsonSource
 import org.maplibre.geojson.Feature
 import org.maplibre.geojson.FeatureCollection
 import org.maplibre.geojson.LineString
-import org.maplibre.geojson.Point
+import org.maplibre.geojson.Point as GeoPoint
 import kotlin.math.ln
 
 internal class LumaNavCarSurfaceRenderer(
@@ -274,7 +274,7 @@ private class LumaNavMapPresentation(
         followLocation = false
         val zoomDelta = ln(factor.toDouble()) / ln(2.0)
         val point = if (focusX >= 0f && focusY >= 0f) {
-            Point(focusX.toInt(), focusY.toInt())
+            ScreenPoint(focusX.toInt(), focusY.toInt())
         } else {
             null
         }
@@ -390,7 +390,7 @@ private class LumaNavMapPresentation(
         val loaded = style ?: return
         val routeSource = loaded.getSourceAs<GeoJsonSource>(ROUTE_SOURCE)
         val routeCoordinates = route?.polylinePoints?.map { (lat, lon) ->
-            Point.fromLngLat(lon, lat)
+            GeoPoint.fromLngLat(lon, lat)
         }.orEmpty()
         val routeFeature = if (routeCoordinates.size >= 2) {
             Feature.fromGeometry(LineString.fromLngLats(routeCoordinates))
@@ -404,7 +404,7 @@ private class LumaNavMapPresentation(
         val puckSource = loaded.getSourceAs<GeoJsonSource>(PUCK_SOURCE)
         val puck = location?.let {
             FeatureCollection.fromFeatures(
-                arrayOf(Feature.fromGeometry(Point.fromLngLat(it.longitude, it.latitude)))
+                arrayOf(Feature.fromGeometry(GeoPoint.fromLngLat(it.longitude, it.latitude)))
             )
         } ?: emptyCollection()
         puckSource?.setGeoJson(puck)
