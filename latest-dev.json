@@ -1,9 +1,11 @@
 {
-  "versionCode": 179588971,
-  "versionName": "1.0.179588971",
-  "apkUrl": "https://github.com/2022Brave/LumaNAV/releases/download/dev-46174792300/LumaNAV-dev-1.0.179588971.apk",
-  "notes": "# What's New in This Update\n\n- Fix Android Auto branch development OTA publishing\n\n- Avoid plotting stale GPS fallback on car map\n\n- Correct parsing of turn distance labels\n\n- Show phone turn guidance in Android Auto navigation template\n\n- Bind map surface callback to car screen lifecycle\n\n- Stream live GPS and route updates to car map\n\n- Switch Android Auto to live navigation map template\n\n- Declare Android Auto map surface access\n\n- Release replaced Android Auto surfaces safely\n\n- Add MapLibre renderer for Android Auto host surface",
-  "commit": "aa7aff045be5536f079645c4805d1a91f8f4f37b",
+  "versionCode": 179589075,
+  "versionName": "1.0.179589075",
+  "displayVersion": "1.0 · Build #448",
+  "apkSizeBytes": 79420655,
+  "apkUrl": "https://github.com/2022Brave/LumaNAV/releases/download/dev-46176383916/LumaNAV-dev-1.0.179589075.apk",
+  "notes": "# What's New in This Update\n\n- Calculate APK size in OTA manifest publishing step\n\n- Publish APK size and readable build number in OTA manifest\n\n- Display compact update version and APK size in prompt\n\n- Show concise build labels and OTA download size\n\n- Fix Android Auto branch development OTA publishing\n\n- Avoid plotting stale GPS fallback on car map\n\n- Correct parsing of turn distance labels\n\n- Show phone turn guidance in Android Auto navigation template\n\n- Bind map surface callback to car screen lifecycle\n\n- Stream live GPS and route updates to car map",
+  "commit": "87a872fb7bf4fead800e76c4b35fed53596ef08b",
   "channel": "development",
-  "buildNumber": "444"
+  "buildNumber": "448"
 }
