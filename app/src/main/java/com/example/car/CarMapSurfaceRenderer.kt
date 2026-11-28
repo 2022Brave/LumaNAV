@@ -60,7 +60,10 @@ internal class CarMapSurfaceRenderer(
 
     init {
         lifecycle.addObserver(this)
-        carContext.getCarService(AppManager::class.java).setSurfaceCallback(this)
+    }
+
+    override fun onCreate(owner: LifecycleOwner) {
+        runCatching { carContext.getCarService(AppManager::class.java).setSurfaceCallback(this) }
     }
 
     fun update(snapshot: CarNavigationSnapshot) {
