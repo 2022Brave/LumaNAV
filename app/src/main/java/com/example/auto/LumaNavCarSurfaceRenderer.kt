@@ -1,7 +1,7 @@
 package com.example.auto
 
 import android.content.Context
-import android.graphics.PointF
+import android.graphics.Point
 import android.graphics.Rect
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
@@ -266,14 +266,18 @@ private class LumaNavMapPresentation(
 
     fun pan(dx: Float, dy: Float) {
         followLocation = false
-        map?.animateCamera(CameraUpdateFactory.scrollBy(dx, dy))
+        map?.scrollBy(dx, dy)
     }
 
     fun scale(focusX: Float, focusY: Float, factor: Float) {
         if (factor <= 0f) return
         followLocation = false
-        val zoomDelta = (ln(factor.toDouble()) / ln(2.0)).toFloat()
-        val point = if (focusX >= 0f && focusY >= 0f) PointF(focusX, focusY) else null
+        val zoomDelta = ln(factor.toDouble()) / ln(2.0)
+        val point = if (focusX >= 0f && focusY >= 0f) {
+            Point(focusX.toInt(), focusY.toInt())
+        } else {
+            null
+        }
         val update = if (point != null) {
             CameraUpdateFactory.zoomBy(zoomDelta, point)
         } else {

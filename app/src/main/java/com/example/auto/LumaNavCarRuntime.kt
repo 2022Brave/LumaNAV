@@ -287,8 +287,8 @@ internal class LumaNavCarRuntime private constructor(context: Context) {
         ).setRemainingTimeSeconds(route.durationMinutes * 60L).build()
 
         val maneuverType = when {
-            route.nextTurnInstruction.contains("left", ignoreCase = true) -> Maneuver.TYPE_TURN_LEFT
-            route.nextTurnInstruction.contains("right", ignoreCase = true) -> Maneuver.TYPE_TURN_RIGHT
+            route.nextTurnInstruction.contains("left", ignoreCase = true) -> Maneuver.TYPE_TURN_NORMAL_LEFT
+            route.nextTurnInstruction.contains("right", ignoreCase = true) -> Maneuver.TYPE_TURN_NORMAL_RIGHT
             route.nextTurnInstruction.contains("u-turn", ignoreCase = true) -> Maneuver.TYPE_U_TURN_LEFT
             else -> Maneuver.TYPE_STRAIGHT
         }

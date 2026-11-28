@@ -105,7 +105,7 @@ internal class LumaNavNavigationScreen(
         }
 
         val builder = NavigationTemplate.Builder()
-            .setBackgroundColor(CarColor.createCustom(0xFF0B1219.toInt()))
+            .setBackgroundColor(CarColor.createCustom(0xFF0B1219.toInt(), 0xFF000000.toInt()))
             .setActionStrip(actions.build())
 
         if (carContext.carAppApiLevel >= 2) {
@@ -166,13 +166,15 @@ internal class LumaNavNavigationScreen(
         return builder.build()
     }
 
-    private fun icon(resource: Int, active: Boolean = false): CarIcon = CarIcon.Builder(
-        IconCompat.createWithResource(carContext, resource)
-    ).setTint(if (active) CarColor.createCustom(0xFFB8F6FF.toInt()) else CYAN).build()
+    private fun icon(resource: Int, active: Boolean = false): CarIcon =
+        CarIcon.createTintedIcon(
+            IconCompat.createWithResource(carContext, resource),
+            if (active) CarColor.createCustom(0xFFB8F6FF.toInt(), 0xFFB8F6FF.toInt()) else CYAN
+        )
 
     private fun maneuverType(instruction: String): Int = when {
-        instruction.contains("left", true) -> Maneuver.TYPE_TURN_LEFT
-        instruction.contains("right", true) -> Maneuver.TYPE_TURN_RIGHT
+        instruction.contains("left", true) -> Maneuver.TYPE_TURN_NORMAL_LEFT
+        instruction.contains("right", true) -> Maneuver.TYPE_TURN_NORMAL_RIGHT
         instruction.contains("u-turn", true) -> Maneuver.TYPE_U_TURN_LEFT
         else -> Maneuver.TYPE_STRAIGHT
     }
@@ -183,14 +185,14 @@ internal class LumaNavNavigationScreen(
     }
 
     companion object {
-        private val CYAN = CarColor.createCustom(0xFF00D9F5.toInt())
+        private val CYAN = CarColor.createCustom(0xFF00D9F5.toInt(), 0xFF00D9F5.toInt())
     }
 }
 
 internal class LumaNavSearchScreen(
     carContext: CarContext,
     private val runtime: LumaNavCarRuntime,
-    initialQuery: String = ""
+    private val initialQuery: String = ""
 ) : Screen(carContext) {
     private var results: List<DestinationCandidate> = emptyList()
     private var loading = false
@@ -227,7 +229,7 @@ internal class LumaNavSearchScreen(
                     .build()
             )
         }
-        rows.setNoItemsMessage(CarText.create(message))
+        rows.setNoItemsMessage(message)
         val searchBuilder = SearchTemplate.Builder(
             object : SearchTemplate.SearchCallback {
                 override fun onSearchTextChanged(searchText: String) {
@@ -300,7 +302,7 @@ internal class LumaNavSavedPlacesScreen(
     override fun onGetTemplate(): Template {
         val list = ItemList.Builder()
         if (!loaded) {
-            list.setNoItemsMessage(CarText.create("Loading saved places…"))
+            list.setNoItemsMessage("Loading saved places…")
         } else {
             val homeWork = savedPlaces.filter {
                 it.category.contains("home", true) || it.category.contains("work", true) ||
@@ -332,7 +334,7 @@ internal class LumaNavSavedPlacesScreen(
 
             savedPlaces.filterNot { it in homeWork }.forEach { place -> list.addItem(placeRow(place)) }
             if (savedPlaces.isEmpty() && recentPlaces.isEmpty()) {
-                list.setNoItemsMessage(CarText.create("No saved places yet. Save Home or Work in LumaNAV on your phone."))
+                list.setNoItemsMessage("No saved places yet. Save Home or Work in LumaNAV on your phone.")
             }
         }
 
@@ -376,7 +378,7 @@ internal class LumaNavRecentPlacesScreen(
                     .build()
             )
         }
-        if (recentPlaces.isEmpty()) list.setNoItemsMessage(CarText.create("No recent destinations."))
+        if (recentPlaces.isEmpty()) list.setNoItemsMessage("No recent destinations.")
         val builder = ListTemplate.Builder().setSingleList(list.build())
         applyListHeader(builder, "Recent Destinations")
         return builder.build()
