@@ -1,7 +1,5 @@
 package com.example.car
 
-import com.example.viewmodel.MapsAndPulseState
-import com.example.data.model.VehicleTelemetry
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -26,37 +24,7 @@ data class CarNavigationSnapshot(
     val etaTimeLabel: String = "--:--",
     val gpsAvailable: Boolean = false,
     val locationLabel: String = "Waiting for phone GPS"
-) {
-    companion object {
-        fun from(
-            maps: MapsAndPulseState,
-            telemetry: VehicleTelemetry
-        ): CarNavigationSnapshot {
-            val destination = maps.confirmedDestination?.name
-                ?: telemetry.destinationLabel
-                .takeIf { it.isNotBlank() }
-                ?: maps.destinationQuery
-
-            return CarNavigationSnapshot(
-                isNavigating = maps.isNavigating,
-                isExternalNavigation = maps.isExternalGoogleMapsSyncActive,
-                destinationName = destination,
-                navigationSource = maps.navigationSourceLabel.orEmpty(),
-                currentLocation = maps.currentLatLon,
-                routePoints = maps.routePolylineGeo.toList(),
-                headingDegrees = telemetry.headingDegrees,
-                nextTurnInstruction = telemetry.nextTurnInstruction,
-                nextTurnRoad = telemetry.nextTurnRoad,
-                nextTurnDistance = telemetry.nextTurnDistanceLabel,
-                remainingDistanceKm = telemetry.remainingDistanceKm,
-                remainingMinutes = telemetry.remainingMinutes,
-                etaTimeLabel = telemetry.etaTimeLabel,
-                gpsAvailable = telemetry.isLiveGpsActive && !telemetry.isLocationFallback,
-                locationLabel = telemetry.currentLocationLabel
-            )
-        }
-    }
-}
+)
 
 /**
  * A tiny in-process state bridge. It deliberately does not create another ViewModel,
