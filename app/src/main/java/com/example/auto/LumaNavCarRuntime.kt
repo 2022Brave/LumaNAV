@@ -1,7 +1,12 @@
 package com.example.auto
 
+import android.Manifest
 import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import androidx.car.app.navigation.NavigationManager
+import androidx.core.content.ContextCompat
 import androidx.car.app.model.DateTimeWithZone
 import androidx.car.app.model.Distance
 import androidx.car.app.navigation.model.Destination
@@ -58,6 +63,7 @@ internal class LumaNavCarRuntime private constructor(context: Context) {
     private var gpsJob: Job? = null
     private var navigationManager: NavigationManager? = null
     private var navigationStarted = false
+    private var foregroundServiceStarted = false
 
     companion object {
         @Volatile private var instance: LumaNavCarRuntime? = null
@@ -98,7 +104,14 @@ internal class LumaNavCarRuntime private constructor(context: Context) {
         gpsJob = null
     }
 
-    fun hasLocationPermission(): Boolean = telemetry.hasLocationPermission()
+    fun hasLocationPermission(): Boolean {
+        if (!telemetry.hasLocationPermission()) return false
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return true
+        return ContextCompat.checkSelfPermission(
+            appContext,
+            Manifest.permission.ACCESS_BACKGROUND_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+    }
 
     suspend fun savedPlaces(): List<SavedPlace> = preferences.savedPlacesFlow.first()
 
@@ -112,6 +125,7 @@ internal class LumaNavCarRuntime private constructor(context: Context) {
     }
 
     suspend fun startRoute(candidate: DestinationCandidate): Boolean {
+        if (!hasLocationPermission()) return false
         val latitude = candidate.latitude ?: return false
         val longitude = candidate.longitude ?: return false
         var origin = mutableState.value.location
@@ -134,6 +148,8 @@ internal class LumaNavCarRuntime private constructor(context: Context) {
             )
         } ?: return false
 
+        if (!startForegroundNavigation(candidate.name)) return false
+        foregroundServiceStarted = true
         mutableState.value = mutableState.value.copy(
             destination = candidate,
             route = route,
@@ -156,6 +172,7 @@ internal class LumaNavCarRuntime private constructor(context: Context) {
             runCatching { navigationManager?.navigationEnded() }
         }
         navigationStarted = false
+        stopForegroundNavigation()
     }
 
     fun toggleMapStyle() {
@@ -219,6 +236,21 @@ internal class LumaNavCarRuntime private constructor(context: Context) {
             if (item.optString("id") != candidate.id && updated.length() < 8) updated.put(item)
         }
         prefs.edit().putString("places", updated.toString()).apply()
+    }
+
+    private fun startForegroundNavigation(destinationName: String): Boolean {
+        val intent = Intent(appContext, LumaNavCarAppService::class.java)
+            .setAction(LumaNavCarAppService.ACTION_START_NAVIGATION)
+            .putExtra(LumaNavCarAppService.EXTRA_DESTINATION, destinationName)
+        return runCatching { ContextCompat.startForegroundService(appContext, intent) }.isSuccess
+    }
+
+    private fun stopForegroundNavigation() {
+        if (!foregroundServiceStarted) return
+        val intent = Intent(appContext, LumaNavCarAppService::class.java)
+            .setAction(LumaNavCarAppService.ACTION_STOP_NAVIGATION)
+        runCatching { appContext.startService(intent) }
+        foregroundServiceStarted = false
     }
 
     private fun startHostNavigation() {

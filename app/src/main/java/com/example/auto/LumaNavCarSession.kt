@@ -38,6 +38,7 @@ class LumaNavCarSession : Session() {
             }
 
             override fun onDestroy(owner: LifecycleOwner) {
+                sharedRuntime.stopRoute()
                 sharedRuntime.detachNavigationManager()
                 sharedRuntime.surfaceRenderer.release()
                 sharedRuntime.stopLocationUpdates()
