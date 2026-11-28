@@ -39,6 +39,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
+import android.content.res.Configuration
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
@@ -83,6 +85,7 @@ fun AodScreen(
     onExitAod: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val isLandscapeWide = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
     val reducedMotion = LocalAuvionyxMotion.current.reducedMotion
     var shiftStep by remember { mutableIntStateOf(0) }
     var controlsVisible by remember { mutableStateOf(true) }
@@ -277,11 +280,18 @@ fun AodScreen(
                             testTag = "aod_style_${style.name}",
                             modifier = Modifier.height(42.dp)
                         ) {
+                            val pillLabel = if (isLandscapeWide) style.label else when (style) {
+                                AodStyle.MINIMAL -> "Minimal"
+                                AodStyle.MAP -> "Map"
+                                AodStyle.JOURNEY -> "Journey"
+                            }
                             Text(
-                                text = style.label,
+                                text = pillLabel,
                                 style = MaterialTheme.typography.labelMedium,
                                 color = if (aodStyle == style) GlassWhite else TextSecondary,
-                                modifier = Modifier.padding(horizontal = 12.dp)
+                                maxLines = 1,
+                                softWrap = false,
+                                modifier = Modifier.padding(horizontal = if (isLandscapeWide) 12.dp else 10.dp)
                             )
                         }
                     }

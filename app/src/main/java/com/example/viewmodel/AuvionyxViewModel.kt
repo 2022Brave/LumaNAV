@@ -1357,7 +1357,7 @@ class AuvionyxViewModel(application: Application) : AndroidViewModel(application
         val clean = query.trim()
         if (clean.length < 3) return
         suggestionJob = viewModelScope.launch {
-            kotlinx.coroutines.delay(450L)
+            kotlinx.coroutines.delay(320L)
             val origin = _mapsPulse.value.currentLatLon
             when (val outcome = destinationSearchRepo.searchDestination(clean, origin?.first, origin?.second)) {
                 is DestinationSearchOutcome.Matches -> {

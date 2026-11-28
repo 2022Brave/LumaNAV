@@ -1,9 +1,11 @@
 package com.example.ui.screens
 
 import android.app.Activity
+import android.graphics.Bitmap
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -26,6 +28,7 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.outlined.SkipNext
 import androidx.compose.material.icons.outlined.SkipPrevious
 import androidx.compose.material.icons.outlined.Navigation
+import androidx.compose.material.icons.outlined.MusicNote
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -49,7 +52,9 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalContext
@@ -266,6 +271,8 @@ fun HudScreen(
                     HudBottomMusicBar(
                         track = mediaState.currentTrack,
                         isPlaying = mediaState.isPlaying,
+                        externalArtwork = mediaState.externalArtwork,
+                        isExternalSessionActive = mediaState.isExternalSessionActive,
                         accent = hudAccent,
                         onOpenMusic = { onSelectModule(AuvionyxModule.MUSIC) },
                         onPrevious = onPrevTrack,
@@ -319,6 +326,8 @@ fun HudScreen(
                     HudBottomMusicBar(
                         track = mediaState.currentTrack,
                         isPlaying = mediaState.isPlaying,
+                        externalArtwork = mediaState.externalArtwork,
+                        isExternalSessionActive = mediaState.isExternalSessionActive,
                         accent = hudAccent,
                         onOpenMusic = { onSelectModule(AuvionyxModule.MUSIC) },
                         onPrevious = onPrevTrack,
@@ -638,6 +647,8 @@ private fun HudSpeedometerGauge(
 private fun HudBottomMusicBar(
     track: MediaTrack,
     isPlaying: Boolean,
+    externalArtwork: Bitmap?,
+    isExternalSessionActive: Boolean,
     accent: Color,
     onOpenMusic: () -> Unit,
     onPrevious: () -> Unit,
@@ -658,12 +669,29 @@ private fun HudBottomMusicBar(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            AlbumArtworkArt(
-                artVariant = track.artVariant,
-                accentColor = accent,
-                cornerRadius = 10.dp,
-                modifier = Modifier.size(44.dp)
-            )
+            when {
+                externalArtwork != null -> Image(
+                    bitmap = externalArtwork.asImageBitmap(),
+                    contentDescription = "Current track album artwork",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.size(44.dp).clip(RoundedCornerShape(10.dp))
+                )
+                isExternalSessionActive -> Surface(
+                    modifier = Modifier.size(44.dp),
+                    color = accent.copy(alpha = 0.16f),
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(Icons.Outlined.MusicNote, contentDescription = "Live media session", tint = accent)
+                    }
+                }
+                else -> AlbumArtworkArt(
+                    artVariant = track.artVariant,
+                    accentColor = accent,
+                    cornerRadius = 10.dp,
+                    modifier = Modifier.size(44.dp)
+                )
+            }
             Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(

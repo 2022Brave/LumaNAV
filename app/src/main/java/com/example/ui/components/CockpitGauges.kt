@@ -578,6 +578,7 @@ fun CockpitMediaPlayerCard(
                         style = MaterialTheme.typography.titleLarge,
                         color = GlassWhite,
                         maxLines = 1,
+                        softWrap = false,
                         modifier = Modifier.fillMaxWidth().basicMarquee()
                     )
                     Spacer(Modifier.height(2.dp))
@@ -586,7 +587,8 @@ fun CockpitMediaPlayerCard(
                         style = MaterialTheme.typography.bodyMedium,
                         color = TextSecondary,
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        softWrap = false,
+                        modifier = Modifier.fillMaxWidth().basicMarquee()
                     )
                 }
                 if (!compactMode) {

@@ -369,6 +369,13 @@ fun NativeMapLibreView(
  */
 
 private fun applyLumaNavWireframe(style: Style) {
+    val hasBackgroundLayer = style.layers.any { it is BackgroundLayer }
+    if (!hasBackgroundLayer) {
+        style.addLayerAt(
+            BackgroundLayer("lumanav-wireframe-background").withProperties(backgroundColor("#000000")),
+            0
+        )
+    }
     style.layers.forEach { layer ->
         when (layer) {
             is BackgroundLayer -> layer.setProperties(backgroundColor("#000000"))

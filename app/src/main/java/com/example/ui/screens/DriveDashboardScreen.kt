@@ -8,6 +8,9 @@ import android.hardware.SensorManager
 import android.content.Intent
 import android.provider.Settings
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.basicMarquee
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.ExperimentalSharedTransitionApi
@@ -58,7 +61,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.core.graphics.ColorUtils
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
@@ -509,6 +516,7 @@ private fun LandscapeCockpitSurface(
 /**
  * Clean Portrait Phone Companion Layout (OPPO Find X10 / Galaxy S24+).
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun SmartphonePortraitDriveDashboard(
     settings: AuvionyxSettingsState,
@@ -529,6 +537,11 @@ private fun SmartphonePortraitDriveDashboard(
     val accent = LocalAuvionyxPalette.current.accentPrimary
     val resolved = resolveCockpitDisplay(settings = settings, telemetry = telemetry, mapsPulse = mapsPulse)
     val track = mediaState.currentTrack
+    val launchHudContentColor = if (ColorUtils.calculateLuminance(accent.toArgb()) < 0.45) {
+        Color.White
+    } else {
+        Color.Black
+    }
 
     Box(modifier = modifier.fillMaxSize()) {
         LazyColumn(
@@ -578,14 +591,14 @@ private fun SmartphonePortraitDriveDashboard(
                             Icon(
                                 imageVector = Icons.Outlined.Speed,
                                 contentDescription = "Start HUD",
-                                tint = ObsidianBlack,
+                                tint = launchHudContentColor,
                                 modifier = Modifier.size(20.dp)
                             )
                             Spacer(Modifier.width(8.dp))
                             Text(
                                 text = "Start HUD · ${resolved.speedDisplay} ${resolved.unitLabel}",
                                 style = MaterialTheme.typography.titleMedium,
-                                color = ObsidianBlack
+                                color = launchHudContentColor
                             )
                         }
                     }
@@ -662,12 +675,29 @@ private fun SmartphonePortraitDriveDashboard(
                     .photonLuminousTouch(pressScale = 0.98f, onClick = { onSelectModule(AuvionyxModule.MUSIC) }),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                AlbumArtworkArt(
-                    artVariant = track.artVariant,
-                    accentColor = track.adaptiveColor,
-                    cornerRadius = 10.dp,
-                    modifier = Modifier.size(46.dp)
-                )
+                when {
+                    mediaState.externalArtwork != null -> Image(
+                        bitmap = mediaState.externalArtwork.asImageBitmap(),
+                        contentDescription = "Current track album artwork",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.size(64.dp).clip(RoundedCornerShape(10.dp))
+                    )
+                    mediaState.isExternalSessionActive -> Surface(
+                        modifier = Modifier.size(64.dp),
+                        color = track.adaptiveColor.copy(alpha = 0.16f),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(Icons.Outlined.MusicNote, contentDescription = "Live media session", tint = track.adaptiveColor)
+                        }
+                    }
+                    else -> AlbumArtworkArt(
+                        artVariant = track.artVariant,
+                        accentColor = track.adaptiveColor,
+                        cornerRadius = 10.dp,
+                        modifier = Modifier.size(64.dp)
+                    )
+                }
                 Spacer(Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
@@ -675,14 +705,16 @@ private fun SmartphonePortraitDriveDashboard(
                         style = MaterialTheme.typography.titleMedium,
                         color = GlassWhite,
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        softWrap = false,
+                        modifier = Modifier.fillMaxWidth().basicMarquee()
                     )
                     Text(
                         text = track.artist,
                         style = MaterialTheme.typography.bodyMedium,
                         color = TextSecondary,
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        softWrap = false,
+                        modifier = Modifier.fillMaxWidth().basicMarquee()
                     )
                 }
                 MediaControlCluster(

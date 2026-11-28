@@ -80,6 +80,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -211,8 +212,10 @@ fun MapsScreen(
             }
             Row(
                 modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
+                Spacer(Modifier.width(16.dp))
                 Surface(
                     onClick = { showSavedPlaces = true },
                     color = DeepBlue.copy(alpha = 0.28f),
@@ -789,7 +792,8 @@ fun MapsScreen(
                         .fillMaxWidth()
                         .padding(horizontal = 14.dp)
                         .statusBarsPadding()
-                        .imePadding(),
+                        .imePadding()
+                        .zIndex(8f),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     if (mapsPulse.confirmedDestination != null && !searchActive) {
@@ -855,8 +859,13 @@ fun MapsScreen(
                     }
                     if (searchActive && mapsPulse.destinationCandidates.isNotEmpty()) {
                         Surface(
-                            modifier = Modifier.fillMaxWidth().heightIn(max = 340.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(max = 340.dp)
+                                .zIndex(9f)
+                                .shadow(18.dp, RoundedCornerShape(18.dp)),
                             color = Color(0xF20A1019),
+                            tonalElevation = 10.dp,
                             shape = RoundedCornerShape(18.dp),
                             border = BorderStroke(1.dp, accent.copy(alpha = 0.42f))
                         ) {
