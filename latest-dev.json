@@ -1,9 +1,9 @@
 {
-  "versionCode": 179585756,
-  "versionName": "1.0.179585756",
-  "apkUrl": "https://github.com/2022Brave/LumaNAV/releases/download/dev-46129851148/LumaNAV-dev-1.0.179585756.apk",
-  "notes": "# What's New in This Update\n\n- Refine portrait media-first player without altering landscape controls\n\n- Refine portrait Drive edge-to-edge and split behavior\n\n- Redesign portrait Drive and polish navigation updates\n\n- Polish Maps, AOD, HUD and Drive media UI\n\n- Use the LumaNAV brand artwork in adaptive launcher icons\n\n- Align navigation module test with six-item dock\n\n- Align unit tests with removed demo simulation state\n\n- Remove obsolete navigation and simulation leftovers\n\n- Remove obsolete navigation and simulation leftovers\n\n- Remove remaining demo sensor UI and preview code",
-  "commit": "ac93204802318b59028f7f59ba607a1f9292fd31",
+  "versionCode": 179588971,
+  "versionName": "1.0.179588971",
+  "apkUrl": "https://github.com/2022Brave/LumaNAV/releases/download/dev-46174792300/LumaNAV-dev-1.0.179588971.apk",
+  "notes": "# What's New in This Update\n\n- Fix Android Auto branch development OTA publishing\n\n- Avoid plotting stale GPS fallback on car map\n\n- Correct parsing of turn distance labels\n\n- Show phone turn guidance in Android Auto navigation template\n\n- Bind map surface callback to car screen lifecycle\n\n- Stream live GPS and route updates to car map\n\n- Switch Android Auto to live navigation map template\n\n- Declare Android Auto map surface access\n\n- Release replaced Android Auto surfaces safely\n\n- Add MapLibre renderer for Android Auto host surface",
+  "commit": "aa7aff045be5536f079645c4805d1a91f8f4f37b",
   "channel": "development",
-  "buildNumber": "410"
+  "buildNumber": "444"
 }
