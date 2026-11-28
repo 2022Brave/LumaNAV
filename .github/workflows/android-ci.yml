@@ -169,7 +169,7 @@ jobs:
       # Publish every fully tested build from the personal development branch.
       # This is deliberately excluded from pull_request and manual runs.
       - name: Publish development OTA release
-        if: github.event_name == 'push' && github.ref == 'refs/heads/branding/lumanav-ui-overhaul'
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/branding/lumanav-ui-overhaul' || github.ref == 'refs/heads/branding/lumanav-android-auto')
         shell: bash
         run: |
           set -euo pipefail
@@ -191,7 +191,7 @@ jobs:
           echo "APK_URL=https://github.com/2022Brave/LumaNAV/releases/download/dev-${GITHUB_RUN_ID}/${APK}" >> "$GITHUB_ENV"
 
       - name: Create development GitHub Release
-        if: github.event_name == 'push' && github.ref == 'refs/heads/branding/lumanav-ui-overhaul'
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/branding/lumanav-ui-overhaul' || github.ref == 'refs/heads/branding/lumanav-android-auto')
         uses: softprops/action-gh-release@v2
         with:
           tag_name: dev-${{ github.run_id }}
@@ -202,7 +202,7 @@ jobs:
           make_latest: false
 
       - name: Publish development OTA manifest
-        if: github.event_name == 'push' && github.ref == 'refs/heads/branding/lumanav-ui-overhaul'
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/branding/lumanav-ui-overhaul' || github.ref == 'refs/heads/branding/lumanav-android-auto')
         shell: bash
         env:
           COMMIT_SHA: ${{ github.sha }}
@@ -228,6 +228,26 @@ jobs:
           git add latest-dev.json
           git commit -m "Update development OTA manifest for ${VERSION}"
           git push origin "HEAD:${GITHUB_REF_NAME}"
+
+      # Keep the legacy manifest endpoint current so already-installed app versions
+      # (which still read branding/lumanav-ui-overhaul/latest-dev.json) can discover
+      # builds published from the Android Auto development branch.
+      - name: Mirror development OTA manifest for existing installations
+        if: github.event_name == 'push' && github.ref == 'refs/heads/branding/lumanav-android-auto'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin branding/lumanav-ui-overhaul
+          COMPAT_DIR="$RUNNER_TEMP/lumanav-ota-compat"
+          git worktree add "$COMPAT_DIR" "origin/branding/lumanav-ui-overhaul"
+          cp latest-dev.json "$COMPAT_DIR/latest-dev.json"
+          git -C "$COMPAT_DIR" config user.name "github-actions[bot]"
+          git -C "$COMPAT_DIR" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C "$COMPAT_DIR" add latest-dev.json
+          if ! git -C "$COMPAT_DIR" diff --cached --quiet; then
+            git -C "$COMPAT_DIR" commit -m "Mirror Android Auto development OTA manifest"
+            git -C "$COMPAT_DIR" push origin HEAD:branding/lumanav-ui-overhaul
+          fi
 
       - name: Upload test reports
         if: always()
