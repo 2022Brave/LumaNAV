@@ -1,9 +1,9 @@
 {
-  "versionCode": 179585303,
-  "versionName": "1.0.179585303",
-  "apkUrl": "https://github.com/2022Brave/LumaNAV/releases/download/dev-46123995950/LumaNAV-dev-1.0.179585303.apk",
-  "notes": "Polish Maps, AOD, HUD and Drive media UI",
-  "commit": "59d455c0fdcaf9f2dd25baeecd7dd24a59f72bca",
+  "versionCode": 179585756,
+  "versionName": "1.0.179585756",
+  "apkUrl": "https://github.com/2022Brave/LumaNAV/releases/download/dev-46129851148/LumaNAV-dev-1.0.179585756.apk",
+  "notes": "# What's New in This Update\n\n- Refine portrait media-first player without altering landscape controls\n\n- Refine portrait Drive edge-to-edge and split behavior\n\n- Redesign portrait Drive and polish navigation updates\n\n- Polish Maps, AOD, HUD and Drive media UI\n\n- Use the LumaNAV brand artwork in adaptive launcher icons\n\n- Align navigation module test with six-item dock\n\n- Align unit tests with removed demo simulation state\n\n- Remove obsolete navigation and simulation leftovers\n\n- Remove obsolete navigation and simulation leftovers\n\n- Remove remaining demo sensor UI and preview code",
+  "commit": "ac93204802318b59028f7f59ba607a1f9292fd31",
   "channel": "development",
-  "buildNumber": "407"
+  "buildNumber": "410"
 }
